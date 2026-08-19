@@ -1,1 +1,0 @@
-# Maipu_AldoMartinez_006D_EquipoXX
