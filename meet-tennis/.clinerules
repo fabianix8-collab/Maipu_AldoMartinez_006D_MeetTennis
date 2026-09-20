@@ -1,0 +1,54 @@
+# Reglas de Proyecto: MeetTennis (PWA)
+
+## Arquitectura y Estructura de Directorios
+- Arquitectura estricta de 3 capas:
+  - /frontend: Interfaz de usuario (React 18+, Vite, Tailwind CSS).
+  - /backend: Servidor API REST (Node.js con ES Modules, Express).
+  - Base de Datos: Supabase (PostgreSQL en la nube).
+- REGLA CRÍTICA: El frontend NUNCA debe conectarse directamente a Supabase. Todas las operaciones de datos deben pasar por los endpoints del backend en Express (/api/...).
+
+## Estándares de Frontend
+- Enfoque Mobile-First optimizado para Progressive Web App (PWA).
+- Estilos exclusivamente con utilidades de Tailwind CSS.
+- Paleta base:
+  - Color primario: emerald-600 (verde tenis / acción)
+  - Color secundario: emerald-700 / amber-400 (detalles)
+  - Superficies oscuras: slate-900 / slate-800
+  - Textos: slate-100 (principal), slate-400 (secundario)
+- Bordes redondeados estándar: rounded-xl o rounded-2xl para tarjetas y botones.
+
+## Estándares de Backend y Base de Datos
+- Usar siempre sintaxis ES Modules (`import/export`), nunca `require()`.
+- Cliente de base de datos: Integrar exclusivamente `@supabase/supabase-js` en el backend.
+- Variables de entorno: Gestionar llaves de Supabase y puertos en archivos `.env` (nunca quemar credenciales en el código).
+- Manejo de rutas limpias agrupadas bajo el prefijo `/api` (ej. `/api/auth`, `/api/matches`, `/api/courts`).
+
+## Formato Universal de Respuestas API (JSON)
+Todos los endpoints del backend DEBEN retornar exactamente este esquema:
+
+- Caso de éxito (HTTP 200/201):
+{
+  "success": true,
+  "data": { ... },
+  "error": null
+}
+
+- Caso de error (HTTP 400/401/404/500):
+{
+  "success": false,
+  "data": null,
+  "error": "Mensaje legible del motivo del error"
+}
+
+## Convenciones de Código
+- JavaScript: camelCase para variables y funciones (ej. obtenerPartidos, userId).
+- Base de datos (Supabase): snake_case para nombres de tablas y columnas (ej. partidos_jugados, id_usuario).
+- Componentes React: PascalCase (ej. CourtCard.jsx, MatchFilter.jsx).
+- Respuestas breves: No generar explicaciones teóricas largas; implementar el código directamente.
+
+## UI/UX Design System (MeetTennis)
+- **Estilo Visual:** Diseño "Premium" deportivo con modo oscuro por defecto.
+- **Paleta de Colores:** Fondo principal oscuro (`slate-900`, `slate-800`) y acentos en verde tenis (`emerald-600`, `emerald-500`).
+- **Efecto Glassmorphism:** Los contenedores y tarjetas deben usar fondos semitransparentes (`bg-slate-900/60`), desenfoque (`backdrop-blur-md`), bordes sutiles (`border-slate-700/50`) y sombras (`shadow-2xl`).
+- **Iconografía:** Usar SIEMPRE la librería `lucide-react`. Incluir iconos en los inputs (alineados a la izquierda) y usar iconos gigantes con opacidad muy baja (ej. `opacity-5`) como marca de agua en los fondos de pantalla.
+- **Formularios y Feedback UI:** Validación en tiempo real obligatoria (onChange/onBlur). Inputs válidos deben cambiar a `border-emerald-500`. Inputs inválidos a `border-red-500` acompañados de texto rojo explicativo en la parte inferior. Botones de "Submit" deben estar deshabilitados hasta que el formulario sea 100% válido.
