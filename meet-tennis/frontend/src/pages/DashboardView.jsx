@@ -1,5 +1,7 @@
 import { LogOut, MapPin, Swords, Trophy, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import BrandLogo from '../components/BrandLogo.jsx';
+import TennisBackground from '../components/TennisBackground.jsx';
 
 const NAV_ITEMS = [
   { title: 'Buscar Partido', Icon: Swords },
@@ -29,14 +31,13 @@ function DashboardView() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-slate-900 px-4 py-8">
-      <Trophy className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 text-emerald-500 opacity-5" />
-      <Trophy className="pointer-events-none absolute -bottom-28 -left-24 h-96 w-96 rotate-12 text-emerald-500 opacity-5" />
+      <TennisBackground />
 
       <div className="relative mx-auto flex min-h-[calc(100vh-4rem)] max-w-md flex-col">
         <header className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-sm font-medium text-emerald-400">MeetTennis</p>
-            <h1 className="mt-1 text-3xl font-bold leading-tight text-slate-100">
+            <BrandLogo className="mb-4 h-20 sm:h-24" />
+            <h1 className="text-3xl font-bold leading-tight text-slate-100">
               Hola, {firstName}
             </h1>
             <p className="mt-1 text-sm text-slate-400">¿Listo para jugar hoy?</p>

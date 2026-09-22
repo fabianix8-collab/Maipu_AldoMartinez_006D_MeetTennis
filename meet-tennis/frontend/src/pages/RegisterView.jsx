@@ -10,10 +10,11 @@ import {
   Loader2,
   Lock,
   Mail,
-  Trophy,
   User,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import BrandLogo from '../components/BrandLogo.jsx';
+import TennisBackground from '../components/TennisBackground.jsx';
 
 const GENEROS = ['Hombre', 'Mujer'];
 const NIVELES = [
@@ -208,15 +209,12 @@ function RegisterView() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-slate-900 px-4 py-10">
-      <Trophy className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 text-emerald-500 opacity-5" />
-      <Trophy className="pointer-events-none absolute -bottom-28 -left-24 h-96 w-96 rotate-12 text-emerald-500 opacity-5" />
+      <TennisBackground />
 
       <div className="relative mx-auto flex min-h-screen max-w-md flex-col justify-center">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-600 shadow-2xl shadow-emerald-600/30">
-            <Trophy className="h-8 w-8 text-slate-100" />
-          </div>
-          <h1 className="text-3xl font-bold text-slate-100">Crear cuenta</h1>
+          <BrandLogo className="mx-auto mb-8 h-32 sm:h-40" />
+          <h1 className="text-2xl font-bold text-slate-100">Crear cuenta</h1>
           <p className="mt-2 text-sm text-slate-400">
             Únete a la comunidad de MeetTennis
           </p>
