@@ -2,6 +2,8 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import LoginView from './pages/LoginView.jsx';
 import RegisterView from './pages/RegisterView.jsx';
 import DashboardView from './pages/DashboardView.jsx';
+import AvailabilityView from './pages/AvailabilityView.jsx';
+import CourtsView from './pages/CourtsView.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 
 function App() {
@@ -13,6 +15,22 @@ function App() {
           element={
             <ProtectedRoute>
               <DashboardView />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/disponibilidad"
+          element={
+            <ProtectedRoute>
+              <AvailabilityView />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/canchas"
+          element={
+            <ProtectedRoute>
+              <CourtsView />
             </ProtectedRoute>
           }
         />
