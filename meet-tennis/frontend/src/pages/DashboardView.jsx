@@ -8,7 +8,7 @@ const NAV_ITEMS = [
   { title: 'Canchas Cercanas', Icon: MapPin, to: '/canchas' },
   { title: 'Mi Disponibilidad', Icon: CalendarClock, to: '/disponibilidad' },
   { title: 'Mi Ranking', Icon: Trophy, to: null },
-  { title: 'Mi Perfil', Icon: User, to: null },
+  { title: 'Mi Perfil', Icon: User, to: '/perfil' },
 ];
 
 function getStoredUser() {
