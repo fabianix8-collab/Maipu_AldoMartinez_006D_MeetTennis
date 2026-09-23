@@ -5,6 +5,7 @@ import DashboardView from './pages/DashboardView.jsx';
 import AvailabilityView from './pages/AvailabilityView.jsx';
 import CourtsView from './pages/CourtsView.jsx';
 import ProfileView from './pages/ProfileView.jsx';
+import RankingView from './pages/RankingView.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 
 function App() {
@@ -40,6 +41,14 @@ function App() {
           element={
             <ProtectedRoute>
               <ProfileView />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/ranking"
+          element={
+            <ProtectedRoute>
+              <RankingView />
             </ProtectedRoute>
           }
         />

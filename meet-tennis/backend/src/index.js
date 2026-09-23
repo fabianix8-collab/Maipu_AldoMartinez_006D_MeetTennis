@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import authRouter from './routes/auth.js';
 import courtsRouter from './routes/courts.js';
 import profileRouter from './routes/profile.js';
+import rankingRouter from './routes/ranking.js';
 
 dotenv.config();
 
@@ -30,6 +31,7 @@ app.use((req, res, next) => {
 app.use('/api/auth', authRouter);
 app.use('/api/courts', courtsRouter);
 app.use('/api/profile', profileRouter);
+app.use('/api/ranking', rankingRouter);
 
 app.get('/api/health', (req, res) => {
   res.status(200).json({
