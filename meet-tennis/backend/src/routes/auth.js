@@ -9,6 +9,14 @@ dotenv.config();
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
+// Cliente admin con service_role key para operaciones de escritura
+// que requieren bypass de RLS en la tabla 'usuario'.
+const supabaseAdmin = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY,
+);
+
+// Cliente público con anon key para operaciones de solo lectura.
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_ANON_KEY,
@@ -50,11 +58,10 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    const { data: profile, error: profileError } = await supabase
+    const { data: profiles, error: profileError } = await supabaseAdmin
       .from('usuario')
       .select('*')
-      .eq('id', user.id)
-      .single();
+      .eq('id', user.id);
 
     if (profileError) {
       return res.status(500).json({
@@ -63,6 +70,16 @@ router.post('/login', async (req, res) => {
         error: profileError.message,
       });
     }
+
+    if (!profiles || profiles.length === 0) {
+      return res.status(500).json({
+        success: false,
+        data: null,
+        error: 'Usuario no encontrado en la base de datos.',
+      });
+    }
+
+    const profile = profiles[0];
 
     return res.status(200).json({
       success: true,
@@ -173,7 +190,7 @@ router.post('/register', upload.single('avatar'), async (req, res) => {
     }
 
     // d) Insertar el perfil en la tabla pública "usuario".
-    const { data: profile, error: profileError } = await supabase
+    const { data: profiles, error: profileError } = await supabaseAdmin
       .from('usuario')
       .insert([
         {
@@ -186,8 +203,7 @@ router.post('/register', upload.single('avatar'), async (req, res) => {
           avatar_url: avatarUrl,
         },
       ])
-      .select()
-      .single();
+      .select();
 
     if (profileError) {
       return res.status(500).json({
@@ -196,6 +212,16 @@ router.post('/register', upload.single('avatar'), async (req, res) => {
         error: profileError.message,
       });
     }
+
+    if (!profiles || profiles.length === 0) {
+      return res.status(500).json({
+        success: false,
+        data: null,
+        error: 'No se pudo crear el perfil del usuario.',
+      });
+    }
+
+    const profile = profiles[0];
 
     return res.status(201).json({
       success: true,

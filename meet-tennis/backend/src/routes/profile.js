@@ -9,9 +9,11 @@ dotenv.config();
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
-const supabase = createClient(
+// Cliente admin con service_role key para operaciones de escritura
+// que requieren bypass de RLS en la tabla 'usuario'.
+const supabaseAdmin = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY,
+  process.env.SUPABASE_SERVICE_ROLE_KEY,
 );
 
 // Obtiene los datos del perfil de un usuario.
@@ -19,23 +21,30 @@ router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    const { data, error } = await supabase
+    const { data: profiles, error } = await supabaseAdmin
       .from('usuario')
       .select('*')
-      .eq('id', id)
-      .single();
+      .eq('id', id);
 
     if (error) {
-      return res.status(404).json({
+      return res.status(500).json({
         success: false,
         data: null,
         error: error.message,
       });
     }
 
+    if (!profiles || profiles.length === 0) {
+      return res.status(404).json({
+        success: false,
+        data: null,
+        error: 'Usuario no encontrado.',
+      });
+    }
+
     return res.status(200).json({
       success: true,
-      data,
+      data: profiles[0],
       error: null,
     });
   } catch (err) {
@@ -93,12 +102,11 @@ router.post('/:id/avatar', upload.single('avatar'), async (req, res) => {
 
     const avatarUrl = publicUrlData?.publicUrl;
 
-    const { data: profile, error: updateError } = await supabase
+    const { data: profiles, error: updateError } = await supabaseAdmin
       .from('usuario')
       .update({ avatar_url: avatarUrl })
       .eq('id', id)
-      .select()
-      .single();
+      .select();
 
     if (updateError) {
       return res.status(500).json({
@@ -108,9 +116,85 @@ router.post('/:id/avatar', upload.single('avatar'), async (req, res) => {
       });
     }
 
+    if (!profiles || profiles.length === 0) {
+      return res.status(404).json({
+        success: false,
+        data: null,
+        error: 'Usuario no encontrado.',
+      });
+    }
+
     return res.status(200).json({
       success: true,
-      data: profile,
+      data: profiles[0],
+      error: null,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      data: null,
+      error: 'Error interno del servidor.',
+    });
+  }
+});
+
+const CATEGORIAS_VALIDAS = [
+  '1ra Categoría',
+  '2da Categoría',
+  '3ra Categoría',
+  '4ta Categoría',
+  '5ta Categoría',
+];
+
+// Actualiza la categoría del jugador.
+// Se usa al ascender en el ranking: el usuario pasa a competir en la
+// categoría superior y su perfil queda actualizado en la base de datos.
+router.patch('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { nivel } = req.body || {};
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        data: null,
+        error: 'Falta el identificador del usuario.',
+      });
+    }
+
+    if (!nivel || !CATEGORIAS_VALIDAS.includes(nivel)) {
+      return res.status(400).json({
+        success: false,
+        data: null,
+        error: 'Categoría no válida.',
+      });
+    }
+
+    const { data: profiles, error } = await supabaseAdmin
+      .from('usuario')
+      .update({ nivel })
+      .eq('id', id)
+      .select();
+
+    if (error) {
+      return res.status(500).json({
+        success: false,
+        data: null,
+        error: error.message,
+      });
+    }
+
+    if (!profiles || profiles.length === 0) {
+      return res.status(404).json({
+        success: false,
+        data: null,
+        error: 'Usuario no encontrado.',
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: profiles[0],
       error: null,
     });
   } catch (err) {

@@ -8,27 +8,41 @@ const router = Router();
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY,
+  process.env.SUPABASE_SERVICE_ROLE_KEY,
 );
 
-// Puntaje base asociado a la categoría declarada por el jugador.
-// Actúa como rating inicial mientras no exista historial de partidos.
-const PUNTOS_POR_NIVEL = {
-  '1ra Categoría': 1600,
-  '2da Categoría': 1400,
-  '3ra Categoría': 1200,
-  '4ta Categoría': 1000,
-  '5ta Categoría': 800,
+// Categorías ordenadas de MAYOR a MENOR nivel competitivo.
+// En el tenis cada categoría es un circuito separado: los jugadores
+// compiten dentro de su categoría y solo ascienden al demostrar un
+// nivel sostenido (puntos acumulados + victorias válidas).
+export const CATEGORIAS = [
+  { nombre: '1ra Categoría', orden: 1 },
+  { nombre: '2da Categoría', orden: 2 },
+  { nombre: '3ra Categoría', orden: 3 },
+  { nombre: '4ta Categoría', orden: 4 },
+  { nombre: '5ta Categoría', orden: 5 },
+];
+
+// Requisitos para ascender desde cada categoría hacia la superior.
+// - puntos: puntos netos acumulados DENTRO de la categoría actual.
+// - victorias: cantidad mínima de victorias contra rivales de tu misma
+//   categoría o superiores (victorias "válidas"). Así no se asciende
+//   solo ganándole a categorías inferiores.
+// Subir cuesta: los umbrales son altos y cada derrota resta puntos.
+export const ASCENSOS = {
+  '5ta Categoría': { puntos: 200, victorias: 10 },
+  '4ta Categoría': { puntos: 350, victorias: 14 },
+  '3ra Categoría': { puntos: 500, victorias: 18 },
+  '2da Categoría': { puntos: 700, victorias: 22 },
+  '1ra Categoría': null, // Máxima categoría, no hay ascenso.
 };
 
-const PUNTOS_DEFECTO = 1000;
+const NOMBRES_CATEGORIAS = new Set(CATEGORIAS.map((c) => c.nombre));
+const CATEGORIA_DEFECTO = 'Sin categoría';
 
-function calcularPuntosBase(nivel) {
-  return PUNTOS_POR_NIVEL[nivel] ?? PUNTOS_DEFECTO;
-}
-
-// Lista el ranking de jugadores registrados en MeetTennis.
-// Se ordena por puntaje (según categoría) y se asigna la posición.
+// Lista el ranking separado por categorías: cada categoría tiene su
+// propia tabla de posiciones y no se mezclan jugadores de niveles
+// distintos. El puntaje de cada jugador parte desde 0 en su categoría.
 router.get('/', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -43,34 +57,55 @@ router.get('/', async (req, res) => {
       });
     }
 
-    const jugadores = (data || []).map((item) => ({
-      id: item.id,
-      nombre: item.nombre || '',
-      apellido: item.apellido || '',
-      nivel: item.nivel || 'Sin nivel',
-      avatar_url: item.avatar_url || null,
-      puntos: calcularPuntosBase(item.nivel),
-    }));
+    const ranking = {};
+    for (const categoria of CATEGORIAS) {
+      ranking[categoria.nombre] = [];
+    }
+    ranking[CATEGORIA_DEFECTO] = [];
 
-    jugadores.sort((a, b) => {
-      if (b.puntos !== a.puntos) return b.puntos - a.puntos;
-      return `${a.nombre} ${a.apellido}`.localeCompare(
-        `${b.nombre} ${b.apellido}`,
-        'es',
-      );
-    });
+    for (const item of data || []) {
+      const nivel =
+        NOMBRES_CATEGORIAS.has(item.nivel) || !item.nivel
+          ? item.nivel || CATEGORIA_DEFECTO
+          : CATEGORIA_DEFECTO;
 
-    const ranking = jugadores.map((jugador, index) => ({
-      ...jugador,
-      posicion: index + 1,
-    }));
+      ranking[nivel].push({
+        id: item.id,
+        nombre: item.nombre || '',
+        apellido: item.apellido || '',
+        nivel: item.nivel || 'Sin nivel',
+        avatar_url: item.avatar_url || null,
+        puntos: 0,
+      });
+    }
+
+    // Ordena y asigna posición dentro de cada categoría.
+    for (const categoria of Object.keys(ranking)) {
+      ranking[categoria].sort((a, b) => {
+        if (b.puntos !== a.puntos) return b.puntos - a.puntos;
+        return `${a.nombre} ${a.apellido}`.localeCompare(
+          `${b.nombre} ${b.apellido}`,
+          'es',
+        );
+      });
+      ranking[categoria] = ranking[categoria].map((jugador, index) => ({
+        ...jugador,
+        posicion: index + 1,
+      }));
+    }
+
+    const total = Object.values(ranking).reduce(
+      (acc, lista) => acc + lista.length,
+      0,
+    );
 
     return res.status(200).json({
       success: true,
       data: {
         ranking,
-        total: ranking.length,
-        puntosPorNivel: PUNTOS_POR_NIVEL,
+        total,
+        categorias: CATEGORIAS,
+        ascensos: ASCENSOS,
       },
       error: null,
     });
