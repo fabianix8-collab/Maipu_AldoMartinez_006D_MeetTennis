@@ -42,13 +42,67 @@ const labelClass = 'mb-1.5 block text-sm font-medium text-slate-400';
 
 const AVAILABILITY_KEY = 'meettennis_availability';
 
-function getUserKey() {
+function getStoredUser() {
   try {
-    const stored = JSON.parse(localStorage.getItem('meettennis_auth') || 'null');
-    return stored?.user?.id || stored?.profile?.id || 'invitado';
+    return JSON.parse(localStorage.getItem('meettennis_auth') || 'null');
   } catch {
-    return 'invitado';
+    return null;
   }
+}
+
+function getUserId() {
+  const stored = getStoredUser();
+  return stored?.user?.id || stored?.profile?.id || '';
+}
+
+function getUserKey() {
+  return getUserId() || 'invitado';
+}
+
+// Extrae la comuna desde la dirección (última parte tras la coma).
+function extraerComuna(direccion) {
+  if (!direccion) return '';
+  const partes = direccion.split(',');
+  return partes[partes.length - 1]?.trim() || '';
+}
+
+// Calcula las coordenadas de un bloque según la zona elegida:
+// - Cancha específica → sus coordenadas exactas.
+// - Comuna → promedio de las coordenadas de sus canchas.
+function obtenerCoordenadasZona(zona, canchas) {
+  const [tipoZona, nombreZona] = parseZona(zona);
+  if (!nombreZona) {
+    return { latitud: null, longitud: null, tipoZona, zona: nombreZona };
+  }
+
+  if (tipoZona === 'cancha') {
+    const cancha = canchas.find((c) => c.nombre === nombreZona);
+    if (cancha && cancha.latitud != null && cancha.longitud != null) {
+      return {
+        latitud: Number(cancha.latitud),
+        longitud: Number(cancha.longitud),
+        tipoZona,
+        zona: nombreZona,
+      };
+    }
+  }
+
+  if (tipoZona === 'comuna') {
+    const enComuna = canchas.filter(
+      (c) => extraerComuna(c.direccion) === nombreZona,
+    );
+    if (enComuna.length > 0) {
+      const latitud =
+        enComuna.reduce((suma, c) => suma + Number(c.latitud), 0) /
+        enComuna.length;
+      const longitud =
+        enComuna.reduce((suma, c) => suma + Number(c.longitud), 0) /
+        enComuna.length;
+      return { latitud, longitud, tipoZona, zona: nombreZona };
+    }
+  }
+
+  return { latitud: null, longitud: null, tipoZona, zona: nombreZona };
 }
 
 function loadSlots() {
@@ -99,6 +153,10 @@ function AvailabilityView() {
   const [canchas, setCanchas] = useState([]);
   const [comunas, setComunas] = useState([]);
   const [loadingCanchas, setLoadingCanchas] = useState(true);
+  const [ubicacion, setUbicacion] = useState(null);
+  const [geoStatus, setGeoStatus] = useState('idle');
+
+  const userId = getUserId();
 
   useEffect(() => {
     let activo = true;
@@ -119,12 +177,52 @@ function AvailabilityView() {
       }
     };
 
+    // Carga la disponibilidad publicada en el backend (compartida).
+    // Si el backend no responde, usa la copia local como respaldo.
+    const cargarDisponibilidad = async () => {
+      if (!userId) return;
+
+      try {
+        const response = await fetch(`/api/matches/availability/${userId}`);
+        const result = await response.json();
+
+        if (activo && response.ok && result.success && Array.isArray(result.data)) {
+          setSlots(result.data);
+          persistSlots(result.data);
+        }
+      } catch {
+        // Silencioso: se mantiene la disponibilidad local.
+      }
+    };
+
+    // Geolocalización opcional: mejora la recomendación de cancha.
+    const solicitarUbicacion = () => {
+      if (!('geolocation' in navigator)) return;
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          if (!activo) return;
+          setUbicacion({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          });
+          setGeoStatus('success');
+        },
+        () => {
+          if (activo) setGeoStatus('error');
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+      );
+    };
+
     cargarCanchas();
+    cargarDisponibilidad();
+    solicitarUbicacion();
 
     return () => {
       activo = false;
     };
-  }, []);
+  }, [userId]);
 
   const errors = useMemo(() => {
     const list = {};
@@ -153,27 +251,51 @@ function AvailabilityView() {
     setStatus({ type: 'idle', message: '' });
   };
 
-  const handleSubmit = (event) => {
+  // Publica la lista completa de bloques en el backend (compartida).
+  // Devuelve true si la sincronización fue exitosa.
+  const guardarEnBackend = async (lista) => {
+    if (!userId) return true;
+
+    try {
+      const response = await fetch('/api/matches/availability', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, slots: lista }),
+      });
+      const result = await response.json();
+      return response.ok && result.success;
+    } catch {
+      return false;
+    }
+  };
+
+  const handleSubmit = async (event) => {
     event.preventDefault();
     setTouched(true);
 
     if (!isValid) return;
 
-    const [tipoZona, nombreZona] = parseZona(zona);
+    // Coordenadas del bloque: geolocalización real si está disponible,
+    // si no, las derivadas de la cancha o comuna elegida.
+    const { latitud, longitud, tipoZona, zona: nombreZona } =
+      obtenerCoordenadasZona(zona, canchas);
 
     const newSlot = {
-      id: `${Date.now()}`,
+      id: crypto.randomUUID(),
       dias: selectedDays,
       desde,
       hasta,
       modalidad,
       zona: nombreZona,
       tipoZona,
+      latitud: ubicacion?.lat ?? latitud,
+      longitud: ubicacion?.lng ?? longitud,
     };
 
     const nextSlots = [...slots, newSlot];
     setSlots(nextSlots);
     persistSlots(nextSlots);
+    const sincronizado = await guardarEnBackend(nextSlots);
 
     setSelectedDays([]);
     setDesde('');
@@ -181,16 +303,25 @@ function AvailabilityView() {
     setZona('');
     setModalidad(MODALIDADES[0]);
     setTouched(false);
-    setStatus({
-      type: 'success',
-      message: 'Disponibilidad guardada correctamente.',
-    });
+    setStatus(
+      sincronizado
+        ? {
+            type: 'success',
+            message: 'Disponibilidad publicada. Otros jugadores ya pueden encontrarte.',
+          }
+        : {
+            type: 'warning',
+            message:
+              'Disponibilidad guardada en este dispositivo, pero no se pudo sincronizar con el servidor. Verifica que el backend esté activo para que otros jugadores puedan encontrarte.',
+          },
+    );
   };
 
-  const removeSlot = (id) => {
+  const removeSlot = async (id) => {
     const nextSlots = slots.filter((slot) => slot.id !== id);
     setSlots(nextSlots);
     persistSlots(nextSlots);
+    await guardarEnBackend(nextSlots);
     setStatus({ type: 'idle', message: '' });
   };
 
@@ -413,11 +544,31 @@ function AvailabilityView() {
             <p className="mt-1.5 text-xs text-slate-500">
               Elige una comuna para buscar por zona o una cancha específica.
             </p>
+
+            {geoStatus === 'success' && (
+              <p className="mt-2 flex items-center gap-1.5 text-xs text-emerald-300">
+                <MapPin className="h-3.5 w-3.5 shrink-0" />
+                Usando tu ubicación actual para recomendar la cancha más cercana.
+              </p>
+            )}
+            {geoStatus === 'error' && (
+              <p className="mt-2 text-xs text-slate-500">
+                Sin ubicación: la cancha recomendada se calculará desde la zona
+                o cancha que elijas.
+              </p>
+            )}
           </div>
 
           {status.type === 'success' && (
             <div className="mt-4 flex items-start gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm text-emerald-300">
               <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+              {status.message}
+            </div>
+          )}
+
+          {status.type === 'warning' && (
+            <div className="mt-4 flex items-start gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-300">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
               {status.message}
             </div>
           )}

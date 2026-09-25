@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import authRouter from './routes/auth.js';
 import courtsRouter from './routes/courts.js';
+import matchesRouter from './routes/matches.js';
 import profileRouter from './routes/profile.js';
 import rankingRouter from './routes/ranking.js';
 
@@ -30,6 +31,7 @@ app.use((req, res, next) => {
 
 app.use('/api/auth', authRouter);
 app.use('/api/courts', courtsRouter);
+app.use('/api/matches', matchesRouter);
 app.use('/api/profile', profileRouter);
 app.use('/api/ranking', rankingRouter);
 

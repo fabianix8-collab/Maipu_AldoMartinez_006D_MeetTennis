@@ -4,7 +4,7 @@ import BrandLogo from '../components/BrandLogo.jsx';
 import TennisBackground from '../components/TennisBackground.jsx';
 
 const NAV_ITEMS = [
-  { title: 'Buscar Partido', Icon: Swords, to: null },
+  { title: 'Buscar Partido', Icon: Swords, to: '/buscar-partido' },
   { title: 'Canchas Cercanas', Icon: MapPin, to: '/canchas' },
   { title: 'Mi Disponibilidad', Icon: CalendarClock, to: '/disponibilidad' },
   { title: 'Mi Ranking', Icon: Trophy, to: '/ranking' },
