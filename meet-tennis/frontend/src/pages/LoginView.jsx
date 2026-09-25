@@ -243,6 +243,30 @@ function LoginView() {
               Regístrate
             </Link>
           </p>
+
+          <a
+            href="https://www.instagram.com/meettennischl/"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Síguenos en Instagram"
+            className="mt-6 flex items-center justify-center gap-2 text-xs text-slate-500 transition-colors hover:text-emerald-400"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-4 w-4"
+            >
+              <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+              <circle cx="12" cy="12" r="5" />
+              <circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none" />
+            </svg>
+            @meettennischl
+          </a>
         </form>
       </div>
     </div>

@@ -206,6 +206,85 @@ function RankingView() {
   const [rankingError, setRankingError] = useState('');
   const [categoriaActiva, setCategoriaActiva] = useState(miCategoria);
   const [ascendiendo, setAscendiendo] = useState(false);
+  const [seedLoading, setSeedLoading] = useState(false);
+
+  const generarDatosEjemplo = async () => {
+    setSeedLoading(true);
+    setStatus({ type: 'idle', message: '' });
+    try {
+      const response = await fetch('/api/ranking/seed');
+      const result = await response.json();
+
+      if (response.ok && result.success && result.data) {
+        const { partidos: seedPartidos, puntos: seedPuntos } = result.data;
+
+        // Guardar partidos en localStorage agrupados por userId
+        const raw = JSON.parse(localStorage.getItem(RANKING_KEY) || '{}');
+
+        for (const [userId, partidosList] of Object.entries(seedPartidos)) {
+          if (!raw[userId]) {
+            raw[userId] = [];
+          }
+          const existentes = new Set(raw[userId].map((p) => p.id));
+          const nuevos = partidosList.filter((p) => !existentes.has(p.id));
+          raw[userId] = [...raw[userId], ...nuevos];
+        }
+
+        localStorage.setItem(RANKING_KEY, JSON.stringify(raw));
+        setPartidos(loadPartidos());
+
+        // Actualizar el ranking con los puntos calculados por el backend
+        // para TODOS los usuarios (no solo el actual)
+        setRanking((prevRanking) => {
+          const nuevoRanking = { ...prevRanking };
+          for (const [userId, puntos] of Object.entries(seedPuntos)) {
+            // Buscar en qué categoría está este usuario y actualizar sus puntos
+            for (const categoria of Object.keys(nuevoRanking)) {
+              const jugadores = nuevoRanking[categoria];
+              if (Array.isArray(jugadores)) {
+                const idx = jugadores.findIndex((j) => j.id === userId);
+                if (idx >= 0) {
+                  const copia = [...jugadores];
+                  copia[idx] = { ...copia[idx], puntos };
+                  nuevoRanking[categoria] = copia;
+                }
+              }
+            }
+          }
+          return nuevoRanking;
+        });
+
+        setStatus({
+          type: 'success',
+          message: 'Datos de ejemplo generados. Puntos y ranking actualizados.',
+        });
+      } else {
+        setStatus({
+          type: 'error',
+          message: result.error || 'No se pudieron generar los datos.',
+        });
+      }
+    } catch {
+      setStatus({
+        type: 'error',
+        message: 'No se pudo conectar con el servidor.',
+      });
+    } finally {
+      setSeedLoading(false);
+    }
+  };
+
+  const handleReiniciar = () => {
+    // Limpiar todos los partidos guardados en localStorage
+    localStorage.removeItem(RANKING_KEY);
+    setPartidos([]);
+    setStatus({
+      type: 'success',
+      message: 'Todos los datos de partidos han sido eliminados. Los puntos se recalcularán automáticamente.',
+    });
+    // Recargar ranking desde el backend para resetear puntos
+    cargarRanking();
+  };
 
   const cargarRanking = async () => {
     try {
@@ -542,6 +621,33 @@ function RankingView() {
             <ArrowLeft className="h-5 w-5" />
           </Link>
         </header>
+
+        {/* Botones de testing (solo en desarrollo) */}
+        {import.meta.env.DEV && (
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={generarDatosEjemplo}
+              disabled={seedLoading}
+              className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-slate-700/50 bg-slate-800/30 px-3 py-2 text-xs font-medium text-slate-500 transition-colors hover:border-emerald-500/40 hover:text-emerald-400 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {seedLoading ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Swords className="h-3.5 w-3.5" />
+              )}
+              {seedLoading ? 'Generando...' : 'Generar datos'}
+            </button>
+            <button
+              type="button"
+              onClick={handleReiniciar}
+              className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-red-700/40 bg-red-900/15 px-3 py-2 text-xs font-medium text-red-400/70 transition-colors hover:border-red-500/50 hover:text-red-400"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Reiniciar datos
+            </button>
+          </div>
+        )}
 
         {/* Tarjeta principal: puntos, categoría y posición */}
         <section className="mt-6 rounded-2xl border border-slate-700/50 bg-slate-900/60 p-6 shadow-2xl backdrop-blur-md">
@@ -961,7 +1067,7 @@ function RankingView() {
               puntos en tu categoría.
             </p>
           ) : (
-            <ul className="grid gap-3">
+            <ul className="grid gap-3 overflow-y-auto overscroll-contain max-h-80 pr-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-track]:bg-slate-800 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-600">
               {partidos.map((partido) => {
                 const gano = partido.resultado === 'Ganado';
                 const enCategoria = partido.categoria === miCategoria;
