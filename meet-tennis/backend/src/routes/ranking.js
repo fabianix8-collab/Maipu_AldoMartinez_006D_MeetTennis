@@ -149,7 +149,16 @@ function calcularPuntosUsuario(miNivel, partidos) {
 
 // Genera partidos de ejemplo para todos los usuarios registrados
 // y devuelve también los puntos calculados por usuario/categoría.
+// Solo disponible en desarrollo: en producción no se inventan partidos.
 router.get('/seed', async (req, res) => {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(404).json({
+      success: false,
+      data: null,
+      error: 'No encontrado.',
+    });
+  }
+
   try {
     const { data: usuarios, error } = await supabase
       .from('usuario')

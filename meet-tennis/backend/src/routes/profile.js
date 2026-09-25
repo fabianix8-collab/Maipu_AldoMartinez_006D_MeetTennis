@@ -3,6 +3,7 @@ import multer from 'multer';
 import dotenv from 'dotenv';
 import { randomUUID } from 'crypto';
 import { createClient } from '@supabase/supabase-js';
+import { requireAuth, requireSelf } from '../middleware/auth.js';
 
 dotenv.config();
 
@@ -58,7 +59,8 @@ router.get('/:id', async (req, res) => {
 
 // Actualiza la foto de perfil: sube la imagen al bucket "avatars"
 // y guarda la URL pública en la tabla usuario.
-router.post('/:id/avatar', upload.single('avatar'), async (req, res) => {
+// Requiere sesión y que el usuario modifique solo su propio perfil.
+router.post('/:id/avatar', requireAuth, requireSelf, upload.single('avatar'), async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -81,7 +83,7 @@ router.post('/:id/avatar', upload.single('avatar'), async (req, res) => {
     const extension = req.file.mimetype.split('/')[1] || 'jpg';
     const avatarPath = `${randomUUID()}.${extension}`;
 
-    const { error: uploadError } = await supabase.storage
+    const { error: uploadError } = await supabaseAdmin.storage
       .from('avatars')
       .upload(avatarPath, req.file.buffer, {
         contentType: req.file.mimetype,
@@ -96,7 +98,7 @@ router.post('/:id/avatar', upload.single('avatar'), async (req, res) => {
       });
     }
 
-    const { data: publicUrlData } = supabase.storage
+    const { data: publicUrlData } = supabaseAdmin.storage
       .from('avatars')
       .getPublicUrl(avatarPath);
 
@@ -149,7 +151,10 @@ const CATEGORIAS_VALIDAS = [
 // Actualiza la categoría del jugador.
 // Se usa al ascender en el ranking: el usuario pasa a competir en la
 // categoría superior y su perfil queda actualizado en la base de datos.
-router.patch('/:id', async (req, res) => {
+// Solo se permite subir UNA categoría a la vez y sobre el propio perfil.
+// TODO: validar puntos y victorias en el servidor cuando los partidos
+// se guarden en Supabase (hoy viven en el navegador del jugador).
+router.patch('/:id', requireAuth, requireSelf, async (req, res) => {
   try {
     const { id } = req.params;
     const { nivel } = req.body || {};
@@ -167,6 +172,39 @@ router.patch('/:id', async (req, res) => {
         success: false,
         data: null,
         error: 'Categoría no válida.',
+      });
+    }
+
+    const { data: actual, error: actualError } = await supabaseAdmin
+      .from('usuario')
+      .select('nivel')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (actualError) {
+      return res.status(500).json({
+        success: false,
+        data: null,
+        error: actualError.message,
+      });
+    }
+
+    if (!actual) {
+      return res.status(404).json({
+        success: false,
+        data: null,
+        error: 'Usuario no encontrado.',
+      });
+    }
+
+    // La lista va de mayor a menor nivel: ascender = índice anterior.
+    const indiceActual = CATEGORIAS_VALIDAS.indexOf(actual.nivel);
+    const indiceNuevo = CATEGORIAS_VALIDAS.indexOf(nivel);
+    if (indiceActual === -1 || indiceNuevo !== indiceActual - 1) {
+      return res.status(400).json({
+        success: false,
+        data: null,
+        error: 'Solo puedes ascender a la categoría inmediatamente superior.',
       });
     }
 
