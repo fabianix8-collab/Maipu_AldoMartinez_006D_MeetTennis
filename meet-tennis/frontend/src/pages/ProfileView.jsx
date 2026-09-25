@@ -14,6 +14,7 @@ import {
 import { Link } from 'react-router-dom';
 import BrandLogo from '../components/BrandLogo.jsx';
 import TennisBackground from '../components/TennisBackground.jsx';
+import { apiFetch } from '../lib/api.js';
 
 const labelClass = 'text-xs font-medium uppercase tracking-wide text-slate-500';
 const BIO_KEY = 'meettennis_bio';
@@ -103,7 +104,7 @@ function ProfileView() {
     setAvatarStatus({ type: 'idle', message: '' });
 
     try {
-      const response = await fetch(`/api/profile/${userId}/avatar`, {
+      const response = await apiFetch(`/api/profile/${userId}/avatar`, {
         method: 'POST',
         body: formData,
       });

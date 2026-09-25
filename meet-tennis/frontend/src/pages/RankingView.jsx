@@ -25,6 +25,7 @@ import {
 import { Link } from 'react-router-dom';
 import BrandLogo from '../components/BrandLogo.jsx';
 import TennisBackground from '../components/TennisBackground.jsx';
+import { apiFetch } from '../lib/api.js';
 
 const inputBase =
   'w-full rounded-xl border border-slate-700/50 bg-slate-800/70 px-4 py-3 text-slate-100 placeholder-slate-500 outline-none transition-colors focus:border-emerald-500';
@@ -538,7 +539,7 @@ function RankingView() {
 
     setAscendiendo(true);
     try {
-      const response = await fetch(`/api/profile/${userId}`, {
+      const response = await apiFetch(`/api/profile/${userId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nivel: proximaCategoria }),
