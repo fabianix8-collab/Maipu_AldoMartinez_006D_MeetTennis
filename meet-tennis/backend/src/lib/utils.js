@@ -30,3 +30,11 @@ export function distanciaKm(lat1, lon1, lat2, lon2) {
 
   return 2 * RADIO_TIERRA * Math.asin(Math.sqrt(a));
 }
+
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Valida un id de usuario antes de usarlo en consultas o filtros.
+export function esUuid(valor) {
+  return typeof valor === 'string' && UUID_REGEX.test(valor);
+}

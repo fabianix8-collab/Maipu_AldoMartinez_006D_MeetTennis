@@ -4,6 +4,8 @@ import dotenv from 'dotenv';
 import { randomUUID } from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 import { requireAuth, requireSelf } from '../middleware/auth.js';
+import { categoriaSuperior, NOMBRES_CATEGORIAS, resumenJugador } from '../lib/ranking.js';
+import { partidosConfirmadosPorJugador } from './ranking.js';
 
 dotenv.config();
 
@@ -158,34 +160,16 @@ router.post('/:id/avatar', requireAuth, requireSelf, upload.single('avatar'), as
   }
 });
 
-const CATEGORIAS_VALIDAS = [
-  '1ra Categoría',
-  '2da Categoría',
-  '3ra Categoría',
-  '4ta Categoría',
-  '5ta Categoría',
-];
-
-// Actualiza la categoría del jugador.
-// Se usa al ascender en el ranking: el usuario pasa a competir en la
-// categoría superior y su perfil queda actualizado en la base de datos.
-// Solo se permite subir UNA categoría a la vez y sobre el propio perfil.
-// TODO: validar puntos y victorias en el servidor cuando los partidos
-// se guarden en Supabase (hoy viven en el navegador del jugador).
+// Asciende al jugador a la categoría inmediatamente superior.
+// El servidor verifica los requisitos (puntos y victorias válidas) con
+// los partidos confirmados; el cliente no puede saltárselos.
+// Body: { nivel } — la categoría a la que asciende.
 router.patch('/:id', requireAuth, requireSelf, async (req, res) => {
   try {
     const { id } = req.params;
     const { nivel } = req.body || {};
 
-    if (!id) {
-      return res.status(400).json({
-        success: false,
-        data: null,
-        error: 'Falta el identificador del usuario.',
-      });
-    }
-
-    if (!nivel || !CATEGORIAS_VALIDAS.includes(nivel)) {
+    if (!nivel || !NOMBRES_CATEGORIAS.includes(nivel)) {
       return res.status(400).json({
         success: false,
         data: null,
@@ -215,14 +199,22 @@ router.patch('/:id', requireAuth, requireSelf, async (req, res) => {
       });
     }
 
-    // La lista va de mayor a menor nivel: ascender = índice anterior.
-    const indiceActual = CATEGORIAS_VALIDAS.indexOf(actual.nivel);
-    const indiceNuevo = CATEGORIAS_VALIDAS.indexOf(nivel);
-    if (indiceActual === -1 || indiceNuevo !== indiceActual - 1) {
+    if (nivel !== categoriaSuperior(actual.nivel)) {
       return res.status(400).json({
         success: false,
         data: null,
         error: 'Solo puedes ascender a la categoría inmediatamente superior.',
+      });
+    }
+
+    const partidos = (await partidosConfirmadosPorJugador([id])).get(id) || [];
+    const resumen = resumenJugador(id, actual.nivel, partidos);
+
+    if (!resumen.puedeAscender) {
+      return res.status(403).json({
+        success: false,
+        data: null,
+        error: `Aún no cumples los requisitos: necesitas ${resumen.requisito.puntos} pts y ${resumen.requisito.victorias} victorias válidas (tienes ${resumen.puntos} pts y ${resumen.victoriasValidas}).`,
       });
     }
 

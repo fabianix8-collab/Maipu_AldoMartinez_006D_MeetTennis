@@ -2,8 +2,8 @@ import { Router } from 'express';
 import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import { requireAuth } from '../middleware/auth.js';
-import { CATEGORIAS } from './ranking.js';
-import { hoyChile } from '../lib/utils.js';
+import { categoriaEfectiva, partidoDesde } from '../lib/ranking.js';
+import { esUuid, hoyChile } from '../lib/utils.js';
 
 dotenv.config();
 
@@ -13,10 +13,6 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY,
 );
-
-const NOMBRES_CATEGORIAS = new Set(CATEGORIAS.map((c) => c.nombre));
-// Los jugadores sin categoría compiten en la más baja.
-const CATEGORIA_BASE = '5ta Categoría';
 
 // Acepta marcadores como "6-4", "6-4 6-3" o "6-4, 3-6, 7-5".
 const MARCADOR_REGEX =
@@ -30,20 +26,31 @@ const COLUMNAS = `id, jugador1_id, jugador2_id, ganador_id, categoria_j1, catego
   jugador2:usuario!partidos_jugador2_id_fkey(${JUGADOR}),
   cancha:canchas(id, nombre)`;
 
-function categoriaEfectiva(nivel) {
-  return NOMBRES_CATEGORIAS.has(nivel) ? nivel : CATEGORIA_BASE;
+// El marcador se guarda desde el punto de vista de quien lo registró
+// ("6-4" = ganó 6 games). Para el rival se invierte cada set ("4-6").
+function invertirMarcador(marcador) {
+  return marcador?.replace(/(\d{1,2})\s*-\s*(\d{1,2})/g, '$2-$1') ?? null;
 }
 
 // Presenta el partido desde el punto de vista del usuario autenticado.
 function vistaPara(partido, userId) {
   const soyJ1 = partido.jugador1_id === userId;
+  const { miCategoria, rivalCategoria, gano, puntos, victoriaValida } = partidoDesde(
+    partido,
+    userId,
+  );
+
   return {
     id: partido.id,
     rival: soyJ1 ? partido.jugador2 : partido.jugador1,
-    miCategoria: soyJ1 ? partido.categoria_j1 : partido.categoria_j2,
-    rivalCategoria: soyJ1 ? partido.categoria_j2 : partido.categoria_j1,
-    resultado: partido.ganador_id === userId ? 'Ganado' : 'Perdido',
-    marcador: partido.marcador,
+    miCategoria,
+    rivalCategoria,
+    resultado: gano ? 'Ganado' : 'Perdido',
+    // Puntos que vale el partido para mí (solo suman si está confirmado
+    // y se jugó en mi categoría actual).
+    puntos,
+    victoriaValida,
+    marcador: soyJ1 ? partido.marcador : invertirMarcador(partido.marcador),
     fecha: partido.fecha,
     cancha: partido.cancha,
     estado: partido.estado,
@@ -62,18 +69,22 @@ function idValido(id) {
 router.use(requireAuth);
 
 // Lista los partidos del usuario autenticado (como jugador1 o jugador2),
-// del más reciente al más antiguo.
+// del más reciente al más antiguo, junto con su categoría actual.
 router.get('/', async (req, res) => {
   try {
     const userId = req.user.id;
 
-    const { data, error } = await supabaseAdmin
-      .from('partidos')
-      .select(COLUMNAS)
-      .or(`jugador1_id.eq.${userId},jugador2_id.eq.${userId}`)
-      .order('fecha', { ascending: false })
-      .order('created_at', { ascending: false });
+    const [partidosRes, yoRes] = await Promise.all([
+      supabaseAdmin
+        .from('partidos')
+        .select(COLUMNAS)
+        .or(`jugador1_id.eq.${userId},jugador2_id.eq.${userId}`)
+        .order('fecha', { ascending: false })
+        .order('created_at', { ascending: false }),
+      supabaseAdmin.from('usuario').select('nivel').eq('id', userId).maybeSingle(),
+    ]);
 
+    const error = partidosRes.error || yoRes.error;
     if (error) {
       return res.status(500).json({
         success: false,
@@ -84,7 +95,10 @@ router.get('/', async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      data: (data || []).map((p) => vistaPara(p, userId)),
+      data: {
+        miCategoria: categoriaEfectiva(yoRes.data?.nivel),
+        partidos: (partidosRes.data || []).map((p) => vistaPara(p, userId)),
+      },
       error: null,
     });
   } catch (err) {
@@ -104,7 +118,7 @@ router.post('/', async (req, res) => {
     const userId = req.user.id;
     const { rival_id, resultado, marcador, fecha, cancha_id } = req.body || {};
 
-    if (!rival_id || rival_id === userId) {
+    if (!esUuid(rival_id) || rival_id === userId) {
       return res.status(400).json({
         success: false,
         data: null,
@@ -167,6 +181,35 @@ router.post('/', async (req, res) => {
         success: false,
         data: null,
         error: 'El rival no existe.',
+      });
+    }
+
+    // Evita el doble registro (p. ej. que ambos jugadores registren el
+    // mismo partido): uno no rechazado entre los dos en la misma fecha.
+    const { data: repetidos, error: repetidoError } = await supabaseAdmin
+      .from('partidos')
+      .select('id')
+      .or(
+        `and(jugador1_id.eq.${userId},jugador2_id.eq.${rival_id}),` +
+          `and(jugador1_id.eq.${rival_id},jugador2_id.eq.${userId})`,
+      )
+      .eq('fecha', fecha)
+      .neq('estado', 'rechazado')
+      .limit(1);
+
+    if (repetidoError) {
+      return res.status(500).json({
+        success: false,
+        data: null,
+        error: repetidoError.message,
+      });
+    }
+
+    if (repetidos.length > 0) {
+      return res.status(409).json({
+        success: false,
+        data: null,
+        error: 'Ya hay un partido registrado con este rival en esa fecha.',
       });
     }
 

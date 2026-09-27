@@ -5,6 +5,7 @@ import {
   Calendar,
   CalendarClock,
   CheckCircle2,
+  ClipboardCheck,
   Clock,
   Loader2,
   MapPin,
@@ -22,6 +23,7 @@ import { Link } from 'react-router-dom';
 import BrandLogo from '../components/BrandLogo.jsx';
 import TennisBackground from '../components/TennisBackground.jsx';
 import { apiFetch } from '../lib/api.js';
+import { formatFecha, hoyISO, iniciales } from '../lib/formato.js';
 
 const CATEGORIAS = [
   '1ra Categoría',
@@ -69,23 +71,30 @@ function formatZona(slot) {
   return '';
 }
 
-function hoyISO() {
-  const now = new Date();
-  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
-  return local.toISOString().slice(0, 10);
-}
+// En una solicitud aceptada: si el partido ya se jugó, lleva a registrar
+// el resultado con rival, fecha y cancha precargados.
+function RegistrarResultado({ solicitud, rivalId }) {
+  if (solicitud.fecha > hoyISO()) {
+    return (
+      <p className="mt-3 flex items-center justify-center gap-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/5 py-2 text-xs font-semibold text-emerald-300">
+        <Calendar className="h-3.5 w-3.5" />
+        Partido programado para el {formatFecha(solicitud.fecha)}
+      </p>
+    );
+  }
 
-function formatFecha(fecha) {
-  if (!fecha) return 'Sin fecha';
-  const [anio, mes, dia] = String(fecha).split('-');
-  if (!anio || !mes || !dia) return fecha;
-  return `${dia}/${mes}/${anio}`;
-}
+  const params = new URLSearchParams({ rival: rivalId, fecha: solicitud.fecha });
+  if (solicitud.cancha?.id) params.set('cancha', String(solicitud.cancha.id));
 
-function iniciales(nombre, apellido) {
-  const primera = (nombre || '').trim().charAt(0);
-  const segunda = (apellido || '').trim().charAt(0);
-  return `${primera}${segunda}`.toUpperCase() || '?';
+  return (
+    <Link
+      to={`/mis-partidos?${params.toString()}`}
+      className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-slate-100 transition-colors hover:bg-emerald-700"
+    >
+      <ClipboardCheck className="h-4 w-4" />
+      Registrar resultado
+    </Link>
+  );
 }
 
 function MatchmakingView() {
@@ -964,6 +973,13 @@ function MatchmakingView() {
                       </button>
                     </div>
                   )}
+
+                  {solicitud.estado === 'aceptada' && (
+                    <RegistrarResultado
+                      solicitud={solicitud}
+                      rivalId={solicitud.solicitante_id}
+                    />
+                  )}
                 </li>
               ))}
             </ul>
@@ -1022,6 +1038,13 @@ function MatchmakingView() {
                       <XCircle className="h-3.5 w-3.5" />
                       Cancelar solicitud
                     </button>
+                  )}
+
+                  {solicitud.estado === 'aceptada' && (
+                    <RegistrarResultado
+                      solicitud={solicitud}
+                      rivalId={solicitud.receptor_id}
+                    />
                   )}
                 </li>
               ))}

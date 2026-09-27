@@ -2,7 +2,7 @@ import { Router } from 'express';
 import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import { requireAuth } from '../middleware/auth.js';
-import { distanciaKm, extraerComuna, hoyChile } from '../lib/utils.js';
+import { distanciaKm, esUuid, extraerComuna, hoyChile } from '../lib/utils.js';
 
 dotenv.config();
 
@@ -16,8 +16,6 @@ const supabaseAdmin = createClient(
 const MODALIDADES = ['Disponible para jugar', 'Buscando partido'];
 const HORA_REGEX = /^([01]\d|2[0-3]):[0-5]\d$/;
 const FECHA_REGEX = /^\d{4}-\d{2}-\d{2}$/;
-const UUID_REGEX =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MENSAJE_MAX = 300;
 
 const JUGADOR = 'id, nombre, apellido, nivel, avatar_url';
@@ -198,7 +196,7 @@ router.get('/recommend-court', async (req, res) => {
     const userId = req.user.id;
     const { rivalId } = req.query;
 
-    if (!UUID_REGEX.test(rivalId || '') || rivalId === userId) {
+    if (!esUuid(rivalId) || rivalId === userId) {
       return res.status(400).json({
         success: false,
         data: null,
@@ -334,7 +332,7 @@ router.post('/requests', async (req, res) => {
     const { receptor_id, fecha, hora_desde, hora_hasta, cancha_id, mensaje } =
       req.body || {};
 
-    if (!UUID_REGEX.test(receptor_id || '') || receptor_id === userId) {
+    if (!esUuid(receptor_id) || receptor_id === userId) {
       return res.status(400).json({
         success: false,
         data: null,

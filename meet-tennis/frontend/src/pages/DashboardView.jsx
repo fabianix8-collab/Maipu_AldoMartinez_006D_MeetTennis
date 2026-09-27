@@ -1,15 +1,32 @@
-import { CalendarClock, LogOut, MapPin, Swords, Trophy, User } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import {
+  CalendarClock,
+  ClipboardCheck,
+  LogOut,
+  MapPin,
+  Swords,
+  Trophy,
+  User,
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import BrandLogo from '../components/BrandLogo.jsx';
 import TennisBackground from '../components/TennisBackground.jsx';
+import { apiFetch } from '../lib/api.js';
 
+// "ancho": ocupa las dos columnas. "aviso": clave del contador de pendientes.
 const NAV_ITEMS = [
-  { title: 'Buscar Partido', Icon: Swords, to: '/buscar-partido' },
-  { title: 'Canchas Cercanas', Icon: MapPin, to: '/canchas' },
-  { title: 'Mi Disponibilidad', Icon: CalendarClock, to: '/disponibilidad' },
+  { title: 'Buscar Partido', Icon: Swords, to: '/buscar-partido', ancho: true, aviso: 'solicitudes' },
+  { title: 'Mis Partidos', Icon: ClipboardCheck, to: '/mis-partidos', aviso: 'partidos' },
   { title: 'Mi Ranking', Icon: Trophy, to: '/ranking' },
-  { title: 'Mi Perfil', Icon: User, to: '/perfil' },
+  { title: 'Mi Disponibilidad', Icon: CalendarClock, to: '/disponibilidad' },
+  { title: 'Canchas Cercanas', Icon: MapPin, to: '/canchas' },
+  { title: 'Mi Perfil', Icon: User, to: '/perfil', ancho: true },
 ];
+
+const TEXTO_AVISO = {
+  solicitudes: (n) => `${n} ${n === 1 ? 'solicitud pendiente' : 'solicitudes pendientes'}`,
+  partidos: (n) => `${n} por confirmar`,
+};
 
 function getStoredUser() {
   try {
@@ -25,6 +42,44 @@ function DashboardView() {
 
   const firstName = storedUser?.profile?.nombre || 'Deportista';
   const avatarUrl = storedUser?.profile?.avatar_url || null;
+
+  // Pendientes que requieren una acción del usuario.
+  const [avisos, setAvisos] = useState({ solicitudes: 0, partidos: 0 });
+
+  useEffect(() => {
+    let activo = true;
+
+    const cargar = async () => {
+      try {
+        const [solicitudesRes, partidosRes] = await Promise.all([
+          apiFetch('/api/matchmaking/requests'),
+          apiFetch('/api/matches'),
+        ]);
+        const [solicitudes, partidos] = await Promise.all([
+          solicitudesRes.json(),
+          partidosRes.json(),
+        ]);
+        if (!activo) return;
+
+        setAvisos({
+          solicitudes: solicitudes.success
+            ? solicitudes.data.recibidas.filter((s) => s.estado === 'pendiente').length
+            : 0,
+          partidos: partidos.success
+            ? partidos.data.partidos.filter((p) => p.puedoConfirmar).length
+            : 0,
+        });
+      } catch {
+        // Silencioso: el menú funciona igual sin contadores.
+      }
+    };
+
+    cargar();
+
+    return () => {
+      activo = false;
+    };
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('meettennis_auth');
@@ -75,22 +130,27 @@ function DashboardView() {
         </header>
 
         <nav className="mt-10 grid grid-cols-2 gap-4">
-          {NAV_ITEMS.map(({ title, Icon, to }, index) => {
-            const destacado = index === 0;
+          {NAV_ITEMS.map(({ title, Icon, to, ancho, aviso }) => {
+            const pendientes = aviso ? avisos[aviso] : 0;
             return (
               <button
                 type="button"
                 key={title}
                 onClick={() => to && navigate(to)}
-                className={`group flex items-center justify-center gap-4 rounded-2xl border border-slate-700/50 bg-slate-800/60 p-5 text-slate-100 shadow-2xl backdrop-blur-md transition-all duration-200 hover:-translate-y-1 hover:border-emerald-500/50 hover:bg-slate-800/80 ${
-                  destacado ? 'col-span-2' : 'aspect-square flex-col'
+                className={`group relative flex items-center justify-center gap-4 rounded-2xl border border-slate-700/50 bg-slate-800/60 p-5 text-slate-100 shadow-2xl backdrop-blur-md transition-all duration-200 hover:-translate-y-1 hover:border-emerald-500/50 hover:bg-slate-800/80 ${
+                  ancho ? 'col-span-2' : 'aspect-square flex-col'
                 }`}
               >
+                {pendientes > 0 && (
+                  <span className="absolute right-3 top-3 rounded-full bg-amber-400 px-2 py-0.5 text-[11px] font-bold text-slate-900 shadow-lg">
+                    {ancho ? TEXTO_AVISO[aviso](pendientes) : pendientes}
+                  </span>
+                )}
                 <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-emerald-600/15 text-emerald-400 transition-colors group-hover:bg-emerald-600/25 group-hover:text-emerald-300">
                   <Icon className="h-8 w-8" />
                 </span>
                 <span
-                  className={`font-semibold ${destacado ? 'text-base' : 'text-sm'}`}
+                  className={`font-semibold ${ancho ? 'text-base' : 'text-sm'}`}
                 >
                   {title}
                 </span>
