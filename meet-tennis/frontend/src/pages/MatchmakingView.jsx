@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
   ArrowLeft,
+  Bell,
   Calendar,
   CalendarClock,
   CheckCircle2,
@@ -127,7 +128,6 @@ function MatchmakingView() {
   });
 
   const [solicitudes, setSolicitudes] = useState({ recibidas: [], enviadas: [] });
-  const [loadingSolicitudes, setLoadingSolicitudes] = useState(true);
   const [errorSolicitudes, setErrorSolicitudes] = useState('');
   const [recargarSolicitudes, setRecargarSolicitudes] = useState(0);
 
@@ -232,8 +232,6 @@ function MatchmakingView() {
         }
       } catch {
         if (activo) setErrorSolicitudes('No se pudo conectar con el servidor.');
-      } finally {
-        if (activo) setLoadingSolicitudes(false);
       }
     };
 
@@ -394,6 +392,94 @@ function MatchmakingView() {
     );
   };
 
+  const recibidasPendientes = solicitudes.recibidas.filter((s) => s.estado === 'pendiente');
+  const recibidasRespondidas = solicitudes.recibidas.filter((s) => s.estado !== 'pendiente');
+
+  // Tarjeta de una solicitud recibida (pendiente o ya respondida).
+  const renderRecibida = (solicitud) => (
+    <li
+      key={solicitud.id}
+      className={`rounded-2xl border p-4 shadow-2xl backdrop-blur-md ${
+        solicitud.estado === 'pendiente'
+          ? 'border-amber-500/40 bg-amber-500/5'
+          : 'border-slate-700/50 bg-slate-800/60'
+      }`}
+    >
+      <div className="flex items-start gap-3">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-800 text-sm font-bold text-emerald-300">
+          {iniciales(
+            solicitud.solicitante?.nombre,
+            solicitud.solicitante?.apellido,
+          )}
+        </span>
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate text-sm font-semibold text-slate-100">
+            {solicitud.solicitante?.nombre}{' '}
+            {solicitud.solicitante?.apellido}
+          </h3>
+          <p className="mt-0.5 text-xs text-slate-400">
+            {solicitud.solicitante?.nivel || 'Sin nivel'}
+          </p>
+        </div>
+        <span
+          className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${ESTILO_ESTADO[solicitud.estado]}`}
+        >
+          {solicitud.estado}
+        </span>
+      </div>
+
+      <div className="mt-3 grid gap-1.5 text-xs text-slate-300">
+        {solicitud.fecha && (
+          <p className="flex items-center gap-1.5">
+            <Calendar className="h-3.5 w-3.5 text-slate-500" />
+            {formatFecha(solicitud.fecha)}
+            {solicitud.hora_desde &&
+              ` · ${solicitud.hora_desde} - ${solicitud.hora_hasta}`}
+          </p>
+        )}
+        {solicitud.cancha?.nombre && (
+          <p className="flex items-center gap-1.5">
+            <MapPin className="h-3.5 w-3.5 text-slate-500" />
+            {solicitud.cancha?.nombre}
+          </p>
+        )}
+        {solicitud.mensaje && (
+          <p className="mt-1 rounded-lg bg-slate-900/60 p-2 text-slate-400">
+            “{solicitud.mensaje}”
+          </p>
+        )}
+      </div>
+
+      {solicitud.estado === 'pendiente' && (
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => responderSolicitud(solicitud.id, 'aceptar')}
+            className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-slate-100 transition-colors hover:bg-emerald-700"
+          >
+            <CheckCircle2 className="h-4 w-4" />
+            Aceptar
+          </button>
+          <button
+            type="button"
+            onClick={() => responderSolicitud(solicitud.id, 'rechazar')}
+            className="flex items-center justify-center gap-2 rounded-xl border border-red-500/40 bg-red-500/10 py-2.5 text-sm font-semibold text-red-300 transition-colors hover:bg-red-500/20"
+          >
+            <XCircle className="h-4 w-4" />
+            Rechazar
+          </button>
+        </div>
+      )}
+
+      {solicitud.estado === 'aceptada' && (
+        <RegistrarResultado
+          solicitud={solicitud}
+          rivalId={solicitud.solicitante_id}
+        />
+      )}
+    </li>
+  );
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-slate-900 px-4 py-8">
       <TennisBackground />
@@ -425,6 +511,24 @@ function MatchmakingView() {
             <ArrowLeft className="h-5 w-5" />
           </Link>
         </header>
+
+        {errorSolicitudes && (
+          <p className="mt-6 flex items-start gap-2 rounded-2xl border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-300">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            {errorSolicitudes}
+          </p>
+        )}
+
+        {/* Solicitudes por responder: lo más urgente va primero */}
+        {recibidasPendientes.length > 0 && (
+          <section className="mt-8">
+            <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-amber-300">
+              <Bell className="h-4 w-4" />
+              Por responder ({recibidasPendientes.length})
+            </h2>
+            <ul className="grid gap-3">{recibidasPendientes.map(renderRecibida)}</ul>
+          </section>
+        )}
 
         {/* Mi disponibilidad */}
         <section className="mt-8 rounded-2xl border border-slate-700/50 bg-slate-900/60 p-5 shadow-2xl backdrop-blur-md">
@@ -879,112 +983,15 @@ function MatchmakingView() {
           )}
         </section>
 
-        {/* Solicitudes recibidas */}
-        <section className="mt-8">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">
-            Solicitudes recibidas
-          </h2>
-
-          {errorSolicitudes && (
-            <p className="mb-3 flex items-start gap-2 rounded-2xl border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-300">
-              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-              {errorSolicitudes}
-            </p>
-          )}
-
-          {loadingSolicitudes ? (
-            <p className="flex items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-700/50 bg-slate-800/40 p-5 text-center text-sm text-slate-500">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Cargando solicitudes...
-            </p>
-          ) : solicitudes.recibidas.length === 0 ? (
-            <p className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-800/40 p-5 text-center text-sm text-slate-500">
-              No tienes solicitudes pendientes.
-            </p>
-          ) : (
-            <ul className="grid gap-3">
-              {solicitudes.recibidas.map((solicitud) => (
-                <li
-                  key={solicitud.id}
-                  className="rounded-2xl border border-slate-700/50 bg-slate-800/60 p-4 shadow-2xl backdrop-blur-md"
-                >
-                  <div className="flex items-start gap-3">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-800 text-sm font-bold text-emerald-300">
-                      {iniciales(
-                        solicitud.solicitante?.nombre,
-                        solicitud.solicitante?.apellido,
-                      )}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <h3 className="truncate text-sm font-semibold text-slate-100">
-                        {solicitud.solicitante?.nombre}{' '}
-                        {solicitud.solicitante?.apellido}
-                      </h3>
-                      <p className="mt-0.5 text-xs text-slate-400">
-                        {solicitud.solicitante?.nivel || 'Sin nivel'}
-                      </p>
-                    </div>
-                    <span
-                      className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${ESTILO_ESTADO[solicitud.estado]}`}
-                    >
-                      {solicitud.estado}
-                    </span>
-                  </div>
-
-                  <div className="mt-3 grid gap-1.5 text-xs text-slate-300">
-                    {solicitud.fecha && (
-                      <p className="flex items-center gap-1.5">
-                        <Calendar className="h-3.5 w-3.5 text-slate-500" />
-                        {formatFecha(solicitud.fecha)}
-                        {solicitud.hora_desde &&
-                          ` · ${solicitud.hora_desde} - ${solicitud.hora_hasta}`}
-                      </p>
-                    )}
-                    {solicitud.cancha?.nombre && (
-                      <p className="flex items-center gap-1.5">
-                        <MapPin className="h-3.5 w-3.5 text-slate-500" />
-                        {solicitud.cancha?.nombre}
-                      </p>
-                    )}
-                    {solicitud.mensaje && (
-                      <p className="mt-1 rounded-lg bg-slate-900/60 p-2 text-slate-400">
-                        “{solicitud.mensaje}”
-                      </p>
-                    )}
-                  </div>
-
-                  {solicitud.estado === 'pendiente' && (
-                    <div className="mt-3 grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => responderSolicitud(solicitud.id, 'aceptar')}
-                        className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-slate-100 transition-colors hover:bg-emerald-700"
-                      >
-                        <CheckCircle2 className="h-4 w-4" />
-                        Aceptar
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => responderSolicitud(solicitud.id, 'rechazar')}
-                        className="flex items-center justify-center gap-2 rounded-xl border border-red-500/40 bg-red-500/10 py-2.5 text-sm font-semibold text-red-300 transition-colors hover:bg-red-500/20"
-                      >
-                        <XCircle className="h-4 w-4" />
-                        Rechazar
-                      </button>
-                    </div>
-                  )}
-
-                  {solicitud.estado === 'aceptada' && (
-                    <RegistrarResultado
-                      solicitud={solicitud}
-                      rivalId={solicitud.solicitante_id}
-                    />
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+        {/* Solicitudes recibidas ya respondidas */}
+        {recibidasRespondidas.length > 0 && (
+          <section className="mt-8">
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">
+              Solicitudes recibidas
+            </h2>
+            <ul className="grid gap-3">{recibidasRespondidas.map(renderRecibida)}</ul>
+          </section>
+        )}
 
         {/* Solicitudes enviadas */}
         {solicitudes.enviadas.length > 0 && (

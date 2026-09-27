@@ -275,10 +275,11 @@ router.patch('/:id', async (req, res) => {
       });
     }
 
+    const ahora = new Date().toISOString();
     const cambios =
       accion === 'confirmar'
-        ? { estado: 'confirmado', confirmado_at: new Date().toISOString() }
-        : { estado: 'rechazado' };
+        ? { estado: 'confirmado', confirmado_at: ahora, respondido_at: ahora }
+        : { estado: 'rechazado', respondido_at: ahora };
 
     // Solo el rival (jugador2) puede resolver, y solo si sigue pendiente.
     const { data, error } = await supabaseAdmin

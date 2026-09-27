@@ -67,7 +67,8 @@ const orden = (nivel) => NOMBRES_CATEGORIAS.indexOf(categoriaEfectiva(nivel));
 const partidos = [];
 
 // Cada jugador registra entre 3 y 7 partidos contra rivales al azar.
-// Es más probable que gane el jugador de mejor categoría.
+// Es más probable que gane el jugador de mejor categoría. Sin
+// respondido_at, para que los datos de demo no generen avisos.
 for (const jugador of usuarios) {
   const rivales = usuarios.filter((u) => u.id !== jugador.id);
 

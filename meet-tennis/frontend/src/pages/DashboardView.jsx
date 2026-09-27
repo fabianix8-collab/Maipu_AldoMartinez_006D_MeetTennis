@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import BrandLogo from '../components/BrandLogo.jsx';
+import NotificationBell from '../components/NotificationBell.jsx';
 import TennisBackground from '../components/TennisBackground.jsx';
 import { apiFetch } from '../lib/api.js';
 
@@ -43,34 +44,25 @@ function DashboardView() {
   const firstName = storedUser?.profile?.nombre || 'Deportista';
   const avatarUrl = storedUser?.profile?.avatar_url || null;
 
-  // Pendientes que requieren una acción del usuario.
-  const [avisos, setAvisos] = useState({ solicitudes: 0, partidos: 0 });
+  // Avisos de la campana y contadores de pendientes de cada sección.
+  const [notificaciones, setNotificaciones] = useState({
+    avisos: [],
+    noLeidos: 0,
+    pendientes: { solicitudes: 0, partidos: 0 },
+  });
 
   useEffect(() => {
     let activo = true;
 
     const cargar = async () => {
       try {
-        const [solicitudesRes, partidosRes] = await Promise.all([
-          apiFetch('/api/matchmaking/requests'),
-          apiFetch('/api/matches'),
-        ]);
-        const [solicitudes, partidos] = await Promise.all([
-          solicitudesRes.json(),
-          partidosRes.json(),
-        ]);
-        if (!activo) return;
-
-        setAvisos({
-          solicitudes: solicitudes.success
-            ? solicitudes.data.recibidas.filter((s) => s.estado === 'pendiente').length
-            : 0,
-          partidos: partidos.success
-            ? partidos.data.partidos.filter((p) => p.puedoConfirmar).length
-            : 0,
-        });
+        const response = await apiFetch('/api/notifications');
+        const result = await response.json();
+        if (activo && response.ok && result.success) {
+          setNotificaciones(result.data);
+        }
       } catch {
-        // Silencioso: el menú funciona igual sin contadores.
+        // Silencioso: el menú funciona igual sin avisos.
       }
     };
 
@@ -80,6 +72,19 @@ function DashboardView() {
       activo = false;
     };
   }, []);
+
+  // Al abrir la campana, las novedades pasan a leídas. Los avisos que
+  // requieren respuesta siguen contando hasta que se respondan.
+  const marcarVistos = () => {
+    if (!notificaciones.avisos.some((a) => a.nuevo)) return;
+
+    setNotificaciones((prev) => ({
+      ...prev,
+      avisos: prev.avisos.map((a) => ({ ...a, nuevo: false })),
+      noLeidos: prev.avisos.filter((a) => a.tipo === 'accion').length,
+    }));
+    apiFetch('/api/notifications/vistos', { method: 'POST' }).catch(() => {});
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('meettennis_auth');
@@ -119,19 +124,26 @@ function DashboardView() {
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={handleLogout}
-            aria-label="Cerrar sesión"
-            className="rounded-xl border border-slate-700/50 bg-slate-800/60 p-2.5 text-slate-400 shadow-2xl backdrop-blur-md transition-colors hover:border-red-500/50 hover:bg-red-500/10 hover:text-red-400"
-          >
-            <LogOut className="h-5 w-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <NotificationBell
+              avisos={notificaciones.avisos}
+              noLeidos={notificaciones.noLeidos}
+              onAbrir={marcarVistos}
+            />
+            <button
+              type="button"
+              onClick={handleLogout}
+              aria-label="Cerrar sesión"
+              className="rounded-xl border border-slate-700/50 bg-slate-800/60 p-2.5 text-slate-400 shadow-2xl backdrop-blur-md transition-colors hover:border-red-500/50 hover:bg-red-500/10 hover:text-red-400"
+            >
+              <LogOut className="h-5 w-5" />
+            </button>
+          </div>
         </header>
 
         <nav className="mt-10 grid grid-cols-2 gap-4">
           {NAV_ITEMS.map(({ title, Icon, to, ancho, aviso }) => {
-            const pendientes = aviso ? avisos[aviso] : 0;
+            const pendientes = aviso ? notificaciones.pendientes[aviso] : 0;
             return (
               <button
                 type="button"
