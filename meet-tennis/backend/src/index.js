@@ -15,7 +15,16 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors());
+// En producción el frontend llama a través del proxy de Vercel (mismo
+// origen). CORS_ORIGIN permite además orígenes explícitos, separados
+// por coma; sin definirla se aceptan todos (desarrollo local).
+app.use(
+  cors({
+    origin: process.env.CORS_ORIGIN
+      ? process.env.CORS_ORIGIN.split(',').map((o) => o.trim())
+      : true,
+  }),
+);
 app.use(express.json());
 
 // Logging de peticiones: método, ruta, status y duración.
