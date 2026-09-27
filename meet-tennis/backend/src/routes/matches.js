@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import { requireAuth } from '../middleware/auth.js';
 import { CATEGORIAS } from './ranking.js';
+import { hoyChile } from '../lib/utils.js';
 
 dotenv.config();
 
@@ -31,14 +32,6 @@ const COLUMNAS = `id, jugador1_id, jugador2_id, ganador_id, categoria_j1, catego
 
 function categoriaEfectiva(nivel) {
   return NOMBRES_CATEGORIAS.has(nivel) ? nivel : CATEGORIA_BASE;
-}
-
-// Fecha de hoy (YYYY-MM-DD) en hora de Chile, para no rechazar
-// partidos jugados "hoy" por la diferencia con UTC.
-function hoyChile() {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(
-    new Date(),
-  );
 }
 
 // Presenta el partido desde el punto de vista del usuario autenticado.

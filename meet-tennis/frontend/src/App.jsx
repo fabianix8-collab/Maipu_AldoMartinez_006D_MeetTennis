@@ -4,6 +4,7 @@ import RegisterView from './pages/RegisterView.jsx';
 import DashboardView from './pages/DashboardView.jsx';
 import AvailabilityView from './pages/AvailabilityView.jsx';
 import CourtsView from './pages/CourtsView.jsx';
+import MatchmakingView from './pages/MatchmakingView.jsx';
 import ProfileView from './pages/ProfileView.jsx';
 import RankingView from './pages/RankingView.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
@@ -17,6 +18,14 @@ function App() {
           element={
             <ProtectedRoute>
               <DashboardView />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/buscar-partido"
+          element={
+            <ProtectedRoute>
+              <MatchmakingView />
             </ProtectedRoute>
           }
         />

@@ -7,6 +7,7 @@ import profileRouter from './routes/profile.js';
 import rankingRouter from './routes/ranking.js';
 import availabilityRouter from './routes/availability.js';
 import matchesRouter from './routes/matches.js';
+import matchmakingRouter from './routes/matchmaking.js';
 
 dotenv.config();
 
@@ -36,6 +37,7 @@ app.use('/api/profile', profileRouter);
 app.use('/api/ranking', rankingRouter);
 app.use('/api/availability', availabilityRouter);
 app.use('/api/matches', matchesRouter);
+app.use('/api/matchmaking', matchmakingRouter);
 
 app.get('/api/health', (req, res) => {
   res.status(200).json({
