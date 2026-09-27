@@ -13,6 +13,7 @@ import {
 import { Link } from 'react-router-dom';
 import BrandLogo from '../components/BrandLogo.jsx';
 import TennisBackground from '../components/TennisBackground.jsx';
+import { apiFetch } from '../lib/api.js';
 
 const DIAS = [
   'Lunes',
@@ -40,38 +41,7 @@ const inputBase =
   'w-full rounded-xl border border-slate-700/50 bg-slate-800/70 px-4 py-3 text-slate-100 placeholder-slate-500 outline-none transition-colors focus:border-emerald-500';
 const labelClass = 'mb-1.5 block text-sm font-medium text-slate-400';
 
-const AVAILABILITY_KEY = 'meettennis_availability';
-
-function getUserKey() {
-  try {
-    const stored = JSON.parse(localStorage.getItem('meettennis_auth') || 'null');
-    return stored?.user?.id || stored?.profile?.id || 'invitado';
-  } catch {
-    return 'invitado';
-  }
-}
-
-function loadSlots() {
-  try {
-    const raw = JSON.parse(localStorage.getItem(AVAILABILITY_KEY) || '{}');
-    const slots = raw[getUserKey()];
-    return Array.isArray(slots) ? slots : [];
-  } catch {
-    return [];
-  }
-}
-
-function persistSlots(slots) {
-  try {
-    const raw = JSON.parse(localStorage.getItem(AVAILABILITY_KEY) || '{}');
-    raw[getUserKey()] = slots;
-    localStorage.setItem(AVAILABILITY_KEY, JSON.stringify(raw));
-  } catch {
-    // Silencioso: si el almacenamiento no está disponible, la sesión sigue funcionando.
-  }
-}
-
-// El select envía "comuna:Las Condes" o "cancha:Club de Tenis Maipú".
+// El select envía "comuna:Las Condes" o "cancha:<id de la cancha>".
 function parseZona(value) {
   if (!value) return ['', ''];
   if (value.startsWith('comuna:')) return ['comuna', value.slice(7)];
@@ -81,10 +51,14 @@ function parseZona(value) {
 
 // Texto legible para la zona o cancha guardada.
 function formatZona(slot) {
-  if (!slot.zona) return '';
-  if (slot.tipoZona === 'comuna') return `Zona: ${slot.zona}`;
-  if (slot.tipoZona === 'cancha') return `Cancha: ${slot.zona}`;
-  return slot.zona;
+  if (slot.cancha?.nombre) return `Cancha: ${slot.cancha.nombre}`;
+  if (slot.comuna) return `Zona: ${slot.comuna}`;
+  return '';
+}
+
+// La API guarda los días como números: 1 = Lunes ... 7 = Domingo.
+function nombresDias(dias) {
+  return (dias || []).map((numero) => DIAS[numero - 1]).filter(Boolean);
 }
 
 function AvailabilityView() {
@@ -93,7 +67,9 @@ function AvailabilityView() {
   const [hasta, setHasta] = useState('');
   const [modalidad, setModalidad] = useState(MODALIDADES[0]);
   const [zona, setZona] = useState('');
-  const [slots, setSlots] = useState(loadSlots);
+  const [slots, setSlots] = useState([]);
+  const [loadingSlots, setLoadingSlots] = useState(true);
+  const [guardando, setGuardando] = useState(false);
   const [touched, setTouched] = useState(false);
   const [status, setStatus] = useState({ type: 'idle', message: '' });
   const [canchas, setCanchas] = useState([]);
@@ -119,7 +95,34 @@ function AvailabilityView() {
       }
     };
 
+    const cargarSlots = async () => {
+      try {
+        const response = await apiFetch('/api/availability');
+        const result = await response.json();
+
+        if (!activo) return;
+        if (response.ok && result.success) {
+          setSlots(Array.isArray(result.data) ? result.data : []);
+        } else {
+          setStatus({
+            type: 'error',
+            message: result.error || 'No se pudo cargar tu disponibilidad.',
+          });
+        }
+      } catch {
+        if (activo) {
+          setStatus({
+            type: 'error',
+            message: 'No se pudo conectar con el servidor.',
+          });
+        }
+      } finally {
+        if (activo) setLoadingSlots(false);
+      }
+    };
+
     cargarCanchas();
+    cargarSlots();
 
     return () => {
       activo = false;
@@ -153,45 +156,77 @@ function AvailabilityView() {
     setStatus({ type: 'idle', message: '' });
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     setTouched(true);
 
-    if (!isValid) return;
+    if (!isValid || guardando) return;
 
-    const [tipoZona, nombreZona] = parseZona(zona);
+    const [tipoZona, valorZona] = parseZona(zona);
 
-    const newSlot = {
-      id: `${Date.now()}`,
-      dias: selectedDays,
-      desde,
-      hasta,
-      modalidad,
-      zona: nombreZona,
-      tipoZona,
-    };
+    setGuardando(true);
+    setStatus({ type: 'idle', message: '' });
 
-    const nextSlots = [...slots, newSlot];
-    setSlots(nextSlots);
-    persistSlots(nextSlots);
+    try {
+      const response = await apiFetch('/api/availability', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dias: selectedDays.map((dia) => DIAS.indexOf(dia) + 1),
+          desde,
+          hasta,
+          modalidad,
+          comuna: tipoZona === 'comuna' ? valorZona : null,
+          cancha_id: tipoZona === 'cancha' ? Number(valorZona) : null,
+        }),
+      });
+      const result = await response.json();
 
-    setSelectedDays([]);
-    setDesde('');
-    setHasta('');
-    setZona('');
-    setModalidad(MODALIDADES[0]);
-    setTouched(false);
-    setStatus({
-      type: 'success',
-      message: 'Disponibilidad guardada correctamente.',
-    });
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'No se pudo guardar la disponibilidad.');
+      }
+
+      setSlots((prev) => [...prev, result.data]);
+      setSelectedDays([]);
+      setDesde('');
+      setHasta('');
+      setZona('');
+      setModalidad(MODALIDADES[0]);
+      setTouched(false);
+      setStatus({
+        type: 'success',
+        message: 'Disponibilidad guardada correctamente.',
+      });
+    } catch (err) {
+      setStatus({
+        type: 'error',
+        message: err.message || 'No se pudo conectar con el servidor.',
+      });
+    } finally {
+      setGuardando(false);
+    }
   };
 
-  const removeSlot = (id) => {
-    const nextSlots = slots.filter((slot) => slot.id !== id);
-    setSlots(nextSlots);
-    persistSlots(nextSlots);
+  const removeSlot = async (id) => {
     setStatus({ type: 'idle', message: '' });
+
+    try {
+      const response = await apiFetch(`/api/availability/${id}`, {
+        method: 'DELETE',
+      });
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'No se pudo eliminar el bloque.');
+      }
+
+      setSlots((prev) => prev.filter((slot) => slot.id !== id));
+    } catch (err) {
+      setStatus({
+        type: 'error',
+        message: err.message || 'No se pudo conectar con el servidor.',
+      });
+    }
   };
 
   const renderError = (name) => {
@@ -400,7 +435,7 @@ function AvailabilityView() {
                     {canchas.map((cancha) => (
                       <option
                         key={cancha.id}
-                        value={`cancha:${cancha.nombre}`}
+                        value={`cancha:${cancha.id}`}
                         className="bg-slate-800 text-slate-100"
                       >
                         {cancha.nombre}
@@ -422,12 +457,20 @@ function AvailabilityView() {
             </div>
           )}
 
+          {status.type === 'error' && (
+            <div className="mt-4 flex items-start gap-2 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-300">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+              {status.message}
+            </div>
+          )}
+
           <button
             type="submit"
-            className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 font-semibold text-slate-100 transition-colors hover:bg-emerald-700"
+            disabled={guardando}
+            className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 font-semibold text-slate-100 transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <Save className="h-5 w-5" />
-            Guardar disponibilidad
+            {guardando ? 'Guardando...' : 'Guardar disponibilidad'}
           </button>
         </form>
 
@@ -436,7 +479,11 @@ function AvailabilityView() {
             Bloques guardados
           </h2>
 
-          {slots.length === 0 ? (
+          {loadingSlots ? (
+            <p className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-800/40 p-5 text-center text-sm text-slate-500">
+              Cargando tu disponibilidad...
+            </p>
+          ) : slots.length === 0 ? (
             <p className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-800/40 p-5 text-center text-sm text-slate-500">
               Aún no has publicado tu disponibilidad.
             </p>
@@ -453,11 +500,11 @@ function AvailabilityView() {
                       {slot.desde} - {slot.hasta}
                     </p>
                     <p className="mt-1 text-sm text-slate-300">
-                      {slot.dias.join(', ')}
+                      {nombresDias(slot.dias).join(', ')}
                     </p>
                     <p className="mt-1 text-xs text-slate-500">
                       {slot.modalidad}
-                      {slot.zona ? ` · ${formatZona(slot)}` : ''}
+                      {formatZona(slot) ? ` · ${formatZona(slot)}` : ''}
                     </p>
                   </div>
 

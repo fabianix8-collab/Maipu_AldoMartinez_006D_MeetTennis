@@ -17,8 +17,24 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY,
 );
 
+// Datos que cualquier jugador con sesión puede ver de otro jugador.
+// Fecha de nacimiento, género y coordenadas quedan fuera: solo los ve
+// el propio usuario.
+const CAMPOS_PUBLICOS = ['id', 'nombre', 'apellido', 'nivel', 'avatar_url', 'bio', 'comuna'];
+
+function perfilPublico(perfil) {
+  return Object.fromEntries(
+    CAMPOS_PUBLICOS.filter((campo) => campo in perfil).map((campo) => [
+      campo,
+      perfil[campo],
+    ]),
+  );
+}
+
 // Obtiene los datos del perfil de un usuario.
-router.get('/:id', async (req, res) => {
+// Requiere sesión: el propio perfil se devuelve completo y el de otros
+// jugadores solo con los campos públicos.
+router.get('/:id', requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -43,9 +59,11 @@ router.get('/:id', async (req, res) => {
       });
     }
 
+    const esPropio = req.user.id === id;
+
     return res.status(200).json({
       success: true,
-      data: profiles[0],
+      data: esPropio ? profiles[0] : perfilPublico(profiles[0]),
       error: null,
     });
   } catch (err) {
