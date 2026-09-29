@@ -2,9 +2,11 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
   ArrowLeft,
+  Bell,
   Calendar,
   CalendarClock,
   CheckCircle2,
+  ClipboardCheck,
   Clock,
   Loader2,
   MapPin,
@@ -21,6 +23,8 @@ import {
 import { Link } from 'react-router-dom';
 import BrandLogo from '../components/BrandLogo.jsx';
 import TennisBackground from '../components/TennisBackground.jsx';
+import { apiFetch } from '../lib/api.js';
+import { formatFecha, hoyISO, iniciales } from '../lib/formato.js';
 
 const CATEGORIAS = [
   '1ra Categoría',
@@ -31,6 +35,10 @@ const CATEGORIAS = [
 ];
 
 const MODALIDADES = ['Todas', 'Disponible para jugar', 'Buscando partido'];
+
+const DIAS_CORTOS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+
+const MENSAJE_MAX = 300;
 
 // Horas seleccionables (07:00 a 23:00, cada 30 minutos).
 const HORAS = (() => {
@@ -46,65 +54,51 @@ const inputBase =
   'w-full rounded-xl border border-slate-700/50 bg-slate-800/70 px-4 py-3 text-slate-100 placeholder-slate-500 outline-none transition-colors focus:border-emerald-500';
 const labelClass = 'mb-1.5 block text-sm font-medium text-slate-400';
 
-function getStoredUser() {
-  try {
-    return JSON.parse(localStorage.getItem('meettennis_auth') || 'null');
-  } catch {
-    return null;
-  }
-}
+const ESTILO_ESTADO = {
+  pendiente: 'border border-amber-500/40 bg-amber-500/10 text-amber-300',
+  aceptada: 'border border-emerald-500/40 bg-emerald-500/10 text-emerald-300',
+  rechazada: 'border border-red-500/40 bg-red-500/10 text-red-300',
+  cancelada: 'border border-slate-600/50 bg-slate-800/70 text-slate-400',
+};
 
-function getUserId() {
-  const stored = getStoredUser();
-  return stored?.user?.id || stored?.profile?.id || '';
-}
-
-const AVAILABILITY_KEY = 'meettennis_availability';
-
-function getUserKey() {
-  return getUserId() || 'invitado';
-}
-
-// Lee la copia local de disponibilidad (misma clave que "Mi Disponibilidad").
-function loadLocalSlots() {
-  try {
-    const raw = JSON.parse(localStorage.getItem(AVAILABILITY_KEY) || '{}');
-    const slots = raw[getUserKey()];
-    return Array.isArray(slots) ? slots : [];
-  } catch {
-    return [];
-  }
+// La API guarda los días como números: 1 = Lunes ... 7 = Domingo.
+function nombresDias(dias) {
+  return (dias || []).map((numero) => DIAS_CORTOS[numero - 1]).filter(Boolean);
 }
 
 function formatZona(slot) {
-  if (!slot.zona) return '';
-  if (slot.tipoZona === 'comuna') return `Zona: ${slot.zona}`;
-  if (slot.tipoZona === 'cancha') return `Cancha: ${slot.zona}`;
-  return slot.zona;
+  if (slot.cancha?.nombre) return `Cancha: ${slot.cancha.nombre}`;
+  if (slot.comuna) return `Zona: ${slot.comuna}`;
+  return '';
 }
 
-function hoyISO() {
-  const now = new Date();
-  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
-  return local.toISOString().slice(0, 10);
-}
+// En una solicitud aceptada: si el partido ya se jugó, lleva a registrar
+// el resultado con rival, fecha y cancha precargados.
+function RegistrarResultado({ solicitud, rivalId }) {
+  if (solicitud.fecha > hoyISO()) {
+    return (
+      <p className="mt-3 flex items-center justify-center gap-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/5 py-2 text-xs font-semibold text-emerald-300">
+        <Calendar className="h-3.5 w-3.5" />
+        Partido programado para el {formatFecha(solicitud.fecha)}
+      </p>
+    );
+  }
 
-function formatFecha(fecha) {
-  if (!fecha) return 'Sin fecha';
-  const [anio, mes, dia] = String(fecha).split('-');
-  if (!anio || !mes || !dia) return fecha;
-  return `${dia}/${mes}/${anio}`;
-}
+  const params = new URLSearchParams({ rival: rivalId, fecha: solicitud.fecha });
+  if (solicitud.cancha?.id) params.set('cancha', String(solicitud.cancha.id));
 
-function iniciales(nombre, apellido) {
-  const primera = (nombre || '').trim().charAt(0);
-  const segunda = (apellido || '').trim().charAt(0);
-  return `${primera}${segunda}`.toUpperCase() || '?';
+  return (
+    <Link
+      to={`/mis-partidos?${params.toString()}`}
+      className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-slate-100 transition-colors hover:bg-emerald-700"
+    >
+      <ClipboardCheck className="h-4 w-4" />
+      Registrar resultado
+    </Link>
+  );
 }
 
 function MatchmakingView() {
-  const userId = getUserId();
-
   const [miDisponibilidad, setMiDisponibilidad] = useState([]);
   const [rivales, setRivales] = useState([]);
   const [loadingRivales, setLoadingRivales] = useState(true);
@@ -134,47 +128,25 @@ function MatchmakingView() {
   });
 
   const [solicitudes, setSolicitudes] = useState({ recibidas: [], enviadas: [] });
-  const [loadingSolicitudes, setLoadingSolicitudes] = useState(true);
+  const [errorSolicitudes, setErrorSolicitudes] = useState('');
   const [recargarSolicitudes, setRecargarSolicitudes] = useState(0);
 
   // Carga inicial: disponibilidad propia y geolocalización opcional.
+  // La ubicación solo se usa para calcular la cancha recomendada;
+  // no se guarda ni se comparte con otros jugadores.
   useEffect(() => {
     let activo = true;
 
     const cargarDisponibilidad = async () => {
-      if (!userId) return;
-
-      let datosBackend = null;
-
       try {
-        const response = await fetch(`/api/matches/availability/${userId}`);
+        const response = await apiFetch('/api/availability');
         const result = await response.json();
 
         if (activo && response.ok && result.success && Array.isArray(result.data)) {
-          datosBackend = result.data;
+          setMiDisponibilidad(result.data);
         }
       } catch {
-        // Silencioso: se usa la copia local como respaldo.
-      }
-
-      if (!activo) return;
-
-      if (datosBackend && datosBackend.length > 0) {
-        setMiDisponibilidad(datosBackend);
-        return;
-      }
-
-      // Respaldo: si el backend no responde o no tiene datos, usa la
-      // disponibilidad guardada localmente (misma lógica que "Mi Disponibilidad")
-      // y reintenta la sincronización para que otros jugadores puedan encontrarte.
-      const locales = loadLocalSlots();
-      if (locales.length > 0) {
-        setMiDisponibilidad(locales);
-        fetch('/api/matches/availability', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId, slots: locales }),
-        }).catch(() => {});
+        // Silencioso: la sección muestra que no hay bloques.
       }
     };
 
@@ -203,23 +175,21 @@ function MatchmakingView() {
     return () => {
       activo = false;
     };
-  }, [userId]);
+  }, []);
 
   // Rivales: se recarga al cambiar los filtros.
   useEffect(() => {
-    if (!userId) return;
-
     let activo = true;
 
     const cargar = async () => {
       try {
-        const params = new URLSearchParams({ userId });
+        const params = new URLSearchParams();
         if (filtroNivel) params.set('nivel', filtroNivel);
         if (filtroModalidad && filtroModalidad !== 'Todas') {
           params.set('modalidad', filtroModalidad);
         }
 
-        const response = await fetch(`/api/matches/rivals?${params.toString()}`);
+        const response = await apiFetch(`/api/matchmaking/rivals?${params.toString()}`);
         const result = await response.json();
 
         if (!activo) return;
@@ -242,28 +212,26 @@ function MatchmakingView() {
     return () => {
       activo = false;
     };
-  }, [userId, filtroNivel, filtroModalidad]);
+  }, [filtroNivel, filtroModalidad]);
 
   // Solicitudes: se recarga al montar y tras enviar/responder.
   useEffect(() => {
-    if (!userId) return;
-
     let activo = true;
 
     const cargar = async () => {
       try {
-        const response = await fetch(`/api/matches/requests?userId=${userId}`);
+        const response = await apiFetch('/api/matchmaking/requests');
         const result = await response.json();
 
         if (!activo) return;
 
         if (response.ok && result.success) {
           setSolicitudes(result.data || { recibidas: [], enviadas: [] });
+        } else {
+          setErrorSolicitudes(result.error || 'No se pudieron cargar las solicitudes.');
         }
       } catch {
-        // Silencioso: la sección se muestra vacía.
-      } finally {
-        if (activo) setLoadingSolicitudes(false);
+        if (activo) setErrorSolicitudes('No se pudo conectar con el servidor.');
       }
     };
 
@@ -272,7 +240,7 @@ function MatchmakingView() {
     return () => {
       activo = false;
     };
-  }, [userId, recargarSolicitudes]);
+  }, [recargarSolicitudes]);
 
   const verCanchaRecomendada = async (rivalId) => {
     if (cargandoCancha) return;
@@ -281,14 +249,14 @@ function MatchmakingView() {
     setErrorCancha('');
 
     try {
-      const params = new URLSearchParams({ userId, rivalId });
+      const params = new URLSearchParams({ rivalId });
       if (ubicacion) {
         params.set('lat', String(ubicacion.lat));
         params.set('lng', String(ubicacion.lng));
       }
 
-      const response = await fetch(
-        `/api/matches/recommend-court?${params.toString()}`,
+      const response = await apiFetch(
+        `/api/matchmaking/recommend-court?${params.toString()}`,
       );
       const result = await response.json();
 
@@ -334,17 +302,15 @@ function MatchmakingView() {
     setStatusSolicitud({ type: 'idle', message: '' });
 
     try {
-      const response = await fetch('/api/matches/request', {
+      const response = await apiFetch('/api/matchmaking/requests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          solicitanteId: userId,
-          receptorId: rivalId,
-          canchaId: recomendada?.id || null,
-          canchaNombre: recomendada?.nombre || null,
-          fechaSugerida: formSolicitud.fecha,
-          horaDesde: formSolicitud.desde,
-          horaHasta: formSolicitud.hasta,
+          receptor_id: rivalId,
+          cancha_id: recomendada?.id ?? null,
+          fecha: formSolicitud.fecha,
+          hora_desde: formSolicitud.desde,
+          hora_hasta: formSolicitud.hasta,
           mensaje: formSolicitud.mensaje.trim() || null,
         }),
       });
@@ -380,19 +346,24 @@ function MatchmakingView() {
     }
   };
 
-  const responderSolicitud = async (id, estado) => {
+  // accion: "aceptar" | "rechazar" (recibidas) o "cancelar" (enviadas).
+  const responderSolicitud = async (id, accion) => {
+    setErrorSolicitudes('');
+
     try {
-      const response = await fetch(`/api/matches/requests/${id}`, {
+      const response = await apiFetch(`/api/matchmaking/requests/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ estado, userId }),
+        body: JSON.stringify({ accion }),
       });
+      const result = await response.json();
 
-      if (response.ok) {
-        setRecargarSolicitudes((n) => n + 1);
+      if (!response.ok || !result.success) {
+        setErrorSolicitudes(result.error || 'No se pudo actualizar la solicitud.');
       }
+      setRecargarSolicitudes((n) => n + 1);
     } catch {
-      // Silencioso.
+      setErrorSolicitudes('No se pudo conectar con el servidor.');
     }
   };
 
@@ -420,6 +391,94 @@ function MatchmakingView() {
       </span>
     );
   };
+
+  const recibidasPendientes = solicitudes.recibidas.filter((s) => s.estado === 'pendiente');
+  const recibidasRespondidas = solicitudes.recibidas.filter((s) => s.estado !== 'pendiente');
+
+  // Tarjeta de una solicitud recibida (pendiente o ya respondida).
+  const renderRecibida = (solicitud) => (
+    <li
+      key={solicitud.id}
+      className={`rounded-2xl border p-4 shadow-2xl backdrop-blur-md ${
+        solicitud.estado === 'pendiente'
+          ? 'border-amber-500/40 bg-amber-500/5'
+          : 'border-slate-700/50 bg-slate-800/60'
+      }`}
+    >
+      <div className="flex items-start gap-3">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-800 text-sm font-bold text-emerald-300">
+          {iniciales(
+            solicitud.solicitante?.nombre,
+            solicitud.solicitante?.apellido,
+          )}
+        </span>
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate text-sm font-semibold text-slate-100">
+            {solicitud.solicitante?.nombre}{' '}
+            {solicitud.solicitante?.apellido}
+          </h3>
+          <p className="mt-0.5 text-xs text-slate-400">
+            {solicitud.solicitante?.nivel || 'Sin nivel'}
+          </p>
+        </div>
+        <span
+          className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${ESTILO_ESTADO[solicitud.estado]}`}
+        >
+          {solicitud.estado}
+        </span>
+      </div>
+
+      <div className="mt-3 grid gap-1.5 text-xs text-slate-300">
+        {solicitud.fecha && (
+          <p className="flex items-center gap-1.5">
+            <Calendar className="h-3.5 w-3.5 text-slate-500" />
+            {formatFecha(solicitud.fecha)}
+            {solicitud.hora_desde &&
+              ` · ${solicitud.hora_desde} - ${solicitud.hora_hasta}`}
+          </p>
+        )}
+        {solicitud.cancha?.nombre && (
+          <p className="flex items-center gap-1.5">
+            <MapPin className="h-3.5 w-3.5 text-slate-500" />
+            {solicitud.cancha?.nombre}
+          </p>
+        )}
+        {solicitud.mensaje && (
+          <p className="mt-1 rounded-lg bg-slate-900/60 p-2 text-slate-400">
+            “{solicitud.mensaje}”
+          </p>
+        )}
+      </div>
+
+      {solicitud.estado === 'pendiente' && (
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => responderSolicitud(solicitud.id, 'aceptar')}
+            className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-slate-100 transition-colors hover:bg-emerald-700"
+          >
+            <CheckCircle2 className="h-4 w-4" />
+            Aceptar
+          </button>
+          <button
+            type="button"
+            onClick={() => responderSolicitud(solicitud.id, 'rechazar')}
+            className="flex items-center justify-center gap-2 rounded-xl border border-red-500/40 bg-red-500/10 py-2.5 text-sm font-semibold text-red-300 transition-colors hover:bg-red-500/20"
+          >
+            <XCircle className="h-4 w-4" />
+            Rechazar
+          </button>
+        </div>
+      )}
+
+      {solicitud.estado === 'aceptada' && (
+        <RegistrarResultado
+          solicitud={solicitud}
+          rivalId={solicitud.solicitante_id}
+        />
+      )}
+    </li>
+  );
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-slate-900 px-4 py-8">
@@ -452,6 +511,24 @@ function MatchmakingView() {
             <ArrowLeft className="h-5 w-5" />
           </Link>
         </header>
+
+        {errorSolicitudes && (
+          <p className="mt-6 flex items-start gap-2 rounded-2xl border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-300">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            {errorSolicitudes}
+          </p>
+        )}
+
+        {/* Solicitudes por responder: lo más urgente va primero */}
+        {recibidasPendientes.length > 0 && (
+          <section className="mt-8">
+            <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-amber-300">
+              <Bell className="h-4 w-4" />
+              Por responder ({recibidasPendientes.length})
+            </h2>
+            <ul className="grid gap-3">{recibidasPendientes.map(renderRecibida)}</ul>
+          </section>
+        )}
 
         {/* Mi disponibilidad */}
         <section className="mt-8 rounded-2xl border border-slate-700/50 bg-slate-900/60 p-5 shadow-2xl backdrop-blur-md">
@@ -643,13 +720,13 @@ function MatchmakingView() {
                               className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-slate-300"
                             >
                               <span className="font-semibold text-slate-100">
-                                {coincidencia.rivalSlot.dias.join(', ')}
+                                {nombresDias(coincidencia.rivalSlot.dias).join(', ')}
                               </span>
                               <span className="text-emerald-300">
                                 {coincidencia.rivalSlot.desde} -{' '}
                                 {coincidencia.rivalSlot.hasta}
                               </span>
-                              {coincidencia.rivalSlot.zona && (
+                              {formatZona(coincidencia.rivalSlot) && (
                                 <span className="text-slate-500">
                                   · {formatZona(coincidencia.rivalSlot)}
                                 </span>
@@ -693,13 +770,6 @@ function MatchmakingView() {
                                   Viaje total: {recomendada.recomendada.distanciaTotal.toFixed(1)} km
                                 </span>
                               </div>
-                            )}
-
-                            {recomendada.modo === 'comuna' && (
-                              <p className="mt-2 text-xs text-slate-400">
-                                Cancha en la comuna compartida:{' '}
-                                {recomendada.comunasCompartidas?.join(', ')}
-                              </p>
                             )}
 
                             <a
@@ -833,7 +903,7 @@ function MatchmakingView() {
                               id={`mensaje-${rival.id}`}
                               name="mensaje"
                               rows={2}
-                              maxLength={200}
+                              maxLength={MENSAJE_MAX}
                               value={formSolicitud.mensaje}
                               onChange={(event) =>
                                 setFormSolicitud((prev) => ({
@@ -913,104 +983,15 @@ function MatchmakingView() {
           )}
         </section>
 
-        {/* Solicitudes recibidas */}
-        <section className="mt-8">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">
-            Solicitudes recibidas
-          </h2>
-
-          {loadingSolicitudes ? (
-            <p className="flex items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-700/50 bg-slate-800/40 p-5 text-center text-sm text-slate-500">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Cargando solicitudes...
-            </p>
-          ) : solicitudes.recibidas.length === 0 ? (
-            <p className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-800/40 p-5 text-center text-sm text-slate-500">
-              No tienes solicitudes pendientes.
-            </p>
-          ) : (
-            <ul className="grid gap-3">
-              {solicitudes.recibidas.map((solicitud) => (
-                <li
-                  key={solicitud.id}
-                  className="rounded-2xl border border-slate-700/50 bg-slate-800/60 p-4 shadow-2xl backdrop-blur-md"
-                >
-                  <div className="flex items-start gap-3">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-800 text-sm font-bold text-emerald-300">
-                      {iniciales(
-                        solicitud.solicitante?.nombre,
-                        solicitud.solicitante?.apellido,
-                      )}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <h3 className="truncate text-sm font-semibold text-slate-100">
-                        {solicitud.solicitante?.nombre}{' '}
-                        {solicitud.solicitante?.apellido}
-                      </h3>
-                      <p className="mt-0.5 text-xs text-slate-400">
-                        {solicitud.solicitante?.nivel || 'Sin nivel'}
-                      </p>
-                    </div>
-                    <span
-                      className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                        solicitud.estado === 'pendiente'
-                          ? 'border border-amber-500/40 bg-amber-500/10 text-amber-300'
-                          : solicitud.estado === 'aceptada'
-                            ? 'border border-emerald-500/40 bg-emerald-500/10 text-emerald-300'
-                            : 'border border-red-500/40 bg-red-500/10 text-red-300'
-                      }`}
-                    >
-                      {solicitud.estado}
-                    </span>
-                  </div>
-
-                  <div className="mt-3 grid gap-1.5 text-xs text-slate-300">
-                    {solicitud.fecha_sugerida && (
-                      <p className="flex items-center gap-1.5">
-                        <Calendar className="h-3.5 w-3.5 text-slate-500" />
-                        {formatFecha(solicitud.fecha_sugerida)}
-                        {solicitud.hora_desde &&
-                          ` · ${solicitud.hora_desde} - ${solicitud.hora_hasta}`}
-                      </p>
-                    )}
-                    {solicitud.cancha_nombre && (
-                      <p className="flex items-center gap-1.5">
-                        <MapPin className="h-3.5 w-3.5 text-slate-500" />
-                        {solicitud.cancha_nombre}
-                      </p>
-                    )}
-                    {solicitud.mensaje && (
-                      <p className="mt-1 rounded-lg bg-slate-900/60 p-2 text-slate-400">
-                        “{solicitud.mensaje}”
-                      </p>
-                    )}
-                  </div>
-
-                  {solicitud.estado === 'pendiente' && (
-                    <div className="mt-3 grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => responderSolicitud(solicitud.id, 'aceptada')}
-                        className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-slate-100 transition-colors hover:bg-emerald-700"
-                      >
-                        <CheckCircle2 className="h-4 w-4" />
-                        Aceptar
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => responderSolicitud(solicitud.id, 'rechazada')}
-                        className="flex items-center justify-center gap-2 rounded-xl border border-red-500/40 bg-red-500/10 py-2.5 text-sm font-semibold text-red-300 transition-colors hover:bg-red-500/20"
-                      >
-                        <XCircle className="h-4 w-4" />
-                        Rechazar
-                      </button>
-                    </div>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+        {/* Solicitudes recibidas ya respondidas */}
+        {recibidasRespondidas.length > 0 && (
+          <section className="mt-8">
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">
+              Solicitudes recibidas
+            </h2>
+            <ul className="grid gap-3">{recibidasRespondidas.map(renderRecibida)}</ul>
+          </section>
+        )}
 
         {/* Solicitudes enviadas */}
         {solicitudes.enviadas.length > 0 && (
@@ -1039,8 +1020,8 @@ function MatchmakingView() {
                           {solicitud.receptor?.apellido}
                         </h3>
                         <p className="mt-0.5 text-xs text-slate-400">
-                          {solicitud.fecha_sugerida
-                            ? formatFecha(solicitud.fecha_sugerida)
+                          {solicitud.fecha
+                            ? formatFecha(solicitud.fecha)
                             : 'Sin fecha'}{' '}
                           {solicitud.hora_desde &&
                             `· ${solicitud.hora_desde} - ${solicitud.hora_hasta}`}
@@ -1049,17 +1030,29 @@ function MatchmakingView() {
                     </div>
 
                     <span
-                      className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                        solicitud.estado === 'pendiente'
-                          ? 'border border-amber-500/40 bg-amber-500/10 text-amber-300'
-                          : solicitud.estado === 'aceptada'
-                            ? 'border border-emerald-500/40 bg-emerald-500/10 text-emerald-300'
-                            : 'border border-red-500/40 bg-red-500/10 text-red-300'
-                      }`}
+                      className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${ESTILO_ESTADO[solicitud.estado]}`}
                     >
                       {solicitud.estado}
                     </span>
                   </div>
+
+                  {solicitud.estado === 'pendiente' && (
+                    <button
+                      type="button"
+                      onClick={() => responderSolicitud(solicitud.id, 'cancelar')}
+                      className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-700/50 bg-slate-800/70 py-2 text-xs font-semibold text-slate-300 transition-colors hover:border-red-500/50 hover:text-red-300"
+                    >
+                      <XCircle className="h-3.5 w-3.5" />
+                      Cancelar solicitud
+                    </button>
+                  )}
+
+                  {solicitud.estado === 'aceptada' && (
+                    <RegistrarResultado
+                      solicitud={solicitud}
+                      rivalId={solicitud.receptor_id}
+                    />
+                  )}
                 </li>
               ))}
             </ul>

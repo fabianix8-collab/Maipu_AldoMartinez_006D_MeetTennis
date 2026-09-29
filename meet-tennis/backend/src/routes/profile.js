@@ -3,6 +3,9 @@ import multer from 'multer';
 import dotenv from 'dotenv';
 import { randomUUID } from 'crypto';
 import { createClient } from '@supabase/supabase-js';
+import { requireAuth, requireSelf } from '../middleware/auth.js';
+import { categoriaSuperior, NOMBRES_CATEGORIAS, resumenJugador } from '../lib/ranking.js';
+import { partidosConfirmadosPorJugador } from './ranking.js';
 
 dotenv.config();
 
@@ -16,8 +19,24 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY,
 );
 
+// Datos que cualquier jugador con sesión puede ver de otro jugador.
+// Fecha de nacimiento, género y coordenadas quedan fuera: solo los ve
+// el propio usuario.
+const CAMPOS_PUBLICOS = ['id', 'nombre', 'apellido', 'nivel', 'avatar_url', 'bio', 'comuna'];
+
+function perfilPublico(perfil) {
+  return Object.fromEntries(
+    CAMPOS_PUBLICOS.filter((campo) => campo in perfil).map((campo) => [
+      campo,
+      perfil[campo],
+    ]),
+  );
+}
+
 // Obtiene los datos del perfil de un usuario.
-router.get('/:id', async (req, res) => {
+// Requiere sesión: el propio perfil se devuelve completo y el de otros
+// jugadores solo con los campos públicos.
+router.get('/:id', requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -42,9 +61,11 @@ router.get('/:id', async (req, res) => {
       });
     }
 
+    const esPropio = req.user.id === id;
+
     return res.status(200).json({
       success: true,
-      data: profiles[0],
+      data: esPropio ? profiles[0] : perfilPublico(profiles[0]),
       error: null,
     });
   } catch (err) {
@@ -58,7 +79,8 @@ router.get('/:id', async (req, res) => {
 
 // Actualiza la foto de perfil: sube la imagen al bucket "avatars"
 // y guarda la URL pública en la tabla usuario.
-router.post('/:id/avatar', upload.single('avatar'), async (req, res) => {
+// Requiere sesión y que el usuario modifique solo su propio perfil.
+router.post('/:id/avatar', requireAuth, requireSelf, upload.single('avatar'), async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -81,7 +103,7 @@ router.post('/:id/avatar', upload.single('avatar'), async (req, res) => {
     const extension = req.file.mimetype.split('/')[1] || 'jpg';
     const avatarPath = `${randomUUID()}.${extension}`;
 
-    const { error: uploadError } = await supabase.storage
+    const { error: uploadError } = await supabaseAdmin.storage
       .from('avatars')
       .upload(avatarPath, req.file.buffer, {
         contentType: req.file.mimetype,
@@ -96,7 +118,7 @@ router.post('/:id/avatar', upload.single('avatar'), async (req, res) => {
       });
     }
 
-    const { data: publicUrlData } = supabase.storage
+    const { data: publicUrlData } = supabaseAdmin.storage
       .from('avatars')
       .getPublicUrl(avatarPath);
 
@@ -138,35 +160,61 @@ router.post('/:id/avatar', upload.single('avatar'), async (req, res) => {
   }
 });
 
-const CATEGORIAS_VALIDAS = [
-  '1ra Categoría',
-  '2da Categoría',
-  '3ra Categoría',
-  '4ta Categoría',
-  '5ta Categoría',
-];
-
-// Actualiza la categoría del jugador.
-// Se usa al ascender en el ranking: el usuario pasa a competir en la
-// categoría superior y su perfil queda actualizado en la base de datos.
-router.patch('/:id', async (req, res) => {
+// Asciende al jugador a la categoría inmediatamente superior.
+// El servidor verifica los requisitos (puntos y victorias válidas) con
+// los partidos confirmados; el cliente no puede saltárselos.
+// Body: { nivel } — la categoría a la que asciende.
+router.patch('/:id', requireAuth, requireSelf, async (req, res) => {
   try {
     const { id } = req.params;
     const { nivel } = req.body || {};
 
-    if (!id) {
-      return res.status(400).json({
-        success: false,
-        data: null,
-        error: 'Falta el identificador del usuario.',
-      });
-    }
-
-    if (!nivel || !CATEGORIAS_VALIDAS.includes(nivel)) {
+    if (!nivel || !NOMBRES_CATEGORIAS.includes(nivel)) {
       return res.status(400).json({
         success: false,
         data: null,
         error: 'Categoría no válida.',
+      });
+    }
+
+    const { data: actual, error: actualError } = await supabaseAdmin
+      .from('usuario')
+      .select('nivel')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (actualError) {
+      return res.status(500).json({
+        success: false,
+        data: null,
+        error: actualError.message,
+      });
+    }
+
+    if (!actual) {
+      return res.status(404).json({
+        success: false,
+        data: null,
+        error: 'Usuario no encontrado.',
+      });
+    }
+
+    if (nivel !== categoriaSuperior(actual.nivel)) {
+      return res.status(400).json({
+        success: false,
+        data: null,
+        error: 'Solo puedes ascender a la categoría inmediatamente superior.',
+      });
+    }
+
+    const partidos = (await partidosConfirmadosPorJugador([id])).get(id) || [];
+    const resumen = resumenJugador(id, actual.nivel, partidos);
+
+    if (!resumen.puedeAscender) {
+      return res.status(403).json({
+        success: false,
+        data: null,
+        error: `Aún no cumples los requisitos: necesitas ${resumen.requisito.puntos} pts y ${resumen.requisito.victorias} victorias válidas (tienes ${resumen.puntos} pts y ${resumen.victoriasValidas}).`,
       });
     }
 
