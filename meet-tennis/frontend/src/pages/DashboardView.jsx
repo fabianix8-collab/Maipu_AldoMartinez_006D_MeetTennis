@@ -50,6 +50,7 @@ function DashboardView() {
     noLeidos: 0,
     pendientes: { solicitudes: 0, partidos: 0 },
   });
+  const [recargarAvisos, setRecargarAvisos] = useState(0);
 
   useEffect(() => {
     let activo = true;
@@ -71,7 +72,26 @@ function DashboardView() {
     return () => {
       activo = false;
     };
-  }, []);
+  }, [recargarAvisos]);
+
+  // Confirma (o no) la asistencia desde la campana. Devuelve un mensaje
+  // de error para mostrarlo en el aviso, o null si salió bien.
+  const responderAsistencia = async (solicitudId, asiste) => {
+    try {
+      const response = await apiFetch(`/api/matchmaking/requests/${solicitudId}/asistencia`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ asiste }),
+      });
+      const result = await response.json();
+      setRecargarAvisos((n) => n + 1);
+      return response.ok && result.success
+        ? null
+        : result.error || 'No se pudo guardar tu respuesta.';
+    } catch {
+      return 'No se pudo conectar con el servidor.';
+    }
+  };
 
   // Al abrir la campana, las novedades pasan a leídas. Los avisos que
   // requieren respuesta siguen contando hasta que se respondan.
@@ -129,6 +149,7 @@ function DashboardView() {
               avisos={notificaciones.avisos}
               noLeidos={notificaciones.noLeidos}
               onAbrir={marcarVistos}
+              onAsistencia={responderAsistencia}
             />
             <button
               type="button"

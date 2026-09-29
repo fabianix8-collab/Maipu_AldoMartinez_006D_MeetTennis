@@ -8,6 +8,21 @@ export function hoyChile() {
   );
 }
 
+// Suma días a una fecha "YYYY-MM-DD" (sin zona horaria de por medio).
+export function sumarDias(fecha, dias) {
+  const d = new Date(`${fecha}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + dias);
+  return d.toISOString().slice(0, 10);
+}
+
+// "hoy" o "mañana" si el partido cae dentro de la ventana para
+// confirmar asistencia; null en cualquier otro caso.
+export function ventanaAsistencia(fecha, hoy = hoyChile()) {
+  if (fecha === hoy) return 'hoy';
+  if (fecha === sumarDias(hoy, 1)) return 'mañana';
+  return null;
+}
+
 // Extrae la comuna desde la dirección de una cancha (última parte tras la coma).
 export function extraerComuna(direccion) {
   if (!direccion) return null;

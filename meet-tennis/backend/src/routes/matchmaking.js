@@ -23,6 +23,7 @@ const COLUMNAS_SLOT =
   'id, usuario_id, dias, desde, hasta, modalidad, comuna, cancha:canchas(id, nombre)';
 const COLUMNAS_SOLICITUD = `id, solicitante_id, receptor_id, fecha, hora_desde, hora_hasta,
   mensaje, estado, created_at, respondida_at,
+  asiste_solicitante, asiste_receptor, asistencia_solicitante_at, asistencia_receptor_at,
   cancha:canchas(id, nombre, direccion),
   solicitante:usuario!solicitudes_partido_solicitante_id_fkey(${JUGADOR}),
   receptor:usuario!solicitudes_partido_receptor_id_fkey(${JUGADOR})`;
@@ -34,6 +35,12 @@ const ACCIONES = {
   rechazar: { estado: 'rechazada', rol: 'receptor_id' },
   cancelar: { estado: 'cancelada', rol: 'solicitante_id' },
 };
+
+// 42703: columna inexistente (falta ejecutar scripts/05_asistencia.sql).
+const FALTA_SCRIPT =
+  'Falta ejecutar el script backend/scripts/05_asistencia.sql en Supabase.';
+
+const mensajeError = (error) => (error.code === '42703' ? FALTA_SCRIPT : error.message);
 
 // Postgres devuelve "HH:MM:SS"; el frontend trabaja con "HH:MM".
 const hhmm = (hora) => hora?.slice(0, 5) ?? null;
@@ -305,7 +312,7 @@ router.get('/requests', async (req, res) => {
       .order('created_at', { ascending: false });
 
     if (error) {
-      return res.status(500).json({ success: false, data: null, error: error.message });
+      return res.status(500).json({ success: false, data: null, error: mensajeError(error) });
     }
 
     const solicitudes = (data || []).map(formatearSolicitud);
@@ -473,6 +480,85 @@ router.patch('/requests/:id', async (req, res) => {
         success: false,
         data: null,
         error: 'No hay una solicitud pendiente tuya con ese identificador.',
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: formatearSolicitud(data[0]),
+      error: null,
+    });
+  } catch (err) {
+    return errorInterno(res);
+  }
+});
+
+// Confirma o anula la asistencia a un partido aceptado que aún no se juega.
+// Body: { asiste: true | false }. "false" (no puedo) cancela el partido
+// y el rival recibe el aviso.
+router.patch('/requests/:id/asistencia', async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { asiste } = req.body || {};
+
+    if (!/^\d+$/.test(req.params.id)) {
+      return res.status(400).json({
+        success: false,
+        data: null,
+        error: 'Identificador no válido.',
+      });
+    }
+
+    if (typeof asiste !== 'boolean') {
+      return res.status(400).json({
+        success: false,
+        data: null,
+        error: 'Indica si asistes (true) o no (false).',
+      });
+    }
+
+    const { data: solicitud, error: errorLectura } = await supabaseAdmin
+      .from('solicitudes_partido')
+      .select('id, solicitante_id, receptor_id, fecha, estado')
+      .eq('id', req.params.id)
+      .or(`solicitante_id.eq.${userId},receptor_id.eq.${userId}`)
+      .maybeSingle();
+
+    if (errorLectura) {
+      return res.status(500).json({ success: false, data: null, error: errorLectura.message });
+    }
+
+    if (!solicitud || solicitud.estado !== 'aceptada' || solicitud.fecha < hoyChile()) {
+      return res.status(404).json({
+        success: false,
+        data: null,
+        error: 'No tienes un partido próximo con ese identificador.',
+      });
+    }
+
+    const rol = solicitud.solicitante_id === userId ? 'solicitante' : 'receptor';
+    const cambios = {
+      [`asiste_${rol}`]: asiste,
+      [`asistencia_${rol}_at`]: new Date().toISOString(),
+      ...(asiste ? {} : { estado: 'cancelada' }),
+    };
+
+    const { data, error } = await supabaseAdmin
+      .from('solicitudes_partido')
+      .update(cambios)
+      .eq('id', solicitud.id)
+      .eq('estado', 'aceptada')
+      .select(COLUMNAS_SOLICITUD);
+
+    if (error) {
+      return res.status(500).json({ success: false, data: null, error: mensajeError(error) });
+    }
+
+    if (!data || data.length === 0) {
+      return res.status(409).json({
+        success: false,
+        data: null,
+        error: 'El partido cambió mientras respondías. Recarga la página.',
       });
     }
 

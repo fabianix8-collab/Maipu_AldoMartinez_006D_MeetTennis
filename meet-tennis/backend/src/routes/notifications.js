@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import { requireAuth } from '../middleware/auth.js';
 import { partidoDesde } from '../lib/ranking.js';
+import { hoyChile, ventanaAsistencia } from '../lib/utils.js';
 
 dotenv.config();
 
@@ -25,9 +26,9 @@ const nombre = (jugador) =>
 // "2026-10-12" → "12/10".
 const diaMes = (fecha) => fecha?.slice(8, 10) + '/' + fecha?.slice(5, 7);
 
-// 42703: columna inexistente (falta ejecutar scripts/04_avisos.sql).
+// 42703: columna inexistente (falta ejecutar scripts/04_avisos.sql o 05_asistencia.sql).
 const FALTA_SCRIPT =
-  'Falta ejecutar el script backend/scripts/04_avisos.sql en Supabase.';
+  'Faltan scripts en Supabase: ejecuta backend/scripts/04_avisos.sql y 05_asistencia.sql.';
 
 router.use(requireAuth);
 
@@ -45,7 +46,8 @@ router.get('/', async (req, res) => {
       supabaseAdmin
         .from('solicitudes_partido')
         .select(
-          `id, solicitante_id, receptor_id, fecha, estado, created_at, respondida_at,
+          `id, solicitante_id, receptor_id, fecha, hora_desde, estado, created_at, respondida_at,
+          asiste_solicitante, asiste_receptor, asistencia_solicitante_at, asistencia_receptor_at,
           solicitante:usuario!solicitudes_partido_solicitante_id_fkey(${JUGADOR}),
           receptor:usuario!solicitudes_partido_receptor_id_fkey(${JUGADOR})`,
         )
@@ -73,8 +75,52 @@ router.get('/', async (req, res) => {
     const vistosAt = yoRes.data?.avisos_vistos_at || null;
     const avisos = [];
 
+    const hoy = hoyChile();
+
     for (const s of solicitudesRes.data || []) {
       const soyReceptor = s.receptor_id === userId;
+      const rival = soyReceptor ? s.solicitante : s.receptor;
+      const miAsistencia = soyReceptor ? s.asiste_receptor : s.asiste_solicitante;
+      const suAsistencia = soyReceptor ? s.asiste_solicitante : s.asiste_receptor;
+      const suAsistenciaAt = soyReceptor
+        ? s.asistencia_solicitante_at
+        : s.asistencia_receptor_at;
+      // Cancelada porque un jugador avisó que no podía asistir (no es
+      // la cancelación de una propuesta pendiente).
+      const cancelPorAsistencia =
+        s.estado === 'cancelada' &&
+        (s.asiste_solicitante === false || s.asiste_receptor === false);
+
+      // Confirmación de asistencia: el día antes y el mismo día.
+      const cuando = ventanaAsistencia(s.fecha, hoy);
+      if (s.estado === 'aceptada' && miAsistencia == null && cuando) {
+        avisos.push({
+          id: `asistencia-${s.id}`,
+          tipo: 'accion',
+          categoria: 'solicitudes',
+          jugador: rival,
+          texto: `¿Confirmas tu partido de ${cuando} con ${nombre(rival)} a las ${s.hora_desde?.slice(0, 5)}?`,
+          fecha: s.respondida_at || s.created_at,
+          destino: '/buscar-partido',
+          asistencia: s.id,
+        });
+      }
+
+      if (suAsistencia != null && reciente(suAsistenciaAt)) {
+        avisos.push({
+          id: `asistencia-${s.id}-${suAsistencia ? 'si' : 'no'}`,
+          tipo: 'info',
+          jugador: rival,
+          texto: suAsistencia
+            ? `${nombre(rival)} confirmó que asiste al partido del ${diaMes(s.fecha)}.`
+            : `${nombre(rival)} no puede asistir al partido del ${diaMes(s.fecha)}. Se canceló.`,
+          positivo: suAsistencia,
+          fecha: suAsistenciaAt,
+          destino: '/buscar-partido',
+        });
+      }
+
+      if (cancelPorAsistencia) continue;
 
       if (s.estado === 'pendiente' && soyReceptor) {
         avisos.push({

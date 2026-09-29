@@ -98,6 +98,89 @@ function RegistrarResultado({ solicitud, rivalId }) {
   );
 }
 
+// Asistencia a un partido aceptado que aún no se juega: muestra quién
+// confirmó y permite confirmar o avisar que no se puede ir.
+function Asistencia({ solicitud, soySolicitante, onResponder }) {
+  const [seguro, setSeguro] = useState(false);
+
+  if (solicitud.fecha < hoyISO()) return null;
+
+  const mia = soySolicitante ? solicitud.asiste_solicitante : solicitud.asiste_receptor;
+  const suya = soySolicitante ? solicitud.asiste_receptor : solicitud.asiste_solicitante;
+  const estado = (valor) =>
+    valor ? (
+      <span className="font-semibold text-emerald-300">confirmó</span>
+    ) : (
+      <span className="text-slate-500">sin confirmar</span>
+    );
+
+  return (
+    <div className="mt-3 rounded-xl border border-slate-700/50 bg-slate-900/40 p-3 text-xs">
+      <p className="text-slate-400">
+        Tú: {estado(mia)} · Rival: {estado(suya)}
+      </p>
+
+      {seguro ? (
+        <div className="mt-2">
+          <p className="text-red-300">Se cancelará el partido y avisaremos a tu rival.</p>
+          <div className="mt-1.5 grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => onResponder(solicitud.id, false)}
+              className="rounded-lg bg-red-600 py-2 font-semibold text-slate-100 transition-colors hover:bg-red-700"
+            >
+              Sí, cancelar
+            </button>
+            <button
+              type="button"
+              onClick={() => setSeguro(false)}
+              className="rounded-lg border border-slate-700/50 bg-slate-800/70 py-2 font-semibold text-slate-300 transition-colors hover:text-slate-100"
+            >
+              Volver
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className={`mt-2 grid gap-2 ${mia ? 'grid-cols-1' : 'grid-cols-2'}`}>
+          {!mia && (
+            <button
+              type="button"
+              onClick={() => onResponder(solicitud.id, true)}
+              className="flex items-center justify-center gap-1.5 rounded-lg bg-emerald-600 py-2 font-semibold text-slate-100 transition-colors hover:bg-emerald-700"
+            >
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Confirmo
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => setSeguro(true)}
+            className="flex items-center justify-center gap-1.5 rounded-lg border border-red-500/40 bg-red-500/10 py-2 font-semibold text-red-300 transition-colors hover:bg-red-500/20"
+          >
+            <XCircle className="h-3.5 w-3.5" />
+            {mia ? 'Ya no puedo ir' : 'No puedo'}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Nota en una solicitud cancelada porque alguien avisó que no podía ir.
+function CanceladaPorAsistencia({ solicitud, soySolicitante }) {
+  const yo = soySolicitante ? solicitud.asiste_solicitante : solicitud.asiste_receptor;
+  const rival = soySolicitante ? solicitud.asiste_receptor : solicitud.asiste_solicitante;
+  if (yo !== false && rival !== false) return null;
+
+  return (
+    <p className="mt-3 text-xs text-slate-400">
+      {yo === false
+        ? 'Avisaste que no podías asistir.'
+        : 'Tu rival avisó que no podía asistir.'}
+    </p>
+  );
+}
+
 function MatchmakingView() {
   const [miDisponibilidad, setMiDisponibilidad] = useState([]);
   const [rivales, setRivales] = useState([]);
@@ -367,6 +450,26 @@ function MatchmakingView() {
     }
   };
 
+  const responderAsistencia = async (id, asiste) => {
+    setErrorSolicitudes('');
+
+    try {
+      const response = await apiFetch(`/api/matchmaking/requests/${id}/asistencia`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ asiste }),
+      });
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        setErrorSolicitudes(result.error || 'No se pudo guardar tu asistencia.');
+      }
+      setRecargarSolicitudes((n) => n + 1);
+    } catch {
+      setErrorSolicitudes('No se pudo conectar con el servidor.');
+    }
+  };
+
   const sinDisponibilidad = miDisponibilidad.length === 0;
 
   const resumenRivales = useMemo(() => {
@@ -472,10 +575,21 @@ function MatchmakingView() {
       )}
 
       {solicitud.estado === 'aceptada' && (
-        <RegistrarResultado
-          solicitud={solicitud}
-          rivalId={solicitud.solicitante_id}
-        />
+        <>
+          <Asistencia
+            solicitud={solicitud}
+            soySolicitante={false}
+            onResponder={responderAsistencia}
+          />
+          <RegistrarResultado
+            solicitud={solicitud}
+            rivalId={solicitud.solicitante_id}
+          />
+        </>
+      )}
+
+      {solicitud.estado === 'cancelada' && (
+        <CanceladaPorAsistencia solicitud={solicitud} soySolicitante={false} />
       )}
     </li>
   );
@@ -1048,10 +1162,21 @@ function MatchmakingView() {
                   )}
 
                   {solicitud.estado === 'aceptada' && (
-                    <RegistrarResultado
-                      solicitud={solicitud}
-                      rivalId={solicitud.receptor_id}
-                    />
+                    <>
+                      <Asistencia
+                        solicitud={solicitud}
+                        soySolicitante
+                        onResponder={responderAsistencia}
+                      />
+                      <RegistrarResultado
+                        solicitud={solicitud}
+                        rivalId={solicitud.receptor_id}
+                      />
+                    </>
+                  )}
+
+                  {solicitud.estado === 'cancelada' && (
+                    <CanceladaPorAsistencia solicitud={solicitud} soySolicitante />
                   )}
                 </li>
               ))}

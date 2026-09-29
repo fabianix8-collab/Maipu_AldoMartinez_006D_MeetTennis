@@ -58,9 +58,87 @@ function FilaAviso({ aviso, onElegir }) {
   );
 }
 
+// Aviso para confirmar asistencia: se responde ahí mismo. "No puedo"
+// pide una segunda confirmación porque cancela el partido.
+function FilaAsistencia({ aviso, onAsistencia }) {
+  const [paso, setPaso] = useState('inicio');
+  const [enviando, setEnviando] = useState(false);
+  const [error, setError] = useState('');
+
+  const responder = async (asiste) => {
+    setEnviando(true);
+    setError('');
+    const mensaje = await onAsistencia(aviso.asistencia, asiste);
+    if (mensaje) {
+      setError(mensaje);
+      setEnviando(false);
+    }
+  };
+
+  const boton =
+    'flex items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-semibold transition-colors disabled:opacity-60';
+
+  return (
+    <li className="flex items-start gap-3 rounded-xl bg-amber-500/5 p-2.5">
+      <AvatarAviso jugador={aviso.jugador} />
+      <div className="min-w-0 flex-1">
+        <p className="text-sm text-slate-200">{aviso.texto}</p>
+
+        {paso === 'inicio' ? (
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              disabled={enviando}
+              onClick={() => responder(true)}
+              className={`${boton} bg-emerald-600 text-slate-100 hover:bg-emerald-700`}
+            >
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Confirmo
+            </button>
+            <button
+              type="button"
+              disabled={enviando}
+              onClick={() => setPaso('seguro')}
+              className={`${boton} border border-red-500/40 bg-red-500/10 text-red-300 hover:bg-red-500/20`}
+            >
+              <XCircle className="h-3.5 w-3.5" />
+              No puedo
+            </button>
+          </div>
+        ) : (
+          <div className="mt-2">
+            <p className="text-xs text-red-300">Se cancelará el partido y avisaremos a tu rival.</p>
+            <div className="mt-1.5 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                disabled={enviando}
+                onClick={() => responder(false)}
+                className={`${boton} bg-red-600 text-slate-100 hover:bg-red-700`}
+              >
+                Sí, cancelar
+              </button>
+              <button
+                type="button"
+                disabled={enviando}
+                onClick={() => setPaso('inicio')}
+                className={`${boton} border border-slate-700/50 bg-slate-800/70 text-slate-300 hover:text-slate-100`}
+              >
+                Volver
+              </button>
+            </div>
+          </div>
+        )}
+
+        {error && <p className="mt-1.5 text-xs text-red-400">{error}</p>}
+      </div>
+    </li>
+  );
+}
+
 // Campana con los avisos del jugador. Al abrirla se avisa al padre
-// (onAbrir) para marcar las novedades como vistas.
-function NotificationBell({ avisos, noLeidos, onAbrir }) {
+// (onAbrir) para marcar las novedades como vistas. onAsistencia(id, asiste)
+// responde una confirmación de asistencia y devuelve un mensaje si falla.
+function NotificationBell({ avisos, noLeidos, onAbrir, onAsistencia }) {
   const navigate = useNavigate();
   const [abierto, setAbierto] = useState(false);
   const contenedor = useRef(null);
@@ -132,9 +210,17 @@ function NotificationBell({ avisos, noLeidos, onAbrir }) {
                     Requieren tu respuesta
                   </p>
                   <ul className="grid gap-1">
-                    {accion.map((aviso) => (
-                      <FilaAviso key={aviso.id} aviso={aviso} onElegir={elegir} />
-                    ))}
+                    {accion.map((aviso) =>
+                      aviso.asistencia ? (
+                        <FilaAsistencia
+                          key={aviso.id}
+                          aviso={aviso}
+                          onAsistencia={onAsistencia}
+                        />
+                      ) : (
+                        <FilaAviso key={aviso.id} aviso={aviso} onElegir={elegir} />
+                      ),
+                    )}
                   </ul>
                 </>
               )}
