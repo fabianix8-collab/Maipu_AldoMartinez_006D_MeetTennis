@@ -70,22 +70,33 @@ function TennisBackground() {
       <div className="absolute -bottom-32 -right-24 h-96 w-96 rounded-full bg-lime-400/10 blur-[110px]" />
       <div className="absolute left-1/4 top-1/2 h-72 w-72 rounded-full bg-emerald-400/10 blur-[100px]" />
 
-      {/* Líneas de cancha de tenis */}
+      {/* Cancha de tenis vista desde arriba: borde de dobles, red central,
+          líneas de singles, líneas de saque y cajas de servicio. */}
       <svg
-        className="absolute inset-0 h-full w-full text-emerald-300 opacity-[0.08]"
+        className="absolute inset-0 h-full w-full text-emerald-300 opacity-[0.1]"
         viewBox="0 0 400 800"
         preserveAspectRatio="xMidYMid slice"
         fill="none"
         stroke="currentColor"
         strokeWidth="2"
       >
-        <rect x="60" y="40" width="280" height="720" />
+        {/* Borde exterior (cancha de dobles) */}
+        <rect x="40" y="40" width="320" height="720" />
+
+        {/* Línea central: la red */}
         <line x1="200" y1="40" x2="200" y2="760" />
-        <line x1="60" y1="400" x2="340" y2="400" />
-        <line x1="60" y1="200" x2="340" y2="200" />
-        <line x1="60" y1="600" x2="340" y2="600" />
-        <line x1="130" y1="200" x2="130" y2="600" />
-        <line x1="270" y1="200" x2="270" y2="600" />
+
+        {/* Líneas de singles (interiores, paralelas a la red) */}
+        <line x1="80" y1="40" x2="80" y2="760" />
+        <line x1="320" y1="40" x2="320" y2="760" />
+
+        {/* Líneas de saque (baselines) */}
+        <line x1="40" y1="210" x2="360" y2="210" />
+        <line x1="40" y1="590" x2="360" y2="590" />
+
+        {/* Cajas de servicio (donde van los postes de la red) */}
+        <rect x="200" y="373" width="27" height="54" />
+        <rect x="173" y="373" width="27" height="54" />
       </svg>
 
       {/* Trofeos en las esquinas (simétricos) */}

@@ -39,7 +39,7 @@ router.get('/', async (req, res) => {
   try {
     const userId = req.user.id;
 
-    const [usuariosRes, resenasRes] = await Promise.all([
+    const [usuariosRes, resenasRes, partidosRes] = await Promise.all([
       supabaseAdmin.from('usuario').select(JUGADOR),
       supabaseAdmin
         .from('resenas')
@@ -49,15 +49,28 @@ router.get('/', async (req, res) => {
            jugador:usuario!resenas_jugador_id_fkey(${JUGADOR})`,
         )
         .order('created_at', { ascending: false }),
+      // Solo se puede reseñar a rivales con los que ya se jugó un partido
+      // confirmado por ambos jugadores.
+      supabaseAdmin
+        .from('partidos')
+        .select('jugador1_id, jugador2_id')
+        .or(`jugador1_id.eq.${userId},jugador2_id.eq.${userId}`)
+        .eq('estado', 'confirmado'),
     ]);
 
-    const error = usuariosRes.error || resenasRes.error;
+    const error = usuariosRes.error || resenasRes.error || partidosRes.error;
     if (error) {
       return res.status(500).json({
         success: false,
         data: null,
         error: mensajeError(error),
       });
+    }
+
+    // Rivales con partido confirmado (jugué contra ellos).
+    const rivalIds = new Set();
+    for (const p of partidosRes.data || []) {
+      rivalIds.add(p.jugador1_id === userId ? p.jugador2_id : p.jugador1_id);
     }
 
     const resenas = resenasRes.data || [];
@@ -75,7 +88,7 @@ router.get('/', async (req, res) => {
     }
 
     const jugadores = (usuariosRes.data || [])
-      .filter((u) => u.id !== userId)
+      .filter((u) => u.id !== userId && rivalIds.has(u.id))
       .map((u) => {
         const grupo = porJugador.get(u.id);
         return {
@@ -108,6 +121,60 @@ router.get('/', async (req, res) => {
     return res.status(200).json({
       success: true,
       data: { jugadores, recibidas, miPromedio },
+      error: null,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      data: null,
+      error: 'Error interno del servidor.',
+    });
+  }
+});
+
+// Reseñas recibidas por un jugador (anónimas) y su promedio.
+// Sirve para decidir si jugar contra ese rival desde su perfil.
+router.get('/player/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!esUuid(id)) {
+      return res.status(400).json({
+        success: false,
+        data: null,
+        error: 'Identificador no válido.',
+      });
+    }
+
+    const { data: resenas, error } = await supabaseAdmin
+      .from('resenas')
+      .select('id, calificacion, comentario, created_at')
+      .eq('jugador_id', id)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      return res.status(500).json({
+        success: false,
+        data: null,
+        error: mensajeError(error),
+      });
+    }
+
+    const recibidas = (resenas || []).map((r) => ({
+      id: r.id,
+      calificacion: r.calificacion,
+      comentario: r.comentario,
+      created_at: r.created_at,
+      autor: null, // anónimo: no se revela quién la dejó
+    }));
+
+    const promedio = recibidas.length
+      ? +(recibidas.reduce((suma, r) => suma + r.calificacion, 0) / recibidas.length).toFixed(1)
+      : null;
+
+    return res.status(200).json({
+      success: true,
+      data: { promedio, totalResenas: recibidas.length, recibidas },
       error: null,
     });
   } catch (err) {
@@ -170,6 +237,33 @@ router.post('/', async (req, res) => {
         success: false,
         data: null,
         error: 'El jugador no existe.',
+      });
+    }
+
+    // Solo se puede reseñar a rivales con los que ya se jugó un partido
+    // confirmado por ambos jugadores.
+    const { data: partido, error: partidoError } = await supabaseAdmin
+      .from('partidos')
+      .select('id')
+      .or(
+        `and(jugador1_id.eq.${userId},jugador2_id.eq.${jugador_id}),` +
+          `and(jugador1_id.eq.${jugador_id},jugador2_id.eq.${userId})`,
+      )
+      .eq('estado', 'confirmado')
+      .limit(1);
+
+    if (partidoError) {
+      return res.status(500).json({
+        success: false,
+        data: null,
+        error: partidoError.message,
+      });
+    }
+    if (!partido || partido.length === 0) {
+      return res.status(403).json({
+        success: false,
+        data: null,
+        error: 'Solo puedes reseñar a rivales con los que ya jugaste un partido confirmado.',
       });
     }
 

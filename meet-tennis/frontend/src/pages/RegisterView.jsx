@@ -10,6 +10,7 @@ import {
   Loader2,
   Lock,
   Mail,
+  MapPin,
   User,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -23,6 +24,38 @@ const NIVELES = [
   '3ra Categoría',
   '4ta Categoría',
   '5ta Categoría',
+];
+
+// Comunas de Santiago donde hay canchas registradas.
+const COMUNAS = [
+  'Cerrillos',
+  'Cerro Navia',
+  'Conchalí',
+  'Estación Central',
+  'Huechuraba',
+  'Independencia',
+  'La Cisterna',
+  'La Florida',
+  'La Granja',
+  'La Reina',
+  'Las Condes',
+  'Lo Barnechea',
+  'Macul',
+  'Maipú',
+  'Ñuñoa',
+  'Pedro Aguirre Cerda',
+  'Peñalolén',
+  'Providencia',
+  'Pudahuel',
+  'Puente Alto',
+  'Quilicura',
+  'Quinta Normal',
+  'Recoleta',
+  'San Bernardo',
+  'San Joaquín',
+  'San Miguel',
+  'Santiago',
+  'Santiago Centro',
 ];
 
 const onlyLetters = (value) =>
@@ -53,6 +86,7 @@ const initialValues = {
   fecha_nacimiento: '',
   genero: '',
   nivel: '',
+  comuna: '',
   email: '',
   password: '',
 };
@@ -76,6 +110,9 @@ function buildErrors(values, avatar) {
   }
   if (!values.nivel) {
     errors.nivel = 'Selecciona un nivel.';
+  }
+  if (!values.comuna) {
+    errors.comuna = 'Selecciona tu comuna.';
   }
   if (!values.email) {
     errors.email = 'El email es obligatorio.';
@@ -148,6 +185,7 @@ function RegisterView() {
     formData.append('fecha_nacimiento', values.fecha_nacimiento);
     formData.append('genero', values.genero);
     formData.append('nivel', values.nivel);
+    formData.append('comuna', values.comuna);
     formData.append('email', values.email.trim());
     formData.append('password', values.password);
     formData.append('avatar', avatar);
@@ -375,6 +413,40 @@ function RegisterView() {
                 </div>
                 {renderFieldError('nivel')}
               </div>
+            </div>
+
+            <div>
+              <label className={labelClass} htmlFor="comuna">
+                Comuna
+              </label>
+              <div className="relative">
+                <MapPin className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                <select
+                  id="comuna"
+                  name="comuna"
+                  value={values.comuna}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  className={`${inputBase} appearance-none ${borderFor('comuna')} ${
+                    values.comuna ? 'text-slate-100' : 'text-slate-500'
+                  }`}
+                >
+                  <option className="bg-slate-800 text-slate-100" value="" disabled>
+                    Selecciona tu comuna
+                  </option>
+                  {COMUNAS.map((comuna) => (
+                    <option
+                      key={comuna}
+                      value={comuna}
+                      className="bg-slate-800 text-slate-100"
+                    >
+                      {comuna}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+              </div>
+              {renderFieldError('comuna')}
             </div>
 
             <div>

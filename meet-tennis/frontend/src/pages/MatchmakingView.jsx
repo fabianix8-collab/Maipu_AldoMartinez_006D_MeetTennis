@@ -14,6 +14,7 @@ import {
   Navigation,
   Plus,
   Send,
+  Star,
   Swords,
   Trophy,
   User,
@@ -25,7 +26,7 @@ import BrandLogo from '../components/BrandLogo.jsx';
 import TennisBackground from '../components/TennisBackground.jsx';
 import MapEmbed from '../components/MapEmbed.jsx';
 import { apiFetch } from '../lib/api.js';
-import { formatFecha, hoyISO, iniciales } from '../lib/formato.js';
+import { formatFecha, haceCuanto, hoyISO, iniciales } from '../lib/formato.js';
 
 const CATEGORIAS = [
   '1ra Categoría',
@@ -200,6 +201,13 @@ function MatchmakingView() {
 
   // Rivales con el mapa de la cancha recomendada abierto (por id de rival).
   const [mapaAbierto, setMapaAbierto] = useState({});
+
+  // Perfil de un rival abierto en modal (foto clickeable).
+  const [perfilAbierto, setPerfilAbierto] = useState(null);
+  const [perfilDatos, setPerfilDatos] = useState(null);
+  const [perfilResenas, setPerfilResenas] = useState(null);
+  const [perfilCargando, setPerfilCargando] = useState(false);
+  const [perfilError, setPerfilError] = useState('');
 
   const [solicitudAbierta, setSolicitudAbierta] = useState(null);
   const [formSolicitud, setFormSolicitud] = useState({
@@ -499,6 +507,39 @@ function MatchmakingView() {
     );
   };
 
+  // Abre el modal con el perfil público del rival (foto clickeable),
+  // incluyendo su calificación y reseñas anónimas.
+  const verPerfil = async (rival) => {
+    setPerfilAbierto(rival);
+    setPerfilDatos(null);
+    setPerfilResenas(null);
+    setPerfilError('');
+    setPerfilCargando(true);
+
+    try {
+      const [perfilRes, resenasRes] = await Promise.all([
+        apiFetch(`/api/profile/${rival.id}`),
+        apiFetch(`/api/reviews/player/${rival.id}`),
+      ]);
+      const perfil = await perfilRes.json();
+      const resenas = await resenasRes.json();
+
+      if (perfilRes.ok && perfil.success) {
+        setPerfilDatos(perfil.data);
+      } else {
+        setPerfilError(perfil.error || 'No se pudo cargar el perfil.');
+      }
+
+      if (resenasRes.ok && resenas.success) {
+        setPerfilResenas(resenas.data);
+      }
+    } catch {
+      setPerfilError('No se pudo conectar con el servidor.');
+    } finally {
+      setPerfilCargando(false);
+    }
+  };
+
   const recibidasPendientes = solicitudes.recibidas.filter((s) => s.estado === 'pendiente');
   const recibidasRespondidas = solicitudes.recibidas.filter((s) => s.estado !== 'pendiente');
 
@@ -794,9 +835,15 @@ function MatchmakingView() {
                     className="rounded-2xl border border-slate-700/50 bg-slate-800/60 p-4 shadow-2xl backdrop-blur-md"
                   >
                     <div className="flex items-start gap-3">
-                      <span className="relative inline-flex shrink-0 rounded-full bg-gradient-to-tr from-emerald-500 via-emerald-400 to-lime-300 p-[2px]">
+                      <button
+                        type="button"
+                        onClick={() => verPerfil(rival)}
+                        aria-label={`Ver perfil de ${rival.nombre} ${rival.apellido}`}
+                        title="Ver perfil"
+                        className="relative inline-flex shrink-0 cursor-pointer rounded-full bg-gradient-to-tr from-emerald-500 via-emerald-400 to-lime-300 p-[2px] transition-transform hover:scale-105"
+                      >
                         {renderAvatar(rival)}
-                      </span>
+                      </button>
 
                       <div className="min-w-0 flex-1">
                         <h3 className="truncate text-sm font-semibold text-slate-100">
@@ -1207,6 +1254,174 @@ function MatchmakingView() {
           Los rivales se ordenan por la cantidad de horarios compatibles.
         </p>
       </div>
+
+      {/* Modal con el perfil público del rival (se abre al tocar su foto) */}
+      {perfilAbierto && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm"
+          onClick={() => setPerfilAbierto(null)}
+        >
+          <div
+            className="relative mx-auto w-full max-w-sm rounded-2xl border border-slate-700/50 bg-slate-900/95 p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setPerfilAbierto(null)}
+              aria-label="Cerrar perfil"
+              className="absolute right-3 top-3 rounded-xl border border-slate-700/50 bg-slate-800/60 p-2 text-slate-400 transition-colors hover:border-red-500/50 hover:text-red-400"
+            >
+              <XCircle className="h-4 w-4" />
+            </button>
+
+            {perfilCargando ? (
+              <p className="flex items-center justify-center gap-2 py-8 text-sm text-slate-400">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                Cargando perfil...
+              </p>
+            ) : perfilError ? (
+              <p className="flex items-start gap-2 rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-300">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                {perfilError}
+              </p>
+            ) : perfilDatos ? (
+              <>
+                <div className="flex flex-col items-center gap-3">
+                  <span className="relative inline-flex shrink-0 rounded-full bg-gradient-to-tr from-emerald-500 via-emerald-400 to-lime-300 p-[3px] shadow-lg">
+                    {perfilDatos.avatar_url ? (
+                      <img
+                        src={perfilDatos.avatar_url}
+                        alt={`Foto de ${perfilDatos.nombre} ${perfilDatos.apellido}`}
+                        className="h-24 w-24 rounded-full border-2 border-slate-900 object-cover"
+                      />
+                    ) : (
+                      <span className="flex h-24 w-24 items-center justify-center rounded-full border-2 border-slate-900 bg-slate-800 text-slate-400">
+                        <User className="h-10 w-10" />
+                      </span>
+                    )}
+                  </span>
+                  <h2 className="text-xl font-bold text-slate-100">
+                    {perfilDatos.nombre} {perfilDatos.apellido}
+                  </h2>
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300">
+                    <Trophy className="h-3.5 w-3.5" />
+                    {perfilDatos.nivel || 'Sin nivel'}
+                  </span>
+                </div>
+
+                <dl className="mt-5 grid gap-3">
+                  <div>
+                    <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                      Comuna
+                    </dt>
+                    <dd className="mt-0.5 flex items-center gap-2 text-sm text-slate-100">
+                      <MapPin className="h-4 w-4 shrink-0 text-slate-500" />
+                      {perfilDatos.comuna || 'No especificada'}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                      Sobre mí
+                    </dt>
+                    <dd className="mt-0.5 text-sm text-slate-300">
+                      {perfilDatos.bio || 'Sin descripción.'}
+                    </dd>
+                  </div>
+                </dl>
+
+                {perfilResenas && (
+                  <div className="mt-5 rounded-xl border border-amber-400/30 bg-amber-400/5 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Calificación de otros jugadores
+                    </p>
+                    <div className="mt-2 flex items-center gap-2">
+                      <div className="flex items-center gap-0.5">
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <Star
+                            key={n}
+                            className={`h-5 w-5 ${
+                              n <= Math.round(perfilResenas.promedio || 0)
+                                ? 'fill-amber-400 text-amber-400'
+                                : 'fill-slate-700 text-slate-600'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-sm font-semibold text-slate-100">
+                        {perfilResenas.promedio
+                          ? `${perfilResenas.promedio} de 5`
+                          : 'Sin reseñas'}
+                      </span>
+                    </div>
+                    {perfilResenas.promedio && (
+                      <p className="mt-1.5 text-xs text-slate-400">
+                        {perfilResenas.promedio >= 4.5
+                          ? 'Excelente jugador, muy confiable.'
+                          : perfilResenas.promedio >= 3.5
+                            ? 'Buen jugador, confiable.'
+                            : perfilResenas.promedio >= 2.5
+                              ? 'Jugador regular, con opiniones mixtas.'
+                              : perfilResenas.promedio >= 1.5
+                                ? 'Jugador poco confiable según otros.'
+                                : 'Jugador no recomendado según otros.'}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {perfilResenas && (
+                  <div className="mt-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Reseñas
+                    </p>
+                    {perfilResenas.recibidas.length === 0 ? (
+                      <p className="mt-2 text-xs text-slate-500">
+                        Aún no tiene reseñas. Juega con él para conocerlo mejor.
+                      </p>
+                    ) : (
+                      <ul className="mt-2 grid max-h-44 gap-2 overflow-y-auto overscroll-contain pr-1">
+                        {perfilResenas.recibidas.map((r) => (
+                          <li
+                            key={r.id}
+                            className="rounded-xl border border-slate-700/50 bg-slate-800/50 p-3"
+                          >
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-semibold text-slate-400">
+                                Jugador anónimo
+                              </span>
+                              <span className="text-xs text-slate-600">·</span>
+                              <span className="text-xs text-slate-500">
+                                {haceCuanto(r.created_at)}
+                              </span>
+                            </div>
+                            <div className="mt-1 flex items-center gap-0.5">
+                              {[1, 2, 3, 4, 5].map((n) => (
+                                <Star
+                                  key={n}
+                                  className={`h-3 w-3 ${
+                                    n <= r.calificacion
+                                      ? 'fill-amber-400 text-amber-400'
+                                      : 'fill-slate-700 text-slate-600'
+                                  }`}
+                                />
+                              ))}
+                            </div>
+                            {r.comentario && (
+                              <p className="mt-1 text-xs text-slate-300">
+                                {r.comentario}
+                              </p>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
+              </>
+            ) : null}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

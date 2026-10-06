@@ -314,9 +314,9 @@ function ResenasView() {
             Dejar una reseña
           </h2>
           <p className="mt-1 text-xs text-slate-500">
-            Cuenta cómo fue tu experiencia: si asistió, llegó a tiempo, su
-            actitud en la cancha, etc. Una reseña por jugador. Las reseñas
-            son anónimas.
+            Solo puedes reseñar a rivales con los que ya jugaste un partido
+            confirmado. Cuenta cómo fue tu experiencia: si asistió, llegó a
+            tiempo, su actitud en la cancha, etc. Las reseñas son anónimas.
           </p>
 
           <div className="mt-4">
@@ -329,7 +329,8 @@ function ResenasView() {
                 </p>
               ) : jugadores.length === 0 ? (
                 <p className="p-4 text-center text-sm text-slate-500">
-                  No hay jugadores disponibles.
+                  Aún no has jugado con nadie. Juega un partido confirmado
+                  para poder dejar reseñas.
                 </p>
               ) : (
                 jugadores.map((jugador) => {

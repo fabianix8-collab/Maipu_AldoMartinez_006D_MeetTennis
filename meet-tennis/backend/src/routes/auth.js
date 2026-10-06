@@ -145,6 +145,7 @@ router.post('/register', upload.single('avatar'), async (req, res) => {
       fecha_nacimiento,
       genero: generoRaw,
       nivel: nivelRaw,
+      comuna: comunaRaw,
       email: emailRaw,
       password,
     } = req.body;
@@ -155,6 +156,7 @@ router.post('/register', upload.single('avatar'), async (req, res) => {
     const apellido = apellidoRaw?.trim();
     const genero = generoRaw?.trim();
     const nivel = nivelRaw?.trim();
+    const comuna = comunaRaw?.trim();
     const email = emailRaw?.trim().toLowerCase();
 
     if (
@@ -163,6 +165,7 @@ router.post('/register', upload.single('avatar'), async (req, res) => {
       !fecha_nacimiento ||
       !genero ||
       !nivel ||
+      !comuna ||
       !email ||
       !password
     ) {
@@ -241,6 +244,7 @@ router.post('/register', upload.single('avatar'), async (req, res) => {
           apellido,
           genero,
           nivel,
+          comuna,
           fecha_nacimiento,
           avatar_url: avatarUrl,
         },
