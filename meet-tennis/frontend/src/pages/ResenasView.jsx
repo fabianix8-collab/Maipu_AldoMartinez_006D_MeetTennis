@@ -38,6 +38,16 @@ function Avatar({ jugador, size = 'h-10 w-10' }) {
       />
     );
   }
+  // Reseñas anónimas: sin autor no se muestran iniciales ni identidad.
+  if (!jugador) {
+    return (
+      <span
+        className={`${size} flex shrink-0 items-center justify-center rounded-full bg-slate-800 text-sm font-bold text-slate-500`}
+      >
+        ?
+      </span>
+    );
+  }
   return (
     <span
       className={`${size} flex shrink-0 items-center justify-center rounded-full bg-slate-800 text-sm font-bold text-emerald-300`}
@@ -305,7 +315,8 @@ function ResenasView() {
           </h2>
           <p className="mt-1 text-xs text-slate-500">
             Cuenta cómo fue tu experiencia: si asistió, llegó a tiempo, su
-            actitud en la cancha, etc. Una reseña por jugador.
+            actitud en la cancha, etc. Una reseña por jugador. Las reseñas
+            son anónimas.
           </p>
 
           <div className="mt-4">
@@ -460,7 +471,7 @@ function ResenasView() {
                       <Avatar jugador={resena.autor} />
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold text-slate-100">
-                          {nombreCompleto(resena.autor)}
+                          {resena.autor ? nombreCompleto(resena.autor) : 'Jugador anónimo'}
                         </p>
                         <div className="mt-1">
                           <Estrellas valor={resena.calificacion} size="h-4 w-4" />
@@ -544,7 +555,8 @@ function ResenasView() {
         </section>
 
         <p className="mt-auto pt-10 text-center text-xs text-slate-500">
-          Las reseñas ayudan a que la comunidad sea más confiable.
+          Las reseñas son anónimas y ayudan a que la comunidad sea más
+          confiable.
         </p>
       </div>
     </div>

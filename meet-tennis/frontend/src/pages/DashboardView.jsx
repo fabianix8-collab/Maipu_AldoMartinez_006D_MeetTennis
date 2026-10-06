@@ -4,6 +4,8 @@ import {
   ClipboardCheck,
   LogOut,
   MapPin,
+  MessageSquare,
+  Star,
   Swords,
   Trophy,
   User,
@@ -21,7 +23,8 @@ const NAV_ITEMS = [
   { title: 'Mi Ranking', Icon: Trophy, to: '/ranking' },
   { title: 'Mi Disponibilidad', Icon: CalendarClock, to: '/disponibilidad' },
   { title: 'Canchas Cercanas', Icon: MapPin, to: '/canchas' },
-  { title: 'Mi Perfil', Icon: User, to: '/perfil', ancho: true },
+  { title: 'Reseñas', Icon: MessageSquare, to: '/resenas', estrella: true },
+  { title: 'Mi Perfil', Icon: User, to: '/perfil' },
 ];
 
 const TEXTO_AVISO = {
@@ -112,13 +115,13 @@ function DashboardView() {
   };
 
   return (
-    <div className="relative h-screen overflow-hidden bg-slate-900 px-4 py-5">
+    <div className="relative min-h-screen overflow-x-hidden bg-slate-900 px-4 py-5">
       <TennisBackground />
 
-      <div className="relative mx-auto flex h-full max-w-md flex-col">
+      <div className="relative mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-md flex-col">
         <header className="flex items-start justify-between gap-4">
           <div>
-            <BrandLogo className="mb-3 h-14 sm:h-16" />
+            <BrandLogo className="mb-4 h-12 sm:h-14" />
             <div className="flex items-center gap-3">
               <span className="relative inline-flex shrink-0 rounded-full bg-gradient-to-tr from-emerald-500 via-emerald-400 to-lime-300 p-[2px] shadow-[0_0_25px_rgba(16,185,129,0.35)]">
                 {avatarUrl ? (
@@ -134,10 +137,10 @@ function DashboardView() {
                 )}
               </span>
               <div>
-                <h1 className="text-2xl font-bold leading-tight text-slate-100 drop-shadow-[0_0_18px_rgba(16,185,129,0.3)]">
+                <h1 className="text-xl font-bold leading-tight text-slate-100 drop-shadow-[0_0_18px_rgba(16,185,129,0.3)]">
                   Hola, {firstName}
                 </h1>
-                <p className="mt-0.5 text-sm text-slate-400">
+                <p className="mt-0.5 text-xs text-slate-400">
                   ¿Listo para jugar hoy?
                 </p>
               </div>
@@ -162,34 +165,59 @@ function DashboardView() {
           </div>
         </header>
 
-        <nav className="mt-10 grid grid-cols-2 gap-4">
-          {NAV_ITEMS.map(({ title, Icon, to, ancho, aviso }) => {
+        <nav className="mt-4 flex flex-col gap-3">
+          {/* Buscar Partido: tarjeta ancha pero compacta */}
+          {NAV_ITEMS.filter((item) => item.ancho).map(({ title, Icon, to, aviso }) => {
             const pendientes = aviso ? notificaciones.pendientes[aviso] : 0;
             return (
               <button
                 type="button"
                 key={title}
                 onClick={() => to && navigate(to)}
-                className={`group relative flex items-center justify-center gap-4 rounded-2xl border border-slate-700/50 bg-slate-800/60 p-5 text-slate-100 shadow-2xl backdrop-blur-md transition-all duration-200 hover:-translate-y-1 hover:border-emerald-500/50 hover:bg-slate-800/80 ${
-                  ancho ? 'col-span-2' : 'aspect-square flex-col'
-                }`}
+                className="group relative flex items-center justify-center gap-3 rounded-2xl border border-slate-700/50 bg-slate-800/60 p-4 text-slate-100 shadow-2xl backdrop-blur-md transition-all duration-200 hover:-translate-y-1 hover:border-emerald-500/50 hover:bg-slate-800/80"
               >
                 {pendientes > 0 && (
-                  <span className="absolute right-3 top-3 rounded-full bg-amber-400 px-2 py-0.5 text-[11px] font-bold text-slate-900 shadow-lg">
-                    {ancho ? TEXTO_AVISO[aviso](pendientes) : pendientes}
+                  <span className="absolute right-2.5 top-2.5 rounded-full bg-amber-400 px-2 py-0.5 text-[11px] font-bold text-slate-900 shadow-lg">
+                    {TEXTO_AVISO[aviso](pendientes)}
                   </span>
                 )}
-                <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-emerald-600/15 text-emerald-400 transition-colors group-hover:bg-emerald-600/25 group-hover:text-emerald-300">
-                  <Icon className="h-8 w-8" />
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-600/15 text-emerald-400 transition-colors group-hover:bg-emerald-600/25 group-hover:text-emerald-300">
+                  <Icon className="h-6 w-6" />
                 </span>
-                <span
-                  className={`font-semibold ${ancho ? 'text-base' : 'text-sm'}`}
-                >
-                  {title}
-                </span>
+                <span className="font-semibold text-base">{title}</span>
               </button>
             );
           })}
+
+          {/* Las 6 secciones: llenan el resto de la pantalla en 2 columnas */}
+          <div className="grid flex-1 auto-rows-fr grid-cols-2 gap-3">
+            {NAV_ITEMS.filter((item) => !item.ancho).map(({ title, Icon, to, aviso, estrella }) => {
+              const pendientes = aviso ? notificaciones.pendientes[aviso] : 0;
+              return (
+                <button
+                  type="button"
+                  key={title}
+                  onClick={() => to && navigate(to)}
+                  className="group relative flex flex-col items-center justify-center gap-3 rounded-2xl border border-slate-700/50 bg-slate-800/60 p-5 text-slate-100 shadow-2xl backdrop-blur-md transition-all duration-200 hover:-translate-y-1 hover:border-emerald-500/50 hover:bg-slate-800/80"
+                >
+                  {pendientes > 0 && (
+                    <span className="absolute right-2.5 top-2.5 rounded-full bg-amber-400 px-2 py-0.5 text-[11px] font-bold text-slate-900 shadow-lg">
+                      {pendientes}
+                    </span>
+                  )}
+                  <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-emerald-600/15 text-emerald-400 transition-colors group-hover:bg-emerald-600/25 group-hover:text-emerald-300">
+                    <span className="relative">
+                      <Icon className="h-7 w-7" />
+                      {estrella && (
+                        <Star className="absolute right-0 top-0 h-2.5 w-2.5 fill-emerald-400 text-emerald-400" />
+                      )}
+                    </span>
+                  </span>
+                  <span className="font-semibold text-sm">{title}</span>
+                </button>
+              );
+            })}
+          </div>
         </nav>
       </div>
     </div>

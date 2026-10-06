@@ -88,7 +88,9 @@ router.get('/', async (req, res) => {
       })
       .sort((a, b) => nombreCompleto(a).localeCompare(nombreCompleto(b), 'es'));
 
-    // Reseñas que recibió el usuario autenticado.
+    // Reseñas que recibió el usuario autenticado. Son anónimas: no se
+    // revela quién dejó cada reseña para que se pueda calificar con
+    // honestidad sin miedo a represalias.
     const recibidas = resenas
       .filter((r) => r.jugador_id === userId)
       .map((r) => ({
@@ -96,7 +98,7 @@ router.get('/', async (req, res) => {
         calificacion: r.calificacion,
         comentario: r.comentario,
         created_at: r.created_at,
-        autor: r.autor,
+        autor: null,
       }));
 
     const miPromedio = recibidas.length

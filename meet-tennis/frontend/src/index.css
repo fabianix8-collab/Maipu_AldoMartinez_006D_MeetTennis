@@ -39,6 +39,9 @@ body {
 .animate-float-slow { animation: float-slow 8s ease-in-out infinite; }
 .animate-float-slower { animation: float-slower 10s ease-in-out infinite; }
 
+/* (La pelota del fondo ahora rebota por la pantalla con JavaScript,
+   efecto "logo de DVD", definido en TennisBackground.jsx) */
+
 /* Scrollbar sutil acorde al tema */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }

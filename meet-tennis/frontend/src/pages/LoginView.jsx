@@ -131,12 +131,12 @@ function LoginView() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-slate-900 px-4 py-10">
+    <div className="relative h-screen overflow-hidden bg-slate-900 px-4 py-6">
       <TennisBackground />
 
-      <div className="relative mx-auto flex min-h-screen max-w-md flex-col justify-center">
-        <div className="mb-8 text-center">
-          <BrandLogo className="mx-auto mb-12 h-32 sm:h-40" />
+      <div className="relative mx-auto flex h-full max-w-md flex-col justify-center -mt-8">
+        <div className="mb-6 text-center">
+          <BrandLogo className="mx-auto mb-6 h-32 sm:h-36" />
           <h1 className="text-2xl font-bold text-slate-100">Iniciar sesión</h1>
           <p className="mt-2 text-sm text-slate-400">
             Bienvenido de nuevo a MeetTennis
