@@ -4,7 +4,6 @@ import {
   ClipboardCheck,
   LogOut,
   MapPin,
-  Star,
   Swords,
   Trophy,
   User,
@@ -22,8 +21,7 @@ const NAV_ITEMS = [
   { title: 'Mi Ranking', Icon: Trophy, to: '/ranking' },
   { title: 'Mi Disponibilidad', Icon: CalendarClock, to: '/disponibilidad' },
   { title: 'Canchas Cercanas', Icon: MapPin, to: '/canchas' },
-  { title: 'Reseñas de Jugadores', Icon: Star, to: '/resenas' },
-  { title: 'Mi Perfil', Icon: User, to: '/perfil' },
+  { title: 'Mi Perfil', Icon: User, to: '/perfil', ancho: true },
 ];
 
 const TEXTO_AVISO = {
@@ -164,7 +162,7 @@ function DashboardView() {
           </div>
         </header>
 
-        <nav className="mt-4 grid min-h-0 flex-1 grid-cols-2 grid-rows-[auto_1fr_1fr_1fr] gap-3">
+        <nav className="mt-10 grid grid-cols-2 gap-4">
           {NAV_ITEMS.map(({ title, Icon, to, ancho, aviso }) => {
             const pendientes = aviso ? notificaciones.pendientes[aviso] : 0;
             return (
@@ -172,21 +170,17 @@ function DashboardView() {
                 type="button"
                 key={title}
                 onClick={() => to && navigate(to)}
-                className={`group relative flex items-center justify-center gap-3 rounded-2xl border border-slate-700/50 bg-gradient-to-br from-slate-800/80 via-slate-800/60 to-slate-900/80 text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_20px_40px_-15px_rgba(0,0,0,0.6)] backdrop-blur-md transition-all duration-200 hover:-translate-y-1 hover:border-emerald-500/60 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_35px_rgba(16,185,129,0.18)] ${
-                  ancho ? 'col-span-2 flex-row p-4' : 'h-full flex-col p-3'
+                className={`group relative flex items-center justify-center gap-4 rounded-2xl border border-slate-700/50 bg-slate-800/60 p-5 text-slate-100 shadow-2xl backdrop-blur-md transition-all duration-200 hover:-translate-y-1 hover:border-emerald-500/50 hover:bg-slate-800/80 ${
+                  ancho ? 'col-span-2' : 'aspect-square flex-col'
                 }`}
               >
                 {pendientes > 0 && (
-                  <span className="absolute right-3 top-3 rounded-full bg-gradient-to-r from-amber-400 to-lime-400 px-2 py-0.5 text-[11px] font-bold text-slate-900 shadow-lg">
+                  <span className="absolute right-3 top-3 rounded-full bg-amber-400 px-2 py-0.5 text-[11px] font-bold text-slate-900 shadow-lg">
                     {ancho ? TEXTO_AVISO[aviso](pendientes) : pendientes}
                   </span>
                 )}
-                <span
-                  className={`flex shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500/25 to-lime-400/10 text-emerald-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] transition-all duration-200 group-hover:from-emerald-500/35 group-hover:to-lime-400/20 group-hover:text-emerald-300 ${
-                    ancho ? 'h-14 w-14' : 'h-12 w-12'
-                  }`}
-                >
-                  <Icon className={ancho ? 'h-7 w-7' : 'h-6 w-6'} />
+                <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-emerald-600/15 text-emerald-400 transition-colors group-hover:bg-emerald-600/25 group-hover:text-emerald-300">
+                  <Icon className="h-8 w-8" />
                 </span>
                 <span
                   className={`font-semibold ${ancho ? 'text-base' : 'text-sm'}`}
