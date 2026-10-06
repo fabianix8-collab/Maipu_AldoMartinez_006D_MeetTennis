@@ -7,15 +7,60 @@ function TennisBackground() {
       aria-hidden="true"
       className="pointer-events-none absolute inset-0 overflow-hidden"
     >
-      <Trophy className="absolute -right-24 -top-24 h-96 w-96 rotate-6 text-emerald-500 opacity-5" />
-      <Trophy className="absolute -bottom-28 -left-24 h-96 w-96 rotate-12 text-emerald-500 opacity-5" />
+      {/* Gradiente base: azul profundo con tinte esmeralda */}
+      <div className="absolute inset-0 bg-gradient-to-b from-slate-950 via-slate-900 to-emerald-950/70" />
 
-      <TennisRacket className="absolute -left-16 top-1/4 h-64 w-64 -rotate-12 text-emerald-500 opacity-[0.07]" />
-      <TennisRacket className="absolute -right-20 bottom-1/4 h-72 w-72 rotate-12 text-emerald-500 opacity-[0.07]" />
+      {/* Resplandores radiales de color */}
+      <div className="absolute -top-40 left-1/2 h-[28rem] w-[28rem] -translate-x-1/2 rounded-full bg-emerald-500/15 blur-[130px]" />
+      <div className="absolute -bottom-32 -right-24 h-96 w-96 rounded-full bg-lime-400/10 blur-[110px]" />
+      <div className="absolute left-1/4 top-1/2 h-72 w-72 rounded-full bg-emerald-400/10 blur-[100px]" />
 
-      <TennisBall className="absolute right-8 top-20 h-16 w-16 text-lime-400 opacity-10" />
-      <TennisBall className="absolute left-6 bottom-28 h-12 w-12 text-emerald-400 opacity-10" />
-      <TennisBall className="absolute left-1/2 top-1/2 h-10 w-10 -translate-x-1/2 text-lime-400 opacity-10" />
+      {/* Líneas de cancha de tenis */}
+      <svg
+        className="absolute inset-0 h-full w-full text-emerald-300 opacity-[0.05]"
+        viewBox="0 0 400 800"
+        preserveAspectRatio="xMidYMid slice"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+      >
+        <rect x="60" y="40" width="280" height="720" />
+        <line x1="200" y1="40" x2="200" y2="760" />
+        <line x1="60" y1="400" x2="340" y2="400" />
+        <line x1="60" y1="200" x2="340" y2="200" />
+        <line x1="60" y1="600" x2="340" y2="600" />
+        <line x1="130" y1="200" x2="130" y2="600" />
+        <line x1="270" y1="200" x2="270" y2="600" />
+      </svg>
+
+      {/* Trofeos en las esquinas (simétricos) */}
+      <Trophy className="absolute -left-20 -top-20 h-72 w-72 -rotate-12 text-emerald-500 opacity-10" />
+      <Trophy className="absolute -right-20 -top-20 h-72 w-72 rotate-12 text-emerald-500 opacity-10" />
+      <Trophy className="absolute -bottom-20 -left-20 h-72 w-72 rotate-12 text-emerald-500 opacity-10" />
+      <Trophy className="absolute -bottom-20 -right-20 h-72 w-72 -rotate-12 text-emerald-500 opacity-10" />
+
+      {/* Raquetas a los lados (centradas verticalmente) */}
+      <TennisRacket className="absolute -left-16 top-1/2 h-64 w-64 -translate-y-1/2 -rotate-12 text-emerald-500 opacity-10" />
+      <TennisRacket className="absolute -right-16 top-1/2 h-64 w-64 -translate-y-1/2 rotate-12 text-emerald-500 opacity-10" />
+
+      {/* Fila superior de pelotas (bajo el encabezado, lejos del avatar) */}
+      <div className="absolute inset-x-0 top-[30%] flex items-center justify-around px-10">
+        <TennisBall className="animate-float h-10 w-10 text-lime-400 opacity-25" />
+        <TennisBall className="animate-float-slow h-14 w-14 text-emerald-400 opacity-25" />
+        <TennisBall className="animate-float-slower h-10 w-10 text-lime-400 opacity-25" />
+        <TennisBall className="animate-float h-12 w-12 text-emerald-300 opacity-25" />
+      </div>
+
+      {/* Fila inferior de pelotas */}
+      <div className="absolute inset-x-0 bottom-[10%] flex items-center justify-around px-10">
+        <TennisBall className="animate-float-slow h-12 w-12 text-emerald-300 opacity-25" />
+        <TennisBall className="animate-float h-10 w-10 text-lime-400 opacity-25" />
+        <TennisBall className="animate-float-slower h-14 w-14 text-emerald-400 opacity-25" />
+        <TennisBall className="animate-float h-10 w-10 text-lime-400 opacity-25" />
+      </div>
+
+      {/* Viñeta para enfocar el centro */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_55%,rgba(2,6,23,0.55)_100%)]" />
     </div>
   );
 }

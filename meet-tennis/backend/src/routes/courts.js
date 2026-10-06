@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
+import { extraerComuna } from '../lib/utils.js';
 
 dotenv.config();
 
@@ -8,16 +9,9 @@ const router = Router();
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY,
+  process.env.SUPABASE_SERVICE_ROLE_KEY,
 );
 
-// Extrae la comuna desde la dirección (última parte tras la coma).
-function extraerComuna(direccion) {
-  if (!direccion) return null;
-  const partes = direccion.split(',');
-  const comuna = partes[partes.length - 1]?.trim();
-  return comuna || null;
-}
 
 // Lista las canchas registradas y las comunas disponibles.
 // Sirve para elegir una zona general (comuna) o una cancha específica.

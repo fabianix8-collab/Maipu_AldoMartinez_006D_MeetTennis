@@ -16,11 +16,14 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY,
 );
 
-// Cliente público con anon key para operaciones de solo lectura.
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY,
-);
+// Cliente público con anon key. Se crea uno nuevo por petición porque
+// signIn/signUp/refresh guardan la sesión dentro del cliente: si fuera
+// compartido, las peticiones de un usuario usarían la sesión de otro.
+function crearClientePublico() {
+  return createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
 
 router.post('/login', async (req, res) => {
   try {
@@ -37,7 +40,7 @@ router.post('/login', async (req, res) => {
     }
 
     const { data: authData, error: authError } =
-      await supabase.auth.signInWithPassword({ email, password });
+      await crearClientePublico().auth.signInWithPassword({ email, password });
 
     if (authError) {
       return res.status(401).json({
@@ -84,6 +87,45 @@ router.post('/login', async (req, res) => {
     return res.status(200).json({
       success: true,
       data: { user, profile, session },
+      error: null,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      data: null,
+      error: 'Error interno del servidor.',
+    });
+  }
+});
+
+// Renueva la sesión cuando el access token expira (dura ~1 hora).
+router.post('/refresh', async (req, res) => {
+  try {
+    const { refresh_token } = req.body || {};
+
+    if (!refresh_token) {
+      return res.status(400).json({
+        success: false,
+        data: null,
+        error: 'Falta el refresh token.',
+      });
+    }
+
+    const { data, error } = await crearClientePublico().auth.refreshSession({
+      refresh_token,
+    });
+
+    if (error || !data?.session) {
+      return res.status(401).json({
+        success: false,
+        data: null,
+        error: error?.message || 'No se pudo renovar la sesión.',
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: { session: data.session },
       error: null,
     });
   } catch (err) {
@@ -144,7 +186,7 @@ router.post('/register', upload.single('avatar'), async (req, res) => {
     const avatarPath = `${randomUUID()}.${extension}`;
 
     // b) Subir el avatar al bucket público "avatars" y obtener su URL.
-    const { error: uploadError } = await supabase.storage
+    const { error: uploadError } = await crearClientePublico().storage
       .from('avatars')
       .upload(avatarPath, req.file.buffer, {
         contentType: req.file.mimetype,
@@ -159,14 +201,14 @@ router.post('/register', upload.single('avatar'), async (req, res) => {
       });
     }
 
-    const { data: publicUrlData } = supabase.storage
+    const { data: publicUrlData } = crearClientePublico().storage
       .from('avatars')
       .getPublicUrl(avatarPath);
 
     const avatarUrl = publicUrlData?.publicUrl;
 
     // c) Registrar el usuario en Supabase Auth.
-    const { data: authData, error: authError } = await supabase.auth.signUp({
+    const { data: authData, error: authError } = await crearClientePublico().auth.signUp({
       email,
       password,
     });

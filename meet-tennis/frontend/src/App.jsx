@@ -5,8 +5,10 @@ import DashboardView from './pages/DashboardView.jsx';
 import AvailabilityView from './pages/AvailabilityView.jsx';
 import CourtsView from './pages/CourtsView.jsx';
 import MatchmakingView from './pages/MatchmakingView.jsx';
+import MisPartidosView from './pages/MisPartidosView.jsx';
 import ProfileView from './pages/ProfileView.jsx';
 import RankingView from './pages/RankingView.jsx';
+import ResenasView from './pages/ResenasView.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 
 function App() {
@@ -26,6 +28,14 @@ function App() {
           element={
             <ProtectedRoute>
               <MatchmakingView />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/mis-partidos"
+          element={
+            <ProtectedRoute>
+              <MisPartidosView />
             </ProtectedRoute>
           }
         />
@@ -58,6 +68,14 @@ function App() {
           element={
             <ProtectedRoute>
               <RankingView />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/resenas"
+          element={
+            <ProtectedRoute>
+              <ResenasView />
             </ProtectedRoute>
           }
         />

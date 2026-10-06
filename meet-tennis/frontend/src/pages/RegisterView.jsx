@@ -157,7 +157,7 @@ function RegisterView() {
 
     try {
       const response = await fetch(
-        'http://localhost:3000/api/auth/register',
+        '/api/auth/register',
         {
           method: 'POST',
           body: formData,
@@ -167,11 +167,35 @@ function RegisterView() {
       const result = await response.json();
 
       if (response.ok && result.success) {
+        // Inicia sesión con las mismas credenciales para entrar directo.
+        // Si falla (p. ej. Supabase exige confirmar el email), va al login.
+        let destino = '/login';
+        try {
+          const loginResponse = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: values.email.trim(),
+              password: values.password,
+            }),
+          });
+          const loginResult = await loginResponse.json();
+          if (loginResponse.ok && loginResult.success) {
+            localStorage.setItem(
+              'meettennis_auth',
+              JSON.stringify(loginResult.data),
+            );
+            destino = '/';
+          }
+        } catch {
+          // Silencioso: el usuario puede iniciar sesión manualmente.
+        }
+
         setStatus({
           type: 'success',
           message: 'Registro exitoso. ¡Bienvenido a MeetTennis!',
         });
-        setTimeout(() => navigate('/'), 1000);
+        setTimeout(() => navigate(destino), 1000);
         setValues(initialValues);
         setAvatar(null);
         setTouched({});

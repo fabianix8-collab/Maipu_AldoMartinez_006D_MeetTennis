@@ -13,6 +13,7 @@ import {
 import { Link } from 'react-router-dom';
 import BrandLogo from '../components/BrandLogo.jsx';
 import TennisBackground from '../components/TennisBackground.jsx';
+import { apiFetch } from '../lib/api.js';
 
 const DIAS = [
   'Lunes',
@@ -40,92 +41,7 @@ const inputBase =
   'w-full rounded-xl border border-slate-700/50 bg-slate-800/70 px-4 py-3 text-slate-100 placeholder-slate-500 outline-none transition-colors focus:border-emerald-500';
 const labelClass = 'mb-1.5 block text-sm font-medium text-slate-400';
 
-const AVAILABILITY_KEY = 'meettennis_availability';
-
-function getStoredUser() {
-  try {
-    return JSON.parse(localStorage.getItem('meettennis_auth') || 'null');
-  } catch {
-    return null;
-  }
-}
-
-function getUserId() {
-  const stored = getStoredUser();
-  return stored?.user?.id || stored?.profile?.id || '';
-}
-
-function getUserKey() {
-  return getUserId() || 'invitado';
-}
-
-// Extrae la comuna desde la dirección (última parte tras la coma).
-function extraerComuna(direccion) {
-  if (!direccion) return '';
-  const partes = direccion.split(',');
-  return partes[partes.length - 1]?.trim() || '';
-}
-
-// Calcula las coordenadas de un bloque según la zona elegida:
-// - Cancha específica → sus coordenadas exactas.
-// - Comuna → promedio de las coordenadas de sus canchas.
-function obtenerCoordenadasZona(zona, canchas) {
-  const [tipoZona, nombreZona] = parseZona(zona);
-  if (!nombreZona) {
-    return { latitud: null, longitud: null, tipoZona, zona: nombreZona };
-  }
-
-  if (tipoZona === 'cancha') {
-    const cancha = canchas.find((c) => c.nombre === nombreZona);
-    if (cancha && cancha.latitud != null && cancha.longitud != null) {
-      return {
-        latitud: Number(cancha.latitud),
-        longitud: Number(cancha.longitud),
-        tipoZona,
-        zona: nombreZona,
-      };
-    }
-  }
-
-  if (tipoZona === 'comuna') {
-    const enComuna = canchas.filter(
-      (c) => extraerComuna(c.direccion) === nombreZona,
-    );
-    if (enComuna.length > 0) {
-      const latitud =
-        enComuna.reduce((suma, c) => suma + Number(c.latitud), 0) /
-        enComuna.length;
-      const longitud =
-        enComuna.reduce((suma, c) => suma + Number(c.longitud), 0) /
-        enComuna.length;
-      return { latitud, longitud, tipoZona, zona: nombreZona };
-    }
-  }
-
-  return { latitud: null, longitud: null, tipoZona, zona: nombreZona };
-}
-
-function loadSlots() {
-  try {
-    const raw = JSON.parse(localStorage.getItem(AVAILABILITY_KEY) || '{}');
-    const slots = raw[getUserKey()];
-    return Array.isArray(slots) ? slots : [];
-  } catch {
-    return [];
-  }
-}
-
-function persistSlots(slots) {
-  try {
-    const raw = JSON.parse(localStorage.getItem(AVAILABILITY_KEY) || '{}');
-    raw[getUserKey()] = slots;
-    localStorage.setItem(AVAILABILITY_KEY, JSON.stringify(raw));
-  } catch {
-    // Silencioso: si el almacenamiento no está disponible, la sesión sigue funcionando.
-  }
-}
-
-// El select envía "comuna:Las Condes" o "cancha:Club de Tenis Maipú".
+// El select envía "comuna:Las Condes" o "cancha:<id de la cancha>".
 function parseZona(value) {
   if (!value) return ['', ''];
   if (value.startsWith('comuna:')) return ['comuna', value.slice(7)];
@@ -135,10 +51,14 @@ function parseZona(value) {
 
 // Texto legible para la zona o cancha guardada.
 function formatZona(slot) {
-  if (!slot.zona) return '';
-  if (slot.tipoZona === 'comuna') return `Zona: ${slot.zona}`;
-  if (slot.tipoZona === 'cancha') return `Cancha: ${slot.zona}`;
-  return slot.zona;
+  if (slot.cancha?.nombre) return `Cancha: ${slot.cancha.nombre}`;
+  if (slot.comuna) return `Zona: ${slot.comuna}`;
+  return '';
+}
+
+// La API guarda los días como números: 1 = Lunes ... 7 = Domingo.
+function nombresDias(dias) {
+  return (dias || []).map((numero) => DIAS[numero - 1]).filter(Boolean);
 }
 
 function AvailabilityView() {
@@ -147,16 +67,14 @@ function AvailabilityView() {
   const [hasta, setHasta] = useState('');
   const [modalidad, setModalidad] = useState(MODALIDADES[0]);
   const [zona, setZona] = useState('');
-  const [slots, setSlots] = useState(loadSlots);
+  const [slots, setSlots] = useState([]);
+  const [loadingSlots, setLoadingSlots] = useState(true);
+  const [guardando, setGuardando] = useState(false);
   const [touched, setTouched] = useState(false);
   const [status, setStatus] = useState({ type: 'idle', message: '' });
   const [canchas, setCanchas] = useState([]);
   const [comunas, setComunas] = useState([]);
   const [loadingCanchas, setLoadingCanchas] = useState(true);
-  const [ubicacion, setUbicacion] = useState(null);
-  const [geoStatus, setGeoStatus] = useState('idle');
-
-  const userId = getUserId();
 
   useEffect(() => {
     let activo = true;
@@ -177,52 +95,39 @@ function AvailabilityView() {
       }
     };
 
-    // Carga la disponibilidad publicada en el backend (compartida).
-    // Si el backend no responde, usa la copia local como respaldo.
-    const cargarDisponibilidad = async () => {
-      if (!userId) return;
-
+    const cargarSlots = async () => {
       try {
-        const response = await fetch(`/api/matches/availability/${userId}`);
+        const response = await apiFetch('/api/availability');
         const result = await response.json();
 
-        if (activo && response.ok && result.success && Array.isArray(result.data)) {
-          setSlots(result.data);
-          persistSlots(result.data);
+        if (!activo) return;
+        if (response.ok && result.success) {
+          setSlots(Array.isArray(result.data) ? result.data : []);
+        } else {
+          setStatus({
+            type: 'error',
+            message: result.error || 'No se pudo cargar tu disponibilidad.',
+          });
         }
       } catch {
-        // Silencioso: se mantiene la disponibilidad local.
+        if (activo) {
+          setStatus({
+            type: 'error',
+            message: 'No se pudo conectar con el servidor.',
+          });
+        }
+      } finally {
+        if (activo) setLoadingSlots(false);
       }
     };
 
-    // Geolocalización opcional: mejora la recomendación de cancha.
-    const solicitarUbicacion = () => {
-      if (!('geolocation' in navigator)) return;
-
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          if (!activo) return;
-          setUbicacion({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          });
-          setGeoStatus('success');
-        },
-        () => {
-          if (activo) setGeoStatus('error');
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
-      );
-    };
-
     cargarCanchas();
-    cargarDisponibilidad();
-    solicitarUbicacion();
+    cargarSlots();
 
     return () => {
       activo = false;
     };
-  }, [userId]);
+  }, []);
 
   const errors = useMemo(() => {
     const list = {};
@@ -251,78 +156,77 @@ function AvailabilityView() {
     setStatus({ type: 'idle', message: '' });
   };
 
-  // Publica la lista completa de bloques en el backend (compartida).
-  // Devuelve true si la sincronización fue exitosa.
-  const guardarEnBackend = async (lista) => {
-    if (!userId) return true;
-
-    try {
-      const response = await fetch('/api/matches/availability', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, slots: lista }),
-      });
-      const result = await response.json();
-      return response.ok && result.success;
-    } catch {
-      return false;
-    }
-  };
-
   const handleSubmit = async (event) => {
     event.preventDefault();
     setTouched(true);
 
-    if (!isValid) return;
+    if (!isValid || guardando) return;
 
-    // Coordenadas del bloque: geolocalización real si está disponible,
-    // si no, las derivadas de la cancha o comuna elegida.
-    const { latitud, longitud, tipoZona, zona: nombreZona } =
-      obtenerCoordenadasZona(zona, canchas);
+    const [tipoZona, valorZona] = parseZona(zona);
 
-    const newSlot = {
-      id: crypto.randomUUID(),
-      dias: selectedDays,
-      desde,
-      hasta,
-      modalidad,
-      zona: nombreZona,
-      tipoZona,
-      latitud: ubicacion?.lat ?? latitud,
-      longitud: ubicacion?.lng ?? longitud,
-    };
+    setGuardando(true);
+    setStatus({ type: 'idle', message: '' });
 
-    const nextSlots = [...slots, newSlot];
-    setSlots(nextSlots);
-    persistSlots(nextSlots);
-    const sincronizado = await guardarEnBackend(nextSlots);
+    try {
+      const response = await apiFetch('/api/availability', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          dias: selectedDays.map((dia) => DIAS.indexOf(dia) + 1),
+          desde,
+          hasta,
+          modalidad,
+          comuna: tipoZona === 'comuna' ? valorZona : null,
+          cancha_id: tipoZona === 'cancha' ? Number(valorZona) : null,
+        }),
+      });
+      const result = await response.json();
 
-    setSelectedDays([]);
-    setDesde('');
-    setHasta('');
-    setZona('');
-    setModalidad(MODALIDADES[0]);
-    setTouched(false);
-    setStatus(
-      sincronizado
-        ? {
-            type: 'success',
-            message: 'Disponibilidad publicada. Otros jugadores ya pueden encontrarte.',
-          }
-        : {
-            type: 'warning',
-            message:
-              'Disponibilidad guardada en este dispositivo, pero no se pudo sincronizar con el servidor. Verifica que el backend esté activo para que otros jugadores puedan encontrarte.',
-          },
-    );
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'No se pudo guardar la disponibilidad.');
+      }
+
+      setSlots((prev) => [...prev, result.data]);
+      setSelectedDays([]);
+      setDesde('');
+      setHasta('');
+      setZona('');
+      setModalidad(MODALIDADES[0]);
+      setTouched(false);
+      setStatus({
+        type: 'success',
+        message: 'Disponibilidad guardada correctamente.',
+      });
+    } catch (err) {
+      setStatus({
+        type: 'error',
+        message: err.message || 'No se pudo conectar con el servidor.',
+      });
+    } finally {
+      setGuardando(false);
+    }
   };
 
   const removeSlot = async (id) => {
-    const nextSlots = slots.filter((slot) => slot.id !== id);
-    setSlots(nextSlots);
-    persistSlots(nextSlots);
-    await guardarEnBackend(nextSlots);
     setStatus({ type: 'idle', message: '' });
+
+    try {
+      const response = await apiFetch(`/api/availability/${id}`, {
+        method: 'DELETE',
+      });
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'No se pudo eliminar el bloque.');
+      }
+
+      setSlots((prev) => prev.filter((slot) => slot.id !== id));
+    } catch (err) {
+      setStatus({
+        type: 'error',
+        message: err.message || 'No se pudo conectar con el servidor.',
+      });
+    }
   };
 
   const renderError = (name) => {
@@ -531,7 +435,7 @@ function AvailabilityView() {
                     {canchas.map((cancha) => (
                       <option
                         key={cancha.id}
-                        value={`cancha:${cancha.nombre}`}
+                        value={`cancha:${cancha.id}`}
                         className="bg-slate-800 text-slate-100"
                       >
                         {cancha.nombre}
@@ -544,19 +448,6 @@ function AvailabilityView() {
             <p className="mt-1.5 text-xs text-slate-500">
               Elige una comuna para buscar por zona o una cancha específica.
             </p>
-
-            {geoStatus === 'success' && (
-              <p className="mt-2 flex items-center gap-1.5 text-xs text-emerald-300">
-                <MapPin className="h-3.5 w-3.5 shrink-0" />
-                Usando tu ubicación actual para recomendar la cancha más cercana.
-              </p>
-            )}
-            {geoStatus === 'error' && (
-              <p className="mt-2 text-xs text-slate-500">
-                Sin ubicación: la cancha recomendada se calculará desde la zona
-                o cancha que elijas.
-              </p>
-            )}
           </div>
 
           {status.type === 'success' && (
@@ -566,8 +457,8 @@ function AvailabilityView() {
             </div>
           )}
 
-          {status.type === 'warning' && (
-            <div className="mt-4 flex items-start gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-300">
+          {status.type === 'error' && (
+            <div className="mt-4 flex items-start gap-2 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-300">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
               {status.message}
             </div>
@@ -575,10 +466,11 @@ function AvailabilityView() {
 
           <button
             type="submit"
-            className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 font-semibold text-slate-100 transition-colors hover:bg-emerald-700"
+            disabled={guardando}
+            className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 font-semibold text-slate-100 transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <Save className="h-5 w-5" />
-            Guardar disponibilidad
+            {guardando ? 'Guardando...' : 'Guardar disponibilidad'}
           </button>
         </form>
 
@@ -587,7 +479,11 @@ function AvailabilityView() {
             Bloques guardados
           </h2>
 
-          {slots.length === 0 ? (
+          {loadingSlots ? (
+            <p className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-800/40 p-5 text-center text-sm text-slate-500">
+              Cargando tu disponibilidad...
+            </p>
+          ) : slots.length === 0 ? (
             <p className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-800/40 p-5 text-center text-sm text-slate-500">
               Aún no has publicado tu disponibilidad.
             </p>
@@ -604,11 +500,11 @@ function AvailabilityView() {
                       {slot.desde} - {slot.hasta}
                     </p>
                     <p className="mt-1 text-sm text-slate-300">
-                      {slot.dias.join(', ')}
+                      {nombresDias(slot.dias).join(', ')}
                     </p>
                     <p className="mt-1 text-xs text-slate-500">
                       {slot.modalidad}
-                      {slot.zona ? ` · ${formatZona(slot)}` : ''}
+                      {formatZona(slot) ? ` · ${formatZona(slot)}` : ''}
                     </p>
                   </div>
 

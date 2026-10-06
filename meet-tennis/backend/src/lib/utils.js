@@ -1,0 +1,55 @@
+// Utilidades compartidas entre rutas.
+
+// Fecha de hoy (YYYY-MM-DD) en hora de Chile, para no rechazar
+// fechas de "hoy" por la diferencia con UTC.
+export function hoyChile() {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(
+    new Date(),
+  );
+}
+
+// Suma días a una fecha "YYYY-MM-DD" (sin zona horaria de por medio).
+export function sumarDias(fecha, dias) {
+  const d = new Date(`${fecha}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + dias);
+  return d.toISOString().slice(0, 10);
+}
+
+// "hoy" o "mañana" si el partido cae dentro de la ventana para
+// confirmar asistencia; null en cualquier otro caso.
+export function ventanaAsistencia(fecha, hoy = hoyChile()) {
+  if (fecha === hoy) return 'hoy';
+  if (fecha === sumarDias(hoy, 1)) return 'mañana';
+  return null;
+}
+
+// Extrae la comuna desde la dirección de una cancha (última parte tras la coma).
+export function extraerComuna(direccion) {
+  if (!direccion) return null;
+  const partes = direccion.split(',');
+  const comuna = partes[partes.length - 1]?.trim();
+  return comuna || null;
+}
+
+// Distancia en kilómetros entre dos coordenadas (fórmula de Haversine).
+export function distanciaKm(lat1, lon1, lat2, lon2) {
+  const RADIO_TIERRA = 6371;
+  const aRad = (grados) => (grados * Math.PI) / 180;
+
+  const dLat = aRad(lat2 - lat1);
+  const dLon = aRad(lon2 - lon1);
+
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(aRad(lat1)) * Math.cos(aRad(lat2)) * Math.sin(dLon / 2) ** 2;
+
+  return 2 * RADIO_TIERRA * Math.asin(Math.sqrt(a));
+}
+
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Valida un id de usuario antes de usarlo en consultas o filtros.
+export function esUuid(valor) {
+  return typeof valor === 'string' && UUID_REGEX.test(valor);
+}

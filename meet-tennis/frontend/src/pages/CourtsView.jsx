@@ -10,6 +10,7 @@ import {
 import { Link } from 'react-router-dom';
 import BrandLogo from '../components/BrandLogo.jsx';
 import TennisBackground from '../components/TennisBackground.jsx';
+import MapEmbed from '../components/MapEmbed.jsx';
 
 const inputBase =
   'w-full rounded-xl border border-slate-700/50 bg-slate-800/70 px-4 py-3 text-slate-100 placeholder-slate-500 outline-none transition-colors focus:border-emerald-500';
@@ -55,6 +56,9 @@ function CourtsView() {
   const [ubicacion, setUbicacion] = useState(null);
   const [geoStatus, setGeoStatus] = useState('idle');
   const [geoError, setGeoError] = useState('');
+
+  // Canchas con el mapa embebido abierto (por id de cancha).
+  const [mapaAbierto, setMapaAbierto] = useState({});
 
   useEffect(() => {
     let activo = true;
@@ -404,15 +408,29 @@ function CourtsView() {
                     </div>
                   </div>
 
-                  <a
-                    href={`https://www.google.com/maps/search/?api=1&query=${cancha.latitud},${cancha.longitud}`}
-                    target="_blank"
-                    rel="noreferrer"
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setMapaAbierto((prev) => ({
+                        ...prev,
+                        [cancha.id]: !prev[cancha.id],
+                      }))
+                    }
+                    aria-expanded={mapaAbierto[cancha.id] ? 'true' : 'false'}
                     className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-700/50 bg-slate-900/60 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:border-emerald-500/50 hover:text-emerald-300"
                   >
                     <Navigation className="h-4 w-4" />
-                    Ver en el mapa
-                  </a>
+                    {mapaAbierto[cancha.id] ? 'Ocultar mapa' : 'Ver en el mapa'}
+                  </button>
+
+                  {mapaAbierto[cancha.id] && (
+                    <MapEmbed
+                      latitud={cancha.latitud}
+                      longitud={cancha.longitud}
+                      titulo={`Mapa de ${cancha.nombre}`}
+                      className="mt-3 h-64 w-full rounded-xl border border-slate-700/50"
+                    />
+                  )}
                 </li>
               ))}
             </ul>

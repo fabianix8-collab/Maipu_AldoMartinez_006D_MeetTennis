@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   AlertCircle,
   ArrowLeft,
@@ -8,12 +8,14 @@ import {
   Loader2,
   Mail,
   Save,
+  Star,
   Trophy,
   User,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import BrandLogo from '../components/BrandLogo.jsx';
 import TennisBackground from '../components/TennisBackground.jsx';
+import { apiFetch } from '../lib/api.js';
 
 const labelClass = 'text-xs font-medium uppercase tracking-wide text-slate-500';
 const BIO_KEY = 'meettennis_bio';
@@ -58,6 +60,24 @@ function formatFecha(fecha) {
   return `${dia}/${mes}/${anio}`;
 }
 
+// Estrellas de solo lectura: muestran la calificación promedio del jugador.
+function Estrellas({ valor, size = 'h-4 w-4' }) {
+  return (
+    <div className="flex items-center gap-0.5">
+      {[1, 2, 3, 4, 5].map((n) => (
+        <Star
+          key={n}
+          className={`${size} ${
+            n <= valor
+              ? 'fill-amber-400 text-amber-400'
+              : 'fill-slate-700 text-slate-600'
+          }`}
+        />
+      ))}
+    </div>
+  );
+}
+
 function ProfileView() {
   const storedUser = getStoredUser();
   const profile = storedUser?.profile || {};
@@ -75,6 +95,33 @@ function ProfileView() {
 
   const [bio, setBio] = useState(loadBio);
   const [bioStatus, setBioStatus] = useState({ type: 'idle', message: '' });
+
+  // Calificación recibida de otros jugadores (desde /api/reviews).
+  const [miPromedio, setMiPromedio] = useState(null);
+  const [totalResenas, setTotalResenas] = useState(0);
+
+  useEffect(() => {
+    let activo = true;
+
+    const cargar = async () => {
+      try {
+        const response = await apiFetch('/api/reviews');
+        const result = await response.json();
+        if (activo && response.ok && result.success) {
+          setMiPromedio(result.data.miPromedio);
+          setTotalResenas((result.data.recibidas || []).length);
+        }
+      } catch {
+        // Silencioso: el perfil funciona igual sin la calificación.
+      }
+    };
+
+    cargar();
+
+    return () => {
+      activo = false;
+    };
+  }, [userId]);
 
   const nombreCompleto = `${nombre} ${apellido}`.trim();
 
@@ -103,7 +150,7 @@ function ProfileView() {
     setAvatarStatus({ type: 'idle', message: '' });
 
     try {
-      const response = await fetch(`/api/profile/${userId}/avatar`, {
+      const response = await apiFetch(`/api/profile/${userId}/avatar`, {
         method: 'POST',
         body: formData,
       });
@@ -211,6 +258,17 @@ function ProfileView() {
                 <Trophy className="h-3.5 w-3.5" />
                 {nivel}
               </span>
+
+              <div className="mt-2.5 flex items-center gap-2">
+                <Estrellas valor={Math.round(miPromedio || 0)} />
+                <span className="text-xs text-slate-400">
+                  {miPromedio
+                    ? `${miPromedio} de 5 · ${totalResenas} ${
+                        totalResenas === 1 ? 'reseña' : 'reseñas'
+                      }`
+                    : 'Sin reseñas aún'}
+                </span>
+              </div>
             </div>
           </div>
 

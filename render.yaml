@@ -1,0 +1,19 @@
+# Render Blueprint: despliega el backend + frontend compilado en un solo servicio.
+# Este archivo debe estar en la RAÍZ del repositorio de GitHub.
+# rootDir apunta a la carpeta meet-tennis (donde están backend/ y frontend/).
+services:
+  - type: web
+    name: meettennis
+    runtime: node
+    plan: free
+    rootDir: meet-tennis
+    buildCommand: cd frontend && npm install && npm run build && cd ../backend && npm install
+    startCommand: cd backend && node src/index.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
