@@ -189,7 +189,7 @@ router.post('/register', upload.single('avatar'), async (req, res) => {
     const avatarPath = `${randomUUID()}.${extension}`;
 
     // b) Subir el avatar al bucket público "avatars" y obtener su URL.
-    const { error: uploadError } = await crearClientePublico().storage
+    const { error: uploadError } = await supabaseAdmin.storage
       .from('avatars')
       .upload(avatarPath, req.file.buffer, {
         contentType: req.file.mimetype,
@@ -204,7 +204,7 @@ router.post('/register', upload.single('avatar'), async (req, res) => {
       });
     }
 
-    const { data: publicUrlData } = crearClientePublico().storage
+    const { data: publicUrlData } = supabaseAdmin.storage
       .from('avatars')
       .getPublicUrl(avatarPath);
 
