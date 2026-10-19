@@ -77,6 +77,11 @@ function LoginView() {
     setLoading(true);
     setStatus({ type: 'idle', message: '' });
 
+    // Timeout de 15s: evita que el botón quede cargando infinitamente
+    // si el backend no responde (p. ej. mientras se reinicia).
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
     try {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
@@ -87,6 +92,7 @@ function LoginView() {
           email: values.email.trim(),
           password: values.password,
         }),
+        signal: controller.signal,
       });
 
       const result = await response.json();
@@ -104,12 +110,16 @@ function LoginView() {
           message: result.error || 'No se pudo iniciar sesión.',
         });
       }
-    } catch {
+    } catch (err) {
       setStatus({
         type: 'error',
-        message: 'No se pudo conectar con el servidor.',
+        message:
+          err?.name === 'AbortError'
+            ? 'El servidor tardó demasiado en responder. Inténtalo de nuevo.'
+            : 'No se pudo conectar con el servidor.',
       });
     } finally {
+      clearTimeout(timeoutId);
       setLoading(false);
     }
   };

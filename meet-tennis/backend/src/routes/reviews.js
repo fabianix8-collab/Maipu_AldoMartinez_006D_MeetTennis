@@ -2,7 +2,7 @@ import { Router } from 'express';
 import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import { requireAuth } from '../middleware/auth.js';
-import { esUuid } from '../lib/utils.js';
+import { esUuid, hoyChile } from '../lib/utils.js';
 
 dotenv.config();
 
@@ -50,12 +50,14 @@ router.get('/', async (req, res) => {
         )
         .order('created_at', { ascending: false }),
       // Solo se puede reseñar a rivales con los que ya se jugó un partido
-      // confirmado por ambos jugadores.
+      // confirmado por ambos jugadores y hayan pasado al menos 24 horas
+      // desde la fecha del partido (evita reseñas "en caliente").
       supabaseAdmin
         .from('partidos')
         .select('jugador1_id, jugador2_id')
         .or(`jugador1_id.eq.${userId},jugador2_id.eq.${userId}`)
-        .eq('estado', 'confirmado'),
+        .eq('estado', 'confirmado')
+        .lt('fecha', hoyChile()),
     ]);
 
     const error = usuariosRes.error || resenasRes.error || partidosRes.error;
@@ -241,7 +243,8 @@ router.post('/', async (req, res) => {
     }
 
     // Solo se puede reseñar a rivales con los que ya se jugó un partido
-    // confirmado por ambos jugadores.
+    // confirmado por ambos jugadores y hayan pasado al menos 24 horas
+    // desde la fecha del partido (evita reseñas "en caliente").
     const { data: partido, error: partidoError } = await supabaseAdmin
       .from('partidos')
       .select('id')
@@ -250,6 +253,7 @@ router.post('/', async (req, res) => {
           `and(jugador1_id.eq.${jugador_id},jugador2_id.eq.${userId})`,
       )
       .eq('estado', 'confirmado')
+      .lt('fecha', hoyChile())
       .limit(1);
 
     if (partidoError) {
@@ -263,7 +267,8 @@ router.post('/', async (req, res) => {
       return res.status(403).json({
         success: false,
         data: null,
-        error: 'Solo puedes reseñar a rivales con los que ya jugaste un partido confirmado.',
+        error:
+          'Debes esperar al menos 24 horas después del partido para dejar una reseña.',
       });
     }
 
