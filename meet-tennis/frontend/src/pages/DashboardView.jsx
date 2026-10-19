@@ -4,6 +4,7 @@ import {
   ClipboardCheck,
   LogOut,
   MapPin,
+  MessageCircle,
   MessageSquare,
   Star,
   Swords,
@@ -51,7 +52,7 @@ function DashboardView() {
   const [notificaciones, setNotificaciones] = useState({
     avisos: [],
     noLeidos: 0,
-    pendientes: { solicitudes: 0, partidos: 0 },
+    pendientes: { solicitudes: 0, partidos: 0, chat: 0 },
   });
   const [recargarAvisos, setRecargarAvisos] = useState(0);
 
@@ -218,6 +219,24 @@ function DashboardView() {
               );
             })}
           </div>
+
+          {/* Chat: tarjeta ancha al final, debajo de Reseñas y Mi Perfil */}
+          <button
+            type="button"
+            onClick={() => navigate('/chat')}
+            className="group relative flex items-center justify-center gap-3 rounded-2xl border border-slate-700/50 bg-slate-800/60 p-4 text-slate-100 shadow-2xl backdrop-blur-md transition-all duration-200 hover:-translate-y-1 hover:border-emerald-500/50 hover:bg-slate-800/80"
+          >
+            {notificaciones.pendientes.chat > 0 && (
+              <span className="absolute right-2.5 top-2.5 rounded-full bg-amber-400 px-2 py-0.5 text-[11px] font-bold text-slate-900 shadow-lg">
+                {notificaciones.pendientes.chat}{' '}
+                {notificaciones.pendientes.chat === 1 ? 'mensaje nuevo' : 'mensajes nuevos'}
+              </span>
+            )}
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-600/15 text-emerald-400 transition-colors group-hover:bg-emerald-600/25 group-hover:text-emerald-300">
+              <MessageCircle className="h-6 w-6" />
+            </span>
+            <span className="font-semibold text-base">Chat</span>
+          </button>
         </nav>
       </div>
     </div>

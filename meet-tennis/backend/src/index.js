@@ -10,6 +10,7 @@ import matchesRouter from './routes/matches.js';
 import matchmakingRouter from './routes/matchmaking.js';
 import notificationsRouter from './routes/notifications.js';
 import reviewsRouter from './routes/reviews.js';
+import chatRouter from './routes/chat.js';
 
 dotenv.config();
 
@@ -51,6 +52,7 @@ app.use('/api/matches', matchesRouter);
 app.use('/api/matchmaking', matchmakingRouter);
 app.use('/api/notifications', notificationsRouter);
 app.use('/api/reviews', reviewsRouter);
+app.use('/api/chat', chatRouter);
 
 app.get('/api/health', (req, res) => {
   res.status(200).json({

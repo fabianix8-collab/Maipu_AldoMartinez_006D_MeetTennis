@@ -9,6 +9,7 @@ import MisPartidosView from './pages/MisPartidosView.jsx';
 import ProfileView from './pages/ProfileView.jsx';
 import RankingView from './pages/RankingView.jsx';
 import ResenasView from './pages/ResenasView.jsx';
+import ChatView from './pages/ChatView.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 
 function App() {
@@ -76,6 +77,14 @@ function App() {
           element={
             <ProtectedRoute>
               <ResenasView />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/chat"
+          element={
+            <ProtectedRoute>
+              <ChatView />
             </ProtectedRoute>
           }
         />

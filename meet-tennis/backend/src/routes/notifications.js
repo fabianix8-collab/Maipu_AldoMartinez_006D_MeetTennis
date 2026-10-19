@@ -26,9 +26,10 @@ const nombre = (jugador) =>
 // "2026-10-12" → "12/10".
 const diaMes = (fecha) => fecha?.slice(8, 10) + '/' + fecha?.slice(5, 7);
 
-// 42703: columna inexistente (falta ejecutar scripts/04_avisos.sql o 05_asistencia.sql).
+// 42703: columna inexistente (falta ejecutar scripts/04_avisos.sql,
+// 05_asistencia.sql o 07_chat.sql).
 const FALTA_SCRIPT =
-  'Faltan scripts en Supabase: ejecuta backend/scripts/04_avisos.sql y 05_asistencia.sql.';
+  'Faltan scripts en Supabase: ejecuta backend/scripts/04_avisos.sql, 05_asistencia.sql y 07_chat.sql.';
 
 router.use(requireAuth);
 
@@ -41,7 +42,7 @@ router.get('/', async (req, res) => {
     const limite = new Date(Date.now() - DIAS_INFORMATIVOS * 86400000);
     const reciente = (fecha) => !!fecha && new Date(fecha) >= limite;
 
-    const [yoRes, solicitudesRes, partidosRes] = await Promise.all([
+    const [yoRes, solicitudesRes, partidosRes, convRes, chatMensajesRes] = await Promise.all([
       supabaseAdmin.from('usuario').select('avisos_vistos_at').eq('id', userId).maybeSingle(),
       supabaseAdmin
         .from('solicitudes_partido')
@@ -61,9 +62,20 @@ router.get('/', async (req, res) => {
           jugador2:usuario!partidos_jugador2_id_fkey(${JUGADOR})`,
         )
         .or(`jugador1_id.eq.${userId},jugador2_id.eq.${userId}`),
+      supabaseAdmin
+        .from('conversaciones')
+        .select('id, usuario1_id, usuario2_id, leido_por_1, leido_por_2')
+        .or(`usuario1_id.eq.${userId},usuario2_id.eq.${userId}`),
+      supabaseAdmin
+        .from('mensajes')
+        .select('conversacion_id, remitente_id, created_at')
+        .order('created_at', { ascending: false })
+        .limit(1000),
     ]);
 
-    const error = yoRes.error || solicitudesRes.error || partidosRes.error;
+    const error =
+      yoRes.error || solicitudesRes.error || partidosRes.error ||
+      convRes.error || chatMensajesRes.error;
     if (error) {
       return res.status(500).json({
         success: false,
@@ -200,6 +212,24 @@ router.get('/', async (req, res) => {
       .slice(0, MAX_INFORMATIVOS)
       .map((a) => ({ ...a, nuevo: !vistosAt || new Date(a.fecha) > new Date(vistosAt) }));
 
+    // Mensajes de chat no leídos: los que me enviaron después de mi
+    // último momento de lectura en cada conversación.
+    const chatNoLeidos = (convRes.data || []).reduce((total, conv) => {
+      const soyUno = conv.usuario1_id === userId;
+      const leidoHasta = soyUno ? conv.leido_por_1 : conv.leido_por_2;
+      const delHilo = (chatMensajesRes.data || []).filter(
+        (m) => m.conversacion_id === conv.id,
+      );
+      return (
+        total +
+        delHilo.filter(
+          (m) =>
+            m.remitente_id !== userId &&
+            (!leidoHasta || new Date(m.created_at) > new Date(leidoHasta)),
+        ).length
+      );
+    }, 0);
+
     return res.status(200).json({
       success: true,
       data: {
@@ -208,6 +238,7 @@ router.get('/', async (req, res) => {
         pendientes: {
           solicitudes: accion.filter((a) => a.categoria === 'solicitudes').length,
           partidos: accion.filter((a) => a.categoria === 'partidos').length,
+          chat: chatNoLeidos,
         },
       },
       error: null,
