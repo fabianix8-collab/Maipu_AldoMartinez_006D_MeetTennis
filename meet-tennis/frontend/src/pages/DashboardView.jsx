@@ -6,6 +6,7 @@ import {
   MapPin,
   MessageCircle,
   MessageSquare,
+  ShoppingBag,
   Star,
   Swords,
   Trophy,
@@ -24,6 +25,7 @@ const NAV_ITEMS = [
   { title: 'Mi Ranking', Icon: Trophy, to: '/ranking' },
   { title: 'Mi Disponibilidad', Icon: CalendarClock, to: '/disponibilidad' },
   { title: 'Canchas Cercanas', Icon: MapPin, to: '/canchas' },
+  { title: 'Recomendaciones', Icon: ShoppingBag, to: '/productos' },
   { title: 'Reseñas', Icon: MessageSquare, to: '/resenas', estrella: true },
   { title: 'Mi Perfil', Icon: User, to: '/perfil' },
 ];
