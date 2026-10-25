@@ -27,7 +27,6 @@ const NAV_ITEMS = [
   { title: 'Canchas Cercanas', Icon: MapPin, to: '/canchas' },
   { title: 'Recomendaciones', Icon: ShoppingBag, to: '/productos' },
   { title: 'Reseñas', Icon: MessageSquare, to: '/resenas', estrella: true },
-  { title: 'Mi Perfil', Icon: User, to: '/perfil' },
 ];
 
 const TEXTO_AVISO = {
@@ -172,7 +171,13 @@ function DashboardView() {
           <div>
             <BrandLogo className="mb-4 h-12 sm:h-14" />
             <div className="flex items-center gap-3">
-              <span className="relative inline-flex shrink-0 rounded-full bg-gradient-to-tr from-emerald-500 via-emerald-400 to-lime-300 p-[2px] shadow-[0_0_25px_rgba(16,185,129,0.35)]">
+              <button
+                type="button"
+                onClick={() => navigate('/perfil')}
+                aria-label="Ir a mi perfil"
+                title="Mi Perfil"
+                className="relative inline-flex shrink-0 cursor-pointer rounded-full bg-gradient-to-tr from-emerald-500 via-emerald-400 to-lime-300 p-[2px] shadow-[0_0_25px_rgba(16,185,129,0.35)] transition-transform duration-200 hover:scale-105"
+              >
                 {avatarUrl ? (
                   <img
                     src={avatarUrl}
@@ -184,7 +189,7 @@ function DashboardView() {
                     <User className="h-5 w-5" />
                   </span>
                 )}
-              </span>
+              </button>
               <div>
                 <h1 className="text-xl font-bold leading-tight text-slate-100 drop-shadow-[0_0_18px_rgba(16,185,129,0.3)]">
                   Hola, {firstName}
