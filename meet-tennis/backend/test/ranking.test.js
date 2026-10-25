@@ -95,14 +95,21 @@ test('estadísticas y racha (partidos del más reciente al más antiguo)', () =>
   assert.equal(resumen.puntos, 25 * 3 - 15);
 });
 
-test('para ascender se necesitan puntos Y victorias válidas', () => {
-  // 5 victorias contra 4ta = 200 pts, pero solo 5 de 10 victorias.
-  const cinco = Array.from({ length: 5 }, () =>
+test('para ascender se necesitan 10 partidos válidos y 85% de victorias', () => {
+  // 9 victorias contra 4ta: solo 9 partidos válidos, no alcanza el mínimo.
+  const nueve = Array.from({ length: 9 }, () =>
     partido({ gano: true, rivalCategoria: '4ta Categoría' }),
   );
-  assert.equal(resumenJugador(YO, '5ta Categoría', cinco).puedeAscender, false);
+  assert.equal(resumenJugador(YO, '5ta Categoría', nueve).puedeAscender, false);
 
-  // 10 victorias en 5ta = 250 pts y 10 victorias válidas.
+  // 10 partidos válidos pero solo 8 victorias (80%): no alcanza el 85%.
+  const ochoDeDiez = [
+    ...Array.from({ length: 8 }, () => partido({ gano: true })),
+    ...Array.from({ length: 2 }, () => partido({ gano: false })),
+  ];
+  assert.equal(resumenJugador(YO, '5ta Categoría', ochoDeDiez).puedeAscender, false);
+
+  // 10 victorias en 5ta: 10 partidos válidos y 100% de victorias.
   const diez = Array.from({ length: 10 }, () => partido({ gano: true }));
   const resumen = resumenJugador(YO, '5ta Categoría', diez);
   assert.equal(resumen.puedeAscender, true);
@@ -111,6 +118,6 @@ test('para ascender se necesitan puntos Y victorias válidas', () => {
 
 test('en 1ra categoría no hay ascenso', () => {
   const resumen = resumenJugador(YO, '1ra Categoría', []);
-  assert.equal(resumen.requisito, null);
+  assert.equal(resumen.proximaCategoria, null);
   assert.equal(resumen.puedeAscender, false);
 });

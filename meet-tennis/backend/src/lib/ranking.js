@@ -18,19 +18,6 @@ export const NOMBRES_CATEGORIAS = CATEGORIAS.map((c) => c.nombre);
 // Los jugadores sin categoría compiten en la más baja.
 export const CATEGORIA_BASE = '5ta Categoría';
 
-// Requisitos para ascender desde cada categoría hacia la superior.
-// - puntos: puntos netos acumulados DENTRO de la categoría actual.
-// - victorias: victorias contra rivales de tu misma categoría o
-//   superiores (victorias "válidas"). Así no se asciende solo
-//   ganándole a categorías inferiores.
-export const ASCENSOS = {
-  '5ta Categoría': { puntos: 200, victorias: 10 },
-  '4ta Categoría': { puntos: 350, victorias: 14 },
-  '3ra Categoría': { puntos: 500, victorias: 18 },
-  '2da Categoría': { puntos: 700, victorias: 22 },
-  '1ra Categoría': null, // Máxima categoría, no hay ascenso.
-};
-
 // Puntos según el resultado y la categoría del rival respecto al jugador.
 // Ganar a alguien de categoría superior vale más que ganar a uno inferior.
 export const PUNTOS_RESULTADO = {
@@ -92,7 +79,11 @@ export function resumenJugador(userId, nivel, partidos) {
 
   const total = enCategoria.reduce((suma, p) => suma + p.puntos, 0);
   const ganados = enCategoria.filter((p) => p.gano).length;
-  const victoriasValidas = enCategoria.filter((p) => p.victoriaValida).length;
+
+  // Partidos válidos para el ascenso: jugados en la categoría actual
+  // contra rivales de igual o superior categoría.
+  const partidosValidos = enCategoria.filter((p) => p.relacion !== 'inferior');
+  const victoriasValidas = partidosValidos.filter((p) => p.gano).length;
 
   let racha = null;
   if (enCategoria.length > 0) {
@@ -105,8 +96,13 @@ export function resumenJugador(userId, nivel, partidos) {
     racha = { resultado: primero ? 'Ganado' : 'Perdido', cantidad };
   }
 
-  const requisito = ASCENSOS[categoria];
+  const proximaCategoria = categoriaSuperior(categoria);
   const puntos = Math.max(0, total);
+  const puedeAscender = Boolean(
+    proximaCategoria &&
+      partidosValidos.length >= 10 &&
+      victoriasValidas / partidosValidos.length >= 0.85,
+  );
 
   return {
     categoria,
@@ -118,11 +114,7 @@ export function resumenJugador(userId, nivel, partidos) {
     efectividad:
       enCategoria.length > 0 ? Math.round((ganados / enCategoria.length) * 100) : 0,
     racha,
-    proximaCategoria: categoriaSuperior(categoria),
-    requisito,
-    puedeAscender:
-      !!requisito &&
-      puntos >= requisito.puntos &&
-      victoriasValidas >= requisito.victorias,
+    proximaCategoria,
+    puedeAscender,
   };
 }

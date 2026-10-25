@@ -161,8 +161,8 @@ router.post('/:id/avatar', requireAuth, requireSelf, upload.single('avatar'), as
 });
 
 // Asciende al jugador a la categoría inmediatamente superior.
-// El servidor verifica los requisitos (puntos y victorias válidas) con
-// los partidos confirmados; el cliente no puede saltárselos.
+// El servidor verifica el rendimiento (partidos válidos y tasa de
+// victorias) con los partidos confirmados; el cliente no puede saltárselo.
 // Body: { nivel } — la categoría a la que asciende.
 router.patch('/:id', requireAuth, requireSelf, async (req, res) => {
   try {
@@ -214,7 +214,7 @@ router.patch('/:id', requireAuth, requireSelf, async (req, res) => {
       return res.status(403).json({
         success: false,
         data: null,
-        error: `Aún no cumples los requisitos: necesitas ${resumen.requisito.puntos} pts y ${resumen.requisito.victorias} victorias válidas (tienes ${resumen.puntos} pts y ${resumen.victoriasValidas}).`,
+        error: 'Aún no cumples con el rendimiento necesario para subir de categoría.',
       });
     }
 

@@ -25,8 +25,6 @@ const DIAS = [
   'Domingo',
 ];
 
-const MODALIDADES = ['Disponible para jugar', 'Buscando partido'];
-
 // Horas seleccionables en los desplegables (07:00 a 23:00, cada 30 minutos).
 const HORAS = (() => {
   const lista = [];
@@ -65,7 +63,6 @@ function AvailabilityView() {
   const [selectedDays, setSelectedDays] = useState([]);
   const [desde, setDesde] = useState('');
   const [hasta, setHasta] = useState('');
-  const [modalidad, setModalidad] = useState(MODALIDADES[0]);
   const [zona, setZona] = useState('');
   const [slots, setSlots] = useState([]);
   const [loadingSlots, setLoadingSlots] = useState(true);
@@ -175,7 +172,6 @@ function AvailabilityView() {
           dias: selectedDays.map((dia) => DIAS.indexOf(dia) + 1),
           desde,
           hasta,
-          modalidad,
           comuna: tipoZona === 'comuna' ? valorZona : null,
           cancha_id: tipoZona === 'cancha' ? Number(valorZona) : null,
         }),
@@ -191,7 +187,6 @@ function AvailabilityView() {
       setDesde('');
       setHasta('');
       setZona('');
-      setModalidad(MODALIDADES[0]);
       setTouched(false);
       setStatus({
         type: 'success',
@@ -370,29 +365,6 @@ function AvailabilityView() {
           </div>
 
           <div className="mt-5">
-            <label className={labelClass} htmlFor="modalidad">
-              Modalidad
-            </label>
-            <select
-              id="modalidad"
-              name="modalidad"
-              value={modalidad}
-              onChange={(event) => setModalidad(event.target.value)}
-              className={`${inputBase} appearance-none`}
-            >
-              {MODALIDADES.map((item) => (
-                <option
-                  key={item}
-                  value={item}
-                  className="bg-slate-800 text-slate-100"
-                >
-                  {item}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="mt-5">
             <label className={labelClass} htmlFor="zona">
               Zona o cancha preferida (opcional)
             </label>
@@ -502,10 +474,9 @@ function AvailabilityView() {
                     <p className="mt-1 text-sm text-slate-300">
                       {nombresDias(slot.dias).join(', ')}
                     </p>
-                    <p className="mt-1 text-xs text-slate-500">
-                      {slot.modalidad}
-                      {formatZona(slot) ? ` · ${formatZona(slot)}` : ''}
-                    </p>
+                    {formatZona(slot) && (
+                      <p className="mt-1 text-xs text-slate-500">{formatZona(slot)}</p>
+                    )}
                   </div>
 
                   <button

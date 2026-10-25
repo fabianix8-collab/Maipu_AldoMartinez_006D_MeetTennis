@@ -14,7 +14,6 @@ import {
   ListOrdered,
   Loader2,
   Percent,
-  ShieldCheck,
   Swords,
   TrendingDown,
   TrendingUp,
@@ -89,8 +88,6 @@ function RankingView() {
   const miCategoria = yo?.categoria || '5ta Categoría';
   const miNivel = yo?.nivel || profile.nivel;
   const puntos = yo?.puntos ?? 0;
-  const victoriasValidas = yo?.victoriasValidas ?? 0;
-  const requisitoAscenso = yo?.requisito ?? null;
   const proximaCategoria = yo?.proximaCategoria ?? null;
   const puedeAscender = !!yo?.puedeAscender;
   const miPosicion = yo?.posicion ?? null;
@@ -103,13 +100,6 @@ function RankingView() {
     efectividad: yo?.efectividad ?? 0,
     racha: yo?.racha ?? null,
   };
-
-  const progresoPuntos = requisitoAscenso
-    ? Math.min(100, Math.round((puntos / requisitoAscenso.puntos) * 100))
-    : 100;
-  const progresoVictorias = requisitoAscenso
-    ? Math.min(100, Math.round((victoriasValidas / requisitoAscenso.victorias) * 100))
-    : 100;
 
   // Mientras el usuario no elija otra, se muestra la tabla de su grupo.
   const grupoPropio = NOMBRES_CATEGORIAS.includes(miNivel) ? miNivel : 'Sin categoría';
@@ -259,90 +249,27 @@ function RankingView() {
             </span>
           </div>
 
-          {/* Progreso de ascenso */}
-          {requisitoAscenso ? (
-            <div className="mt-5 space-y-4 rounded-2xl border border-slate-700/50 bg-slate-800/40 p-4">
-              <p className="flex items-center gap-2 text-sm font-semibold text-slate-200">
-                <ArrowUpRight className="h-4 w-4 text-emerald-400" />
-                Ascenso a {proximaCategoria}
+          {/* Recomendación de ascenso: solo si el rendimiento está muy por
+              encima del nivel actual. */}
+          {puedeAscender && proximaCategoria && (
+            <div className="mt-5 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-4">
+              <p className="text-sm text-slate-200">
+                Hemos notado que tu rendimiento está por encima del nivel,
+                ¿deseas subir de categoría?
               </p>
-
-              <div>
-                <div className="flex items-center justify-between text-xs text-slate-400">
-                  <span>
-                    Puntos acumulados
-                    <span className="ml-1 font-semibold text-slate-200">
-                      {puntos}/{requisitoAscenso.puntos}
-                    </span>
-                  </span>
-                  <span>{progresoPuntos}%</span>
-                </div>
-                <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-800">
-                  <span
-                    className="block h-full rounded-full bg-gradient-to-r from-emerald-500 to-lime-300 transition-all duration-500"
-                    style={{ width: `${progresoPuntos}%` }}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between text-xs text-slate-400">
-                  <span className="flex items-center gap-1">
-                    <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
-                    Victorias válidas
-                    <span className="ml-1 font-semibold text-slate-200">
-                      {victoriasValidas}/{requisitoAscenso.victorias}
-                    </span>
-                  </span>
-                  <span>{progresoVictorias}%</span>
-                </div>
-                <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-800">
-                  <span
-                    className="block h-full rounded-full bg-gradient-to-r from-amber-400 to-orange-400 transition-all duration-500"
-                    style={{ width: `${progresoVictorias}%` }}
-                  />
-                </div>
-              </div>
-
-              {puedeAscender ? (
-                <button
-                  type="button"
-                  onClick={solicitarAscenso}
-                  disabled={ascendiendo}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 font-semibold text-slate-100 transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {ascendiendo ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <ArrowUpRight className="h-5 w-5" />
-                  )}
-                  Ascender a {proximaCategoria}
-                </button>
-              ) : (
-                <p className="text-xs text-slate-500">
-                  Te faltan{' '}
-                  <span className="font-semibold text-slate-300">
-                    {Math.max(0, requisitoAscenso.puntos - puntos)} pts
-                  </span>{' '}
-                  y{' '}
-                  <span className="font-semibold text-slate-300">
-                    {Math.max(
-                      0,
-                      requisitoAscenso.victorias - victoriasValidas,
-                    )}{' '}
-                    victorias válidas
-                  </span>{' '}
-                  para ascender. Las victorias válidas son contra rivales de tu
-                  categoría o superiores.
-                </p>
-              )}
-            </div>
-          ) : (
-            <div className="mt-5 rounded-2xl border border-amber-400/40 bg-amber-400/10 p-4">
-              <p className="flex items-center gap-2 text-sm font-semibold text-amber-300">
-                <Crown className="h-4 w-4" />
-                Estás en la máxima categoría del circuito.
-              </p>
+              <button
+                type="button"
+                onClick={solicitarAscenso}
+                disabled={ascendiendo}
+                className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 font-semibold text-slate-100 transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {ascendiendo ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <ArrowUpRight className="h-5 w-5" />
+                )}
+                Subir a {proximaCategoria}
+              </button>
             </div>
           )}
 
@@ -661,11 +588,10 @@ function RankingView() {
               Perder resta puntos.
             </li>
             <li className="flex items-start gap-2">
-              <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" />
-              Para ascender necesitas alcanzar los puntos acumulados y las
-              victorias válidas (contra rivales de tu categoría o superior):
-              5ta→4ta: 200 pts y 10 victorias · 4ta→3ra: 350 pts y 14 ·
-              3ra→2da: 500 pts y 18 · 2da→1ra: 700 pts y 22.
+              <TrendingUp className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" />
+              Si tu rendimiento está muy por encima de tu nivel actual (alta
+              tasa de victorias sostenida), el sistema te recomendará subir a
+              la siguiente categoría.
             </li>
             <li className="flex items-start gap-2">
               <ArrowUpRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-300" />

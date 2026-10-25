@@ -3,7 +3,6 @@ import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import { requireAuth } from '../middleware/auth.js';
 import {
-  ASCENSOS,
   CATEGORIAS,
   NOMBRES_CATEGORIAS,
   PUNTOS_RESULTADO,
@@ -122,7 +121,6 @@ router.get('/', async (req, res) => {
         yo,
         reglas: {
           categorias: CATEGORIAS,
-          ascensos: ASCENSOS,
           puntosResultado: PUNTOS_RESULTADO,
         },
       },

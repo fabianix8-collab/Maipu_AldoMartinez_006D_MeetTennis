@@ -6,18 +6,23 @@ import {
   Check,
   CheckCircle2,
   ClipboardCheck,
+  Clock,
+  Eye,
   History,
   Hourglass,
   Loader2,
   MapPin,
+  MessageCircle,
   Plus,
+  Star,
   Trash2,
   TrendingDown,
   TrendingUp,
   User,
   X,
+  XCircle,
 } from 'lucide-react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import BrandLogo from '../components/BrandLogo.jsx';
 import TennisBackground from '../components/TennisBackground.jsx';
 import { apiFetch } from '../lib/api.js';
@@ -98,6 +103,7 @@ function ResultadoIcono({ partido }) {
 }
 
 function MisPartidosView() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const miId = getStoredAuth()?.user?.id;
 
@@ -109,6 +115,17 @@ function MisPartidosView() {
   const [cargando, setCargando] = useState(true);
   const [errorCarga, setErrorCarga] = useState('');
   const [recargar, setRecargar] = useState(0);
+
+  const [solicitudes, setSolicitudes] = useState({ recibidas: [], enviadas: [] });
+  const [errorSolicitudes, setErrorSolicitudes] = useState('');
+  const [procesandoSolicitud, setProcesandoSolicitud] = useState(null);
+
+  // Perfil del contrincante abierto en modal.
+  const [perfilAbierto, setPerfilAbierto] = useState(null);
+  const [perfilDatos, setPerfilDatos] = useState(null);
+  const [perfilResenas, setPerfilResenas] = useState(null);
+  const [perfilCargando, setPerfilCargando] = useState(false);
+  const [perfilError, setPerfilError] = useState('');
 
   // El formulario se puede precargar desde una solicitud aceptada
   // (Buscar Partido → "Registrar resultado").
@@ -131,16 +148,19 @@ function MisPartidosView() {
 
     const cargar = async () => {
       try {
-        const [partidosRes, rankingRes, canchasRes] = await Promise.all([
+        const [partidosRes, rankingRes, canchasRes, solicitudesRes] = await Promise.all([
           apiFetch('/api/matches'),
           apiFetch('/api/ranking'),
           fetch('/api/courts'),
+          apiFetch('/api/matchmaking/requests'),
         ]);
-        const [partidosData, rankingData, canchasData] = await Promise.all([
-          partidosRes.json(),
-          rankingRes.json(),
-          canchasRes.json(),
-        ]);
+        const [partidosData, rankingData, canchasData, solicitudesData] =
+          await Promise.all([
+            partidosRes.json(),
+            rankingRes.json(),
+            canchasRes.json(),
+            solicitudesRes.json(),
+          ]);
 
         if (!activo) return;
 
@@ -164,6 +184,15 @@ function MisPartidosView() {
           setCanchas(canchasData.data?.canchas || []);
         }
 
+        if (solicitudesRes.ok && solicitudesData.success) {
+          setSolicitudes(solicitudesData.data || { recibidas: [], enviadas: [] });
+          setErrorSolicitudes('');
+        } else {
+          setErrorSolicitudes(
+            solicitudesData.error || 'No se pudieron cargar las solicitudes.',
+          );
+        }
+
         setErrorCarga('');
       } catch (err) {
         if (activo) setErrorCarga(err.message || 'No se pudo conectar con el servidor.');
@@ -179,11 +208,106 @@ function MisPartidosView() {
     };
   }, [miId, recargar]);
 
+  // Si se llega desde el banner del Dashboard con #partidos-pendientes,
+  // hace scroll suave hasta esa sección una vez montada la vista.
+  useEffect(() => {
+    if (window.location.hash === '#partidos-pendientes') {
+      requestAnimationFrame(() => {
+        document
+          .getElementById('partidos-pendientes')
+          ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
+  }, []);
+
   const porConfirmar = partidos.filter((p) => p.puedoConfirmar);
   const esperando = partidos.filter((p) => p.registradoPorMi && p.estado === 'pendiente');
   const historial = partidos.filter((p) => p.estado !== 'pendiente');
 
   const rival = jugadores.find((jugador) => jugador.id === rivalId) || null;
+
+  // Devuelve el contrincante de una solicitud desde el punto de vista del usuario.
+  const contrincanteDe = (solicitud) =>
+    solicitud.solicitante_id === miId ? solicitud.receptor : solicitud.solicitante;
+
+  const solicitudesAceptadas = [...solicitudes.recibidas, ...solicitudes.enviadas].filter(
+    (s) => s.estado === 'aceptada',
+  );
+  const recibidasPendientes = solicitudes.recibidas.filter((s) => s.estado === 'pendiente');
+  const enviadasPendientes = solicitudes.enviadas.filter((s) => s.estado === 'pendiente');
+
+  // accion: "aceptar" | "rechazar" (recibidas) o "cancelar" (enviadas).
+  const responderSolicitud = async (id, accion) => {
+    setProcesandoSolicitud(id);
+    setErrorSolicitudes('');
+
+    try {
+      const response = await apiFetch(`/api/matchmaking/requests/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accion }),
+      });
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        setErrorSolicitudes(result.error || 'No se pudo actualizar la solicitud.');
+      }
+      setRecargar((n) => n + 1);
+    } catch {
+      setErrorSolicitudes('No se pudo conectar con el servidor.');
+    } finally {
+      setProcesandoSolicitud(null);
+    }
+  };
+
+  // Abre el modal con el perfil público del contrincante.
+  const verPerfil = async (jugador) => {
+    if (!jugador?.id) return;
+    setPerfilAbierto(jugador);
+    setPerfilDatos(null);
+    setPerfilResenas(null);
+    setPerfilError('');
+    setPerfilCargando(true);
+
+    try {
+      const [perfilRes, resenasRes] = await Promise.all([
+        apiFetch(`/api/profile/${jugador.id}`),
+        apiFetch(`/api/reviews/player/${jugador.id}`),
+      ]);
+      const perfil = await perfilRes.json();
+      const resenas = await resenasRes.json();
+
+      if (perfilRes.ok && perfil.success) {
+        setPerfilDatos(perfil.data);
+      } else {
+        setPerfilError(perfil.error || 'No se pudo cargar el perfil.');
+      }
+
+      if (resenasRes.ok && resenas.success) {
+        setPerfilResenas(resenas.data);
+      }
+    } catch {
+      setPerfilError('No se pudo conectar con el servidor.');
+    } finally {
+      setPerfilCargando(false);
+    }
+  };
+
+  // Prellena el formulario de registrar resultado y hace scroll suave.
+  const prellenarResultado = (solicitud) => {
+    const contrincante = contrincanteDe(solicitud);
+    setRivalId(contrincante?.id || '');
+    setFecha(solicitud.fecha <= hoyISO() ? solicitud.fecha : hoyISO());
+    setCanchaId(solicitud.cancha?.id ? String(solicitud.cancha.id) : '');
+    setTocado(false);
+    setStatusForm({ type: 'idle', message: '' });
+
+    requestAnimationFrame(() => {
+      document
+        .getElementById('registrar-resultado')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  };
 
   // Vista previa de los puntos con las reglas que entrega el servidor.
   const preview = useMemo(() => {
@@ -349,6 +473,228 @@ function MisPartidosView() {
           </p>
         )}
 
+        {errorSolicitudes && (
+          <p className="mt-6 flex items-start gap-2 rounded-2xl border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-300">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            {errorSolicitudes}
+          </p>
+        )}
+
+        {/* Sección 1: Partidos Pendientes */}
+        <section id="partidos-pendientes" className="mt-8 scroll-mt-6">
+          <h2 className={tituloSeccion}>
+            <ClipboardCheck className="h-4 w-4 text-emerald-300" />
+            Partidos Pendientes ({solicitudesAceptadas.length})
+          </h2>
+
+          {solicitudesAceptadas.length === 0 ? (
+            <p className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-800/40 p-5 text-center text-sm text-slate-500">
+              No tienes partidos pendientes por jugar.
+            </p>
+          ) : (
+            <ul className="grid gap-3">
+              {solicitudesAceptadas.map((solicitud) => {
+                const contrincante = contrincanteDe(solicitud);
+                return (
+                  <li
+                    key={solicitud.id}
+                    className="rounded-2xl border border-emerald-500/40 bg-emerald-500/5 p-4 shadow-2xl backdrop-blur-md"
+                  >
+                    <div className="flex items-start gap-3">
+                      <Avatar jugador={contrincante} />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-slate-100">
+                          {nombreCompleto(contrincante)}
+                        </p>
+                        <p className="mt-0.5 text-xs text-slate-400">
+                          {contrincante?.nivel || 'Sin nivel'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 grid gap-1.5 text-xs text-slate-300">
+                      <p className="flex items-center gap-1.5">
+                        <Calendar className="h-3.5 w-3.5 text-slate-500" />
+                        {formatFecha(solicitud.fecha)}
+                        {solicitud.hora_desde && (
+                          <>
+                            <Clock className="ml-1 h-3.5 w-3.5 text-slate-500" />
+                            {solicitud.hora_desde} - {solicitud.hora_hasta}
+                          </>
+                        )}
+                      </p>
+                      <p className="flex items-center gap-1.5">
+                        <MapPin className="h-3.5 w-3.5 text-slate-500" />
+                        {solicitud.cancha?.nombre
+                          ? `${solicitud.cancha.nombre}${solicitud.cancha.direccion ? ` · ${solicitud.cancha.direccion}` : ''}`
+                          : 'Cancha por definir'}
+                      </p>
+                      {solicitud.mensaje && (
+                        <p className="mt-1 rounded-lg bg-slate-900/60 p-2 text-slate-400">
+                          “{solicitud.mensaje}”
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="mt-3 grid grid-cols-3 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => verPerfil(contrincante)}
+                        className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-700/50 bg-slate-800/70 py-2.5 text-xs font-semibold text-slate-200 transition-colors hover:border-emerald-500/50 hover:text-emerald-300"
+                      >
+                        <Eye className="h-4 w-4" />
+                        Ver perfil
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/chat?usuario=${contrincante?.id}`)}
+                        className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-700/50 bg-slate-800/70 py-2.5 text-xs font-semibold text-slate-200 transition-colors hover:border-emerald-500/50 hover:text-emerald-300"
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                        Abrir chat
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => prellenarResultado(solicitud)}
+                        className="flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 py-2.5 text-xs font-semibold text-slate-100 transition-colors hover:bg-emerald-700"
+                      >
+                        <ClipboardCheck className="h-4 w-4" />
+                        Registrar
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+
+        {/* Sección 2: Solicitudes Recibidas y Enviadas */}
+        <section className="mt-8">
+          <h2 className={tituloSeccion}>
+            <Hourglass className="h-4 w-4 text-amber-300" />
+            Solicitudes Recibidas y Enviadas
+          </h2>
+
+          {recibidasPendientes.length === 0 && enviadasPendientes.length === 0 ? (
+            <p className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-800/40 p-5 text-center text-sm text-slate-500">
+              No tienes solicitudes pendientes.
+            </p>
+          ) : (
+            <div className="grid gap-6">
+              {recibidasPendientes.length > 0 && (
+                <div>
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-amber-300">
+                    Recibidas pendientes ({recibidasPendientes.length})
+                  </h3>
+                  <ul className="grid gap-3">
+                    {recibidasPendientes.map((solicitud) => {
+                      const contrincante = contrincanteDe(solicitud);
+                      return (
+                        <li
+                          key={solicitud.id}
+                          className="rounded-2xl border border-amber-500/40 bg-amber-500/5 p-4 shadow-2xl backdrop-blur-md"
+                        >
+                          <div className="flex items-start gap-3">
+                            <Avatar jugador={contrincante} />
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-semibold text-slate-100">
+                                {nombreCompleto(contrincante)}
+                              </p>
+                              <p className="mt-0.5 text-xs text-slate-400">
+                                {formatFecha(solicitud.fecha)}
+                                {solicitud.hora_desde &&
+                                  ` · ${solicitud.hora_desde} - ${solicitud.hora_hasta}`}
+                              </p>
+                              {solicitud.cancha?.nombre && (
+                                <p className="mt-0.5 text-xs text-slate-400">
+                                  {solicitud.cancha.nombre}
+                                </p>
+                              )}
+                              {solicitud.mensaje && (
+                                <p className="mt-1 rounded-lg bg-slate-900/60 p-2 text-xs text-slate-400">
+                                  “{solicitud.mensaje}”
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="mt-3 grid grid-cols-2 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => responderSolicitud(solicitud.id, 'aceptar')}
+                              disabled={procesandoSolicitud === solicitud.id}
+                              className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-slate-100 transition-colors hover:bg-emerald-700 disabled:opacity-60"
+                            >
+                              <Check className="h-4 w-4" />
+                              Aceptar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => responderSolicitud(solicitud.id, 'rechazar')}
+                              disabled={procesandoSolicitud === solicitud.id}
+                              className="flex items-center justify-center gap-2 rounded-xl border border-red-500/40 bg-red-500/10 py-2.5 text-sm font-semibold text-red-300 transition-colors hover:bg-red-500/20 disabled:opacity-60"
+                            >
+                              <X className="h-4 w-4" />
+                              Rechazar
+                            </button>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
+
+              {enviadasPendientes.length > 0 && (
+                <div>
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                    Enviadas pendientes ({enviadasPendientes.length})
+                  </h3>
+                  <ul className="grid gap-3">
+                    {enviadasPendientes.map((solicitud) => {
+                      const contrincante = contrincanteDe(solicitud);
+                      return (
+                        <li
+                          key={solicitud.id}
+                          className="rounded-2xl border border-slate-700/50 bg-slate-800/60 p-4 shadow-2xl backdrop-blur-md"
+                        >
+                          <div className="flex items-start gap-3">
+                            <Avatar jugador={contrincante} />
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-semibold text-slate-100">
+                                {nombreCompleto(contrincante)}
+                              </p>
+                              <p className="mt-0.5 text-xs text-slate-400">
+                                {formatFecha(solicitud.fecha)}
+                                {solicitud.hora_desde &&
+                                  ` · ${solicitud.hora_desde} - ${solicitud.hora_hasta}`}
+                              </p>
+                              {solicitud.cancha?.nombre && (
+                                <p className="mt-0.5 text-xs text-slate-400">
+                                  {solicitud.cancha.nombre}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => responderSolicitud(solicitud.id, 'cancelar')}
+                            disabled={procesandoSolicitud === solicitud.id}
+                            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-700/50 bg-slate-800/70 py-2 text-xs font-semibold text-slate-300 transition-colors hover:border-red-500/50 hover:text-red-300 disabled:opacity-60"
+                          >
+                            <XCircle className="h-3.5 w-3.5" />
+                            Cancelar solicitud
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+        </section>
+
         {/* Partidos que el rival registró y debo confirmar */}
         {porConfirmar.length > 0 && (
           <section className="mt-8">
@@ -407,9 +753,10 @@ function MisPartidosView() {
 
         {/* Registrar resultado */}
         <form
+          id="registrar-resultado"
           onSubmit={handleSubmit}
           noValidate
-          className="mt-8 rounded-2xl border border-slate-700/50 bg-slate-900/60 p-6 shadow-2xl backdrop-blur-md"
+          className="mt-8 scroll-mt-6 rounded-2xl border border-slate-700/50 bg-slate-900/60 p-6 shadow-2xl backdrop-blur-md"
         >
           <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">
             Registrar resultado
@@ -549,12 +896,7 @@ function MisPartidosView() {
                 <TrendingDown className="mt-0.5 h-4 w-4 shrink-0" />
               )}
               <span>
-                Al confirmarse: {formatPuntos(preview.puntos)} en {miCategoria}.{' '}
-                {preview.valida
-                  ? '¡Cuenta como victoria válida para ascender!'
-                  : preview.relacion === 'inferior' && resultado === 'Ganado'
-                    ? 'Ganarle a una categoría inferior no cuenta como victoria válida.'
-                    : ''}
+                Al confirmarse: {formatPuntos(preview.puntos)} en {miCategoria}.
               </span>
             </div>
           )}
@@ -666,6 +1008,111 @@ function MisPartidosView() {
           </Link>
         </p>
       </div>
+
+      {/* Modal con el perfil público del contrincante */}
+      {perfilAbierto && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm"
+          onClick={() => setPerfilAbierto(null)}
+        >
+          <div
+            className="relative mx-auto w-full max-w-sm rounded-2xl border border-slate-700/50 bg-slate-900/95 p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setPerfilAbierto(null)}
+              aria-label="Cerrar perfil"
+              className="absolute right-3 top-3 rounded-xl border border-slate-700/50 bg-slate-800/60 p-2 text-slate-400 transition-colors hover:border-red-500/50 hover:text-red-400"
+            >
+              <XCircle className="h-4 w-4" />
+            </button>
+
+            {perfilCargando ? (
+              <p className="flex items-center justify-center gap-2 py-8 text-sm text-slate-400">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                Cargando perfil...
+              </p>
+            ) : perfilError ? (
+              <p className="flex items-start gap-2 rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-300">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                {perfilError}
+              </p>
+            ) : perfilDatos ? (
+              <>
+                <div className="flex flex-col items-center gap-3">
+                  <span className="relative inline-flex shrink-0 rounded-full bg-gradient-to-tr from-emerald-500 via-emerald-400 to-lime-300 p-[3px] shadow-lg">
+                    {perfilDatos.avatar_url ? (
+                      <img
+                        src={perfilDatos.avatar_url}
+                        alt={`Foto de ${nombreCompleto(perfilDatos)}`}
+                        className="h-24 w-24 rounded-full border-2 border-slate-900 object-cover"
+                      />
+                    ) : (
+                      <span className="flex h-24 w-24 items-center justify-center rounded-full border-2 border-slate-900 bg-slate-800 text-slate-400">
+                        <User className="h-10 w-10" />
+                      </span>
+                    )}
+                  </span>
+                  <h2 className="text-xl font-bold text-slate-100">
+                    {nombreCompleto(perfilDatos)}
+                  </h2>
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300">
+                    {perfilDatos.nivel || 'Sin nivel'}
+                  </span>
+                </div>
+
+                <dl className="mt-5 grid gap-3">
+                  <div>
+                    <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                      Comuna
+                    </dt>
+                    <dd className="mt-0.5 flex items-center gap-2 text-sm text-slate-100">
+                      <MapPin className="h-4 w-4 shrink-0 text-slate-500" />
+                      {perfilDatos.comuna || 'No especificada'}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                      Sobre mí
+                    </dt>
+                    <dd className="mt-0.5 text-sm text-slate-300">
+                      {perfilDatos.bio || 'Sin descripción.'}
+                    </dd>
+                  </div>
+                </dl>
+
+                {perfilResenas && (
+                  <div className="mt-5 rounded-xl border border-amber-400/30 bg-amber-400/5 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Calificación de otros jugadores
+                    </p>
+                    <div className="mt-2 flex items-center gap-2">
+                      <div className="flex items-center gap-0.5">
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <Star
+                            key={n}
+                            className={`h-5 w-5 ${
+                              n <= Math.round(perfilResenas.promedio || 0)
+                                ? 'fill-amber-400 text-amber-400'
+                                : 'fill-slate-700 text-slate-600'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-sm font-semibold text-slate-100">
+                        {perfilResenas.promedio
+                          ? `${perfilResenas.promedio} de 5`
+                          : 'Sin reseñas'}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : null}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

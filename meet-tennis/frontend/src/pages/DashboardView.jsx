@@ -57,6 +57,8 @@ function DashboardView() {
     pendientes: { solicitudes: 0, partidos: 0, chat: 0 },
   });
   const [recargarAvisos, setRecargarAvisos] = useState(0);
+  const [partidosPendientes, setPartidosPendientes] = useState(0);
+  const [totalNoLeidos, setTotalNoLeidos] = useState(0);
 
   useEffect(() => {
     let activo = true;
@@ -79,6 +81,50 @@ function DashboardView() {
       activo = false;
     };
   }, [recargarAvisos]);
+
+  // Partidos pendientes y mensajes sin leer: se consultan al montar y
+  // se refrescan con polling ligero.
+  useEffect(() => {
+    let activo = true;
+
+    const cargar = async () => {
+      try {
+        const [solicitudesRes, conversacionesRes] = await Promise.all([
+          apiFetch('/api/matchmaking/requests'),
+          apiFetch('/api/chat/conversations'),
+        ]);
+        const [solicitudes, conversaciones] = await Promise.all([
+          solicitudesRes.json(),
+          conversacionesRes.json(),
+        ]);
+
+        if (!activo) return;
+
+        if (solicitudesRes.ok && solicitudes.success) {
+          const todas = [
+            ...(solicitudes.data?.recibidas || []),
+            ...(solicitudes.data?.enviadas || []),
+          ];
+          setPartidosPendientes(todas.filter((s) => s.estado === 'aceptada').length);
+        }
+
+        if (conversacionesRes.ok && conversaciones.success) {
+          const lista = conversaciones.data || [];
+          setTotalNoLeidos(lista.reduce((acc, c) => acc + (c.noLeidos || 0), 0));
+        }
+      } catch {
+        // Silencioso: el dashboard funciona igual sin estos contadores.
+      }
+    };
+
+    cargar();
+    const intervalo = setInterval(cargar, 12000);
+
+    return () => {
+      activo = false;
+      clearInterval(intervalo);
+    };
+  }, []);
 
   // Confirma (o no) la asistencia desde la campana. Devuelve un mensaje
   // de error para mostrarlo en el aviso, o null si salió bien.
@@ -168,6 +214,30 @@ function DashboardView() {
           </div>
         </header>
 
+        {partidosPendientes > 0 && (
+          <button
+            type="button"
+            onClick={() => navigate('/mis-partidos#partidos-pendientes')}
+            className="mt-4 flex items-center gap-3 rounded-2xl border border-emerald-500/40 bg-emerald-600/15 p-4 text-left shadow-2xl backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-400/60 hover:bg-emerald-600/25"
+          >
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-600/25 text-emerald-300">
+              <CalendarClock className="h-6 w-6" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold text-slate-100">
+                Tienes {partidosPendientes}{' '}
+                {partidosPendientes === 1 ? 'partido pendiente' : 'partidos pendientes'} por jugar.
+              </span>
+              <span className="mt-0.5 block text-xs text-emerald-300">
+                Toca para ver los detalles.
+              </span>
+            </span>
+            <span className="shrink-0 rounded-full bg-amber-400 px-2.5 py-1 text-xs font-bold text-slate-900 shadow-lg">
+              {partidosPendientes}
+            </span>
+          </button>
+        )}
+
         <nav className="mt-4 flex flex-col gap-3">
           {/* Buscar Partido: tarjeta ancha pero compacta */}
           {NAV_ITEMS.filter((item) => item.ancho).map(({ title, Icon, to, aviso }) => {
@@ -222,25 +292,23 @@ function DashboardView() {
             })}
           </div>
 
-          {/* Chat: tarjeta ancha al final, debajo de Reseñas y Mi Perfil */}
-          <button
-            type="button"
-            onClick={() => navigate('/chat')}
-            className="group relative flex items-center justify-center gap-3 rounded-2xl border border-slate-700/50 bg-slate-800/60 p-4 text-slate-100 shadow-2xl backdrop-blur-md transition-all duration-200 hover:-translate-y-1 hover:border-emerald-500/50 hover:bg-slate-800/80"
-          >
-            {notificaciones.pendientes.chat > 0 && (
-              <span className="absolute right-2.5 top-2.5 rounded-full bg-amber-400 px-2 py-0.5 text-[11px] font-bold text-slate-900 shadow-lg">
-                {notificaciones.pendientes.chat}{' '}
-                {notificaciones.pendientes.chat === 1 ? 'mensaje nuevo' : 'mensajes nuevos'}
-              </span>
-            )}
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-600/15 text-emerald-400 transition-colors group-hover:bg-emerald-600/25 group-hover:text-emerald-300">
-              <MessageCircle className="h-6 w-6" />
-            </span>
-            <span className="font-semibold text-base">Chat</span>
-          </button>
         </nav>
       </div>
+
+      {/* Burbuja flotante de chat con contador de no leídos */}
+      <button
+        type="button"
+        onClick={() => navigate('/chat')}
+        aria-label="Abrir chat"
+        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-2xl transition-transform hover:scale-105 hover:bg-emerald-500"
+      >
+        <MessageCircle className="h-6 w-6" />
+        {totalNoLeidos > 0 && (
+          <span className="absolute -right-1 -top-1 flex h-6 min-w-6 items-center justify-center rounded-full border-2 border-slate-900 bg-red-500 px-1 text-xs font-bold text-white">
+            {totalNoLeidos > 99 ? '99+' : totalNoLeidos}
+          </span>
+        )}
+      </button>
     </div>
   );
 }

@@ -2,11 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
   ArrowLeft,
-  Bell,
   Calendar,
   CalendarClock,
   CheckCircle2,
-  ClipboardCheck,
   Clock,
   Loader2,
   MapPin,
@@ -26,7 +24,7 @@ import BrandLogo from '../components/BrandLogo.jsx';
 import TennisBackground from '../components/TennisBackground.jsx';
 import MapEmbed from '../components/MapEmbed.jsx';
 import { apiFetch } from '../lib/api.js';
-import { formatFecha, haceCuanto, hoyISO, iniciales } from '../lib/formato.js';
+import { haceCuanto, hoyISO, iniciales } from '../lib/formato.js';
 
 const CATEGORIAS = [
   '1ra Categoría',
@@ -35,8 +33,6 @@ const CATEGORIAS = [
   '4ta Categoría',
   '5ta Categoría',
 ];
-
-const MODALIDADES = ['Todas', 'Disponible para jugar', 'Buscando partido'];
 
 const DIAS_CORTOS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
@@ -56,13 +52,6 @@ const inputBase =
   'w-full rounded-xl border border-slate-700/50 bg-slate-800/70 px-4 py-3 text-slate-100 placeholder-slate-500 outline-none transition-colors focus:border-emerald-500';
 const labelClass = 'mb-1.5 block text-sm font-medium text-slate-400';
 
-const ESTILO_ESTADO = {
-  pendiente: 'border border-amber-500/40 bg-amber-500/10 text-amber-300',
-  aceptada: 'border border-emerald-500/40 bg-emerald-500/10 text-emerald-300',
-  rechazada: 'border border-red-500/40 bg-red-500/10 text-red-300',
-  cancelada: 'border border-slate-600/50 bg-slate-800/70 text-slate-400',
-};
-
 // La API guarda los días como números: 1 = Lunes ... 7 = Domingo.
 function nombresDias(dias) {
   return (dias || []).map((numero) => DIAS_CORTOS[numero - 1]).filter(Boolean);
@@ -74,115 +63,6 @@ function formatZona(slot) {
   return '';
 }
 
-// En una solicitud aceptada: si el partido ya se jugó, lleva a registrar
-// el resultado con rival, fecha y cancha precargados.
-function RegistrarResultado({ solicitud, rivalId }) {
-  if (solicitud.fecha > hoyISO()) {
-    return (
-      <p className="mt-3 flex items-center justify-center gap-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/5 py-2 text-xs font-semibold text-emerald-300">
-        <Calendar className="h-3.5 w-3.5" />
-        Partido programado para el {formatFecha(solicitud.fecha)}
-      </p>
-    );
-  }
-
-  const params = new URLSearchParams({ rival: rivalId, fecha: solicitud.fecha });
-  if (solicitud.cancha?.id) params.set('cancha', String(solicitud.cancha.id));
-
-  return (
-    <Link
-      to={`/mis-partidos?${params.toString()}`}
-      className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-slate-100 transition-colors hover:bg-emerald-700"
-    >
-      <ClipboardCheck className="h-4 w-4" />
-      Registrar resultado
-    </Link>
-  );
-}
-
-// Asistencia a un partido aceptado que aún no se juega: muestra quién
-// confirmó y permite confirmar o avisar que no se puede ir.
-function Asistencia({ solicitud, soySolicitante, onResponder }) {
-  const [seguro, setSeguro] = useState(false);
-
-  if (solicitud.fecha < hoyISO()) return null;
-
-  const mia = soySolicitante ? solicitud.asiste_solicitante : solicitud.asiste_receptor;
-  const suya = soySolicitante ? solicitud.asiste_receptor : solicitud.asiste_solicitante;
-  const estado = (valor) =>
-    valor ? (
-      <span className="font-semibold text-emerald-300">confirmó</span>
-    ) : (
-      <span className="text-slate-500">sin confirmar</span>
-    );
-
-  return (
-    <div className="mt-3 rounded-xl border border-slate-700/50 bg-slate-900/40 p-3 text-xs">
-      <p className="text-slate-400">
-        Tú: {estado(mia)} · Rival: {estado(suya)}
-      </p>
-
-      {seguro ? (
-        <div className="mt-2">
-          <p className="text-red-300">Se cancelará el partido y avisaremos a tu rival.</p>
-          <div className="mt-1.5 grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => onResponder(solicitud.id, false)}
-              className="rounded-lg bg-red-600 py-2 font-semibold text-slate-100 transition-colors hover:bg-red-700"
-            >
-              Sí, cancelar
-            </button>
-            <button
-              type="button"
-              onClick={() => setSeguro(false)}
-              className="rounded-lg border border-slate-700/50 bg-slate-800/70 py-2 font-semibold text-slate-300 transition-colors hover:text-slate-100"
-            >
-              Volver
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className={`mt-2 grid gap-2 ${mia ? 'grid-cols-1' : 'grid-cols-2'}`}>
-          {!mia && (
-            <button
-              type="button"
-              onClick={() => onResponder(solicitud.id, true)}
-              className="flex items-center justify-center gap-1.5 rounded-lg bg-emerald-600 py-2 font-semibold text-slate-100 transition-colors hover:bg-emerald-700"
-            >
-              <CheckCircle2 className="h-3.5 w-3.5" />
-              Confirmo
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={() => setSeguro(true)}
-            className="flex items-center justify-center gap-1.5 rounded-lg border border-red-500/40 bg-red-500/10 py-2 font-semibold text-red-300 transition-colors hover:bg-red-500/20"
-          >
-            <XCircle className="h-3.5 w-3.5" />
-            {mia ? 'Ya no puedo ir' : 'No puedo'}
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Nota en una solicitud cancelada porque alguien avisó que no podía ir.
-function CanceladaPorAsistencia({ solicitud, soySolicitante }) {
-  const yo = soySolicitante ? solicitud.asiste_solicitante : solicitud.asiste_receptor;
-  const rival = soySolicitante ? solicitud.asiste_receptor : solicitud.asiste_solicitante;
-  if (yo !== false && rival !== false) return null;
-
-  return (
-    <p className="mt-3 text-xs text-slate-400">
-      {yo === false
-        ? 'Avisaste que no podías asistir.'
-        : 'Tu rival avisó que no podía asistir.'}
-    </p>
-  );
-}
-
 function MatchmakingView() {
   const [miDisponibilidad, setMiDisponibilidad] = useState([]);
   const [rivales, setRivales] = useState([]);
@@ -190,7 +70,6 @@ function MatchmakingView() {
   const [errorRivales, setErrorRivales] = useState('');
 
   const [filtroNivel, setFiltroNivel] = useState('');
-  const [filtroModalidad, setFiltroModalidad] = useState('');
 
   const [ubicacion, setUbicacion] = useState(null);
   const [geoStatus, setGeoStatus] = useState('idle');
@@ -214,6 +93,7 @@ function MatchmakingView() {
     fecha: hoyISO(),
     desde: '',
     hasta: '',
+    canchaId: '',
     mensaje: '',
   });
   const [enviandoSolicitud, setEnviandoSolicitud] = useState(false);
@@ -222,9 +102,7 @@ function MatchmakingView() {
     message: '',
   });
 
-  const [solicitudes, setSolicitudes] = useState({ recibidas: [], enviadas: [] });
-  const [errorSolicitudes, setErrorSolicitudes] = useState('');
-  const [recargarSolicitudes, setRecargarSolicitudes] = useState(0);
+  const [canchas, setCanchas] = useState([]);
 
   // Carga inicial: disponibilidad propia y geolocalización opcional.
   // La ubicación solo se usa para calcular la cancha recomendada;
@@ -280,9 +158,6 @@ function MatchmakingView() {
       try {
         const params = new URLSearchParams();
         if (filtroNivel) params.set('nivel', filtroNivel);
-        if (filtroModalidad && filtroModalidad !== 'Todas') {
-          params.set('modalidad', filtroModalidad);
-        }
 
         const response = await apiFetch(`/api/matchmaking/rivals?${params.toString()}`);
         const result = await response.json();
@@ -307,26 +182,22 @@ function MatchmakingView() {
     return () => {
       activo = false;
     };
-  }, [filtroNivel, filtroModalidad]);
+  }, [filtroNivel]);
 
-  // Solicitudes: se recarga al montar y tras enviar/responder.
+  // Canchas disponibles para el selector "Cancha sugerida".
   useEffect(() => {
     let activo = true;
 
     const cargar = async () => {
       try {
-        const response = await apiFetch('/api/matchmaking/requests');
+        const response = await apiFetch('/api/courts');
         const result = await response.json();
 
-        if (!activo) return;
-
-        if (response.ok && result.success) {
-          setSolicitudes(result.data || { recibidas: [], enviadas: [] });
-        } else {
-          setErrorSolicitudes(result.error || 'No se pudieron cargar las solicitudes.');
+        if (activo && response.ok && result.success) {
+          setCanchas(result.data?.canchas || []);
         }
       } catch {
-        if (activo) setErrorSolicitudes('No se pudo conectar con el servidor.');
+        // Silencioso: el selector queda solo con "Por definir".
       }
     };
 
@@ -335,7 +206,7 @@ function MatchmakingView() {
     return () => {
       activo = false;
     };
-  }, [recargarSolicitudes]);
+  }, []);
 
   const verCanchaRecomendada = async (rivalId) => {
     if (cargandoCancha) return;
@@ -368,7 +239,15 @@ function MatchmakingView() {
   };
 
   const abrirSolicitud = (rivalId) => {
-    setSolicitudAbierta((prev) => (prev === rivalId ? null : rivalId));
+    const abriendo = solicitudAbierta !== rivalId;
+    if (abriendo) {
+      const recomendada = canchasRecomendadas[rivalId]?.recomendada;
+      setFormSolicitud((prev) => ({
+        ...prev,
+        canchaId: recomendada?.id ? String(recomendada.id) : '',
+      }));
+    }
+    setSolicitudAbierta(abriendo ? rivalId : null);
     setStatusSolicitud({ type: 'idle', message: '' });
   };
 
@@ -391,8 +270,6 @@ function MatchmakingView() {
       return;
     }
 
-    const recomendada = canchasRecomendadas[rivalId]?.recomendada;
-
     setEnviandoSolicitud(true);
     setStatusSolicitud({ type: 'idle', message: '' });
 
@@ -402,7 +279,7 @@ function MatchmakingView() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           receptor_id: rivalId,
-          cancha_id: recomendada?.id ?? null,
+          cancha_id: formSolicitud.canchaId ? Number(formSolicitud.canchaId) : null,
           fecha: formSolicitud.fecha,
           hora_desde: formSolicitud.desde,
           hora_hasta: formSolicitud.hasta,
@@ -422,9 +299,9 @@ function MatchmakingView() {
           fecha: hoyISO(),
           desde: '',
           hasta: '',
+          canchaId: '',
           mensaje: '',
         });
-        setRecargarSolicitudes((n) => n + 1);
       } else {
         setStatusSolicitud({
           type: 'error',
@@ -438,47 +315,6 @@ function MatchmakingView() {
       });
     } finally {
       setEnviandoSolicitud(false);
-    }
-  };
-
-  // accion: "aceptar" | "rechazar" (recibidas) o "cancelar" (enviadas).
-  const responderSolicitud = async (id, accion) => {
-    setErrorSolicitudes('');
-
-    try {
-      const response = await apiFetch(`/api/matchmaking/requests/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accion }),
-      });
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        setErrorSolicitudes(result.error || 'No se pudo actualizar la solicitud.');
-      }
-      setRecargarSolicitudes((n) => n + 1);
-    } catch {
-      setErrorSolicitudes('No se pudo conectar con el servidor.');
-    }
-  };
-
-  const responderAsistencia = async (id, asiste) => {
-    setErrorSolicitudes('');
-
-    try {
-      const response = await apiFetch(`/api/matchmaking/requests/${id}/asistencia`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ asiste }),
-      });
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        setErrorSolicitudes(result.error || 'No se pudo guardar tu asistencia.');
-      }
-      setRecargarSolicitudes((n) => n + 1);
-    } catch {
-      setErrorSolicitudes('No se pudo conectar con el servidor.');
     }
   };
 
@@ -540,105 +376,6 @@ function MatchmakingView() {
     }
   };
 
-  const recibidasPendientes = solicitudes.recibidas.filter((s) => s.estado === 'pendiente');
-  const recibidasRespondidas = solicitudes.recibidas.filter((s) => s.estado !== 'pendiente');
-
-  // Tarjeta de una solicitud recibida (pendiente o ya respondida).
-  const renderRecibida = (solicitud) => (
-    <li
-      key={solicitud.id}
-      className={`rounded-2xl border p-4 shadow-2xl backdrop-blur-md ${
-        solicitud.estado === 'pendiente'
-          ? 'border-amber-500/40 bg-amber-500/5'
-          : 'border-slate-700/50 bg-slate-800/60'
-      }`}
-    >
-      <div className="flex items-start gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-800 text-sm font-bold text-emerald-300">
-          {iniciales(
-            solicitud.solicitante?.nombre,
-            solicitud.solicitante?.apellido,
-          )}
-        </span>
-        <div className="min-w-0 flex-1">
-          <h3 className="truncate text-sm font-semibold text-slate-100">
-            {solicitud.solicitante?.nombre}{' '}
-            {solicitud.solicitante?.apellido}
-          </h3>
-          <p className="mt-0.5 text-xs text-slate-400">
-            {solicitud.solicitante?.nivel || 'Sin nivel'}
-          </p>
-        </div>
-        <span
-          className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${ESTILO_ESTADO[solicitud.estado]}`}
-        >
-          {solicitud.estado}
-        </span>
-      </div>
-
-      <div className="mt-3 grid gap-1.5 text-xs text-slate-300">
-        {solicitud.fecha && (
-          <p className="flex items-center gap-1.5">
-            <Calendar className="h-3.5 w-3.5 text-slate-500" />
-            {formatFecha(solicitud.fecha)}
-            {solicitud.hora_desde &&
-              ` · ${solicitud.hora_desde} - ${solicitud.hora_hasta}`}
-          </p>
-        )}
-        {solicitud.cancha?.nombre && (
-          <p className="flex items-center gap-1.5">
-            <MapPin className="h-3.5 w-3.5 text-slate-500" />
-            {solicitud.cancha?.nombre}
-          </p>
-        )}
-        {solicitud.mensaje && (
-          <p className="mt-1 rounded-lg bg-slate-900/60 p-2 text-slate-400">
-            “{solicitud.mensaje}”
-          </p>
-        )}
-      </div>
-
-      {solicitud.estado === 'pendiente' && (
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={() => responderSolicitud(solicitud.id, 'aceptar')}
-            className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-slate-100 transition-colors hover:bg-emerald-700"
-          >
-            <CheckCircle2 className="h-4 w-4" />
-            Aceptar
-          </button>
-          <button
-            type="button"
-            onClick={() => responderSolicitud(solicitud.id, 'rechazar')}
-            className="flex items-center justify-center gap-2 rounded-xl border border-red-500/40 bg-red-500/10 py-2.5 text-sm font-semibold text-red-300 transition-colors hover:bg-red-500/20"
-          >
-            <XCircle className="h-4 w-4" />
-            Rechazar
-          </button>
-        </div>
-      )}
-
-      {solicitud.estado === 'aceptada' && (
-        <>
-          <Asistencia
-            solicitud={solicitud}
-            soySolicitante={false}
-            onResponder={responderAsistencia}
-          />
-          <RegistrarResultado
-            solicitud={solicitud}
-            rivalId={solicitud.solicitante_id}
-          />
-        </>
-      )}
-
-      {solicitud.estado === 'cancelada' && (
-        <CanceladaPorAsistencia solicitud={solicitud} soySolicitante={false} />
-      )}
-    </li>
-  );
-
   return (
     <div className="relative min-h-screen overflow-hidden bg-slate-900 px-4 py-8">
       <TennisBackground />
@@ -670,24 +407,6 @@ function MatchmakingView() {
             <ArrowLeft className="h-5 w-5" />
           </Link>
         </header>
-
-        {errorSolicitudes && (
-          <p className="mt-6 flex items-start gap-2 rounded-2xl border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-300">
-            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-            {errorSolicitudes}
-          </p>
-        )}
-
-        {/* Solicitudes por responder: lo más urgente va primero */}
-        {recibidasPendientes.length > 0 && (
-          <section className="mt-8">
-            <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-amber-300">
-              <Bell className="h-4 w-4" />
-              Por responder ({recibidasPendientes.length})
-            </h2>
-            <ul className="grid gap-3">{recibidasPendientes.map(renderRecibida)}</ul>
-          </section>
-        )}
 
         {/* Mi disponibilidad */}
         <section className="mt-8 rounded-2xl border border-slate-700/50 bg-slate-900/60 p-5 shadow-2xl backdrop-blur-md">
@@ -735,7 +454,7 @@ function MatchmakingView() {
             Filtros de búsqueda
           </h2>
 
-          <div className="mt-4 grid grid-cols-2 gap-4">
+          <div className="mt-4 grid gap-4">
             <div>
               <label className={labelClass} htmlFor="filtro-nivel">
                 Categoría
@@ -760,32 +479,6 @@ function MatchmakingView() {
                     className="bg-slate-800 text-slate-100"
                   >
                     {categoria}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className={labelClass} htmlFor="filtro-modalidad">
-                Modalidad
-              </label>
-              <select
-                id="filtro-modalidad"
-                name="filtro-modalidad"
-                value={filtroModalidad}
-                onChange={(event) => {
-                  setFiltroModalidad(event.target.value);
-                  setLoadingRivales(true);
-                }}
-                className={`${inputBase} appearance-none`}
-              >
-                {MODALIDADES.map((modalidad) => (
-                  <option
-                    key={modalidad}
-                    value={modalidad}
-                    className="bg-slate-800 text-slate-100"
-                  >
-                    {modalidad}
                   </option>
                 ))}
               </select>
@@ -1073,6 +766,40 @@ function MatchmakingView() {
                         </div>
 
                         <div className="mt-3">
+                          <label className={labelClass} htmlFor={`cancha-${rival.id}`}>
+                            Cancha sugerida
+                          </label>
+                          <div className="relative">
+                            <MapPin className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+                            <select
+                              id={`cancha-${rival.id}`}
+                              name="cancha"
+                              value={formSolicitud.canchaId}
+                              onChange={(event) =>
+                                setFormSolicitud((prev) => ({
+                                  ...prev,
+                                  canchaId: event.target.value,
+                                }))
+                              }
+                              className={`${inputBase} appearance-none pl-11`}
+                            >
+                              <option value="" className="bg-slate-800 text-slate-100">
+                                Por definir
+                              </option>
+                              {canchas.map((cancha) => (
+                                <option
+                                  key={cancha.id}
+                                  value={cancha.id}
+                                  className="bg-slate-800 text-slate-100"
+                                >
+                                  {cancha.nombre}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+
+                        <div className="mt-3">
                           <label className={labelClass} htmlFor={`mensaje-${rival.id}`}>
                             Mensaje (opcional)
                           </label>
@@ -1161,93 +888,6 @@ function MatchmakingView() {
             </ul>
           )}
         </section>
-
-        {/* Solicitudes recibidas ya respondidas */}
-        {recibidasRespondidas.length > 0 && (
-          <section className="mt-8">
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">
-              Solicitudes recibidas
-            </h2>
-            <ul className="grid gap-3">{recibidasRespondidas.map(renderRecibida)}</ul>
-          </section>
-        )}
-
-        {/* Solicitudes enviadas */}
-        {solicitudes.enviadas.length > 0 && (
-          <section className="mt-8">
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">
-              Solicitudes enviadas
-            </h2>
-
-            <ul className="grid gap-3">
-              {solicitudes.enviadas.map((solicitud) => (
-                <li
-                  key={solicitud.id}
-                  className="rounded-2xl border border-slate-700/50 bg-slate-800/60 p-4 shadow-2xl backdrop-blur-md"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-800 text-sm font-bold text-emerald-300">
-                        {iniciales(
-                          solicitud.receptor?.nombre,
-                          solicitud.receptor?.apellido,
-                        )}
-                      </span>
-                      <div>
-                        <h3 className="text-sm font-semibold text-slate-100">
-                          {solicitud.receptor?.nombre}{' '}
-                          {solicitud.receptor?.apellido}
-                        </h3>
-                        <p className="mt-0.5 text-xs text-slate-400">
-                          {solicitud.fecha
-                            ? formatFecha(solicitud.fecha)
-                            : 'Sin fecha'}{' '}
-                          {solicitud.hora_desde &&
-                            `· ${solicitud.hora_desde} - ${solicitud.hora_hasta}`}
-                        </p>
-                      </div>
-                    </div>
-
-                    <span
-                      className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${ESTILO_ESTADO[solicitud.estado]}`}
-                    >
-                      {solicitud.estado}
-                    </span>
-                  </div>
-
-                  {solicitud.estado === 'pendiente' && (
-                    <button
-                      type="button"
-                      onClick={() => responderSolicitud(solicitud.id, 'cancelar')}
-                      className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-700/50 bg-slate-800/70 py-2 text-xs font-semibold text-slate-300 transition-colors hover:border-red-500/50 hover:text-red-300"
-                    >
-                      <XCircle className="h-3.5 w-3.5" />
-                      Cancelar solicitud
-                    </button>
-                  )}
-
-                  {solicitud.estado === 'aceptada' && (
-                    <>
-                      <Asistencia
-                        solicitud={solicitud}
-                        soySolicitante
-                        onResponder={responderAsistencia}
-                      />
-                      <RegistrarResultado
-                        solicitud={solicitud}
-                        rivalId={solicitud.receptor_id}
-                      />
-                    </>
-                  )}
-
-                  {solicitud.estado === 'cancelada' && (
-                    <CanceladaPorAsistencia solicitud={solicitud} soySolicitante />
-                  )}
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
 
         <p className="mt-auto pt-10 text-center text-xs text-slate-500">
           <User className="mr-1 inline h-3.5 w-3.5" />
