@@ -192,6 +192,93 @@ router.get('/acceso', requireAuth, async (req, res) => {
   }
 });
 
+// ----------------------------------------------------------------
+// Administración de usuarios (solo administradores)
+// ----------------------------------------------------------------
+
+// Lista todos los usuarios con su rol y datos de contacto, para que el
+// admin pueda gestionarlos desde el panel.
+router.get('/usuarios', requireAuth, async (req, res) => {
+  if (!(await usuarioEsAdmin(req.user))) {
+    return res.status(403).json({ success: false, data: null, error: SIN_PERMISO });
+  }
+  try {
+    const [usuariosRes, authUsers] = await Promise.all([
+      supabaseAdmin.from('usuario').select('id, nombre, apellido, comuna, nivel, rol'),
+      listarAuthUsers(),
+    ]);
+    if (usuariosRes.error) {
+      return res.status(500).json({ success: false, data: null, error: usuariosRes.error.message });
+    }
+
+    const porId = new Map(authUsers.map((u) => [u.id, u]));
+    const lista = (usuariosRes.data || []).map((u) => ({
+      id: u.id,
+      nombre: u.nombre,
+      apellido: u.apellido,
+      email: porId.get(u.id)?.email || null,
+      comuna: u.comuna || null,
+      nivel: u.nivel || '—',
+      rol: u.rol === 'admin' ? 'admin' : 'jugador',
+      registrado: porId.get(u.id)?.created_at || null,
+    }));
+    lista.sort((a, b) => {
+      if (a.rol !== b.rol) return a.rol === 'admin' ? -1 : 1;
+      return `${a.nombre} ${a.apellido}`.localeCompare(`${b.nombre} ${b.apellido}`, 'es');
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: { usuarios: lista, yoId: req.user.id },
+      error: null,
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, data: null, error: 'Error interno del servidor.' });
+  }
+});
+
+// Cambia el rol de un usuario ('admin' | 'jugador'). El admin no puede
+// cambiarse su propio rol para evitar quedarse sin acceso.
+router.patch('/usuarios/:id/rol', requireAuth, async (req, res) => {
+  if (!(await usuarioEsAdmin(req.user))) {
+    return res.status(403).json({ success: false, data: null, error: SIN_PERMISO });
+  }
+  try {
+    const { rol } = req.body || {};
+    if (rol !== 'admin' && rol !== 'jugador') {
+      return res.status(400).json({
+        success: false,
+        data: null,
+        error: 'Rol no válido: usa admin o jugador.',
+      });
+    }
+    if (req.params.id === req.user.id) {
+      return res.status(400).json({
+        success: false,
+        data: null,
+        error: 'No puedes cambiar tu propio rol.',
+      });
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from('usuario')
+      .update({ rol })
+      .eq('id', req.params.id)
+      .select('id, rol');
+
+    if (error) {
+      return res.status(500).json({ success: false, data: null, error: error.message });
+    }
+    if (!data || data.length === 0) {
+      return res.status(404).json({ success: false, data: null, error: 'Usuario no encontrado.' });
+    }
+
+    return res.status(200).json({ success: true, data: data[0], error: null });
+  } catch (err) {
+    return res.status(500).json({ success: false, data: null, error: 'Error interno del servidor.' });
+  }
+});
+
 // Panel de monitoreo: resume en una sola respuesta la salud del backend
 // y los indicadores principales de la base de datos.
 router.get('/', requireAuth, async (req, res) => {

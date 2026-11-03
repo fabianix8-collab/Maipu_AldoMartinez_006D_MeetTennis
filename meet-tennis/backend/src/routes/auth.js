@@ -3,6 +3,7 @@ import multer from 'multer';
 import dotenv from 'dotenv';
 import { randomUUID } from 'crypto';
 import { createClient } from '@supabase/supabase-js';
+import { crearRateLimit } from '../middleware/rateLimit.js';
 
 dotenv.config();
 
@@ -25,7 +26,19 @@ function crearClientePublico() {
   });
 }
 
-router.post('/login', async (req, res) => {
+// Protección básica contra fuerza bruta y registros masivos.
+const limitarLogin = crearRateLimit({
+  ventanaMs: 15 * 60 * 1000,
+  max: 10,
+  mensaje: 'Demasiados intentos de inicio de sesión. Espera unos minutos e intenta de nuevo.',
+});
+const limitarRegistro = crearRateLimit({
+  ventanaMs: 60 * 60 * 1000,
+  max: 5,
+  mensaje: 'Demasiados registros desde esta dirección. Intenta más tarde.',
+});
+
+router.post('/login', limitarLogin, async (req, res) => {
   try {
     const { email: emailRaw, password } = req.body || {};
 
@@ -137,7 +150,7 @@ router.post('/refresh', async (req, res) => {
   }
 });
 
-router.post('/register', upload.single('avatar'), async (req, res) => {
+router.post('/register', limitarRegistro, upload.single('avatar'), async (req, res) => {
   try {
     const {
       nombre: nombreRaw,
