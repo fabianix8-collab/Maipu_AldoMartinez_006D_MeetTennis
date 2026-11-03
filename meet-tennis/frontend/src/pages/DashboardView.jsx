@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
+  Activity,
   CalendarClock,
   ClipboardCheck,
   LogOut,
@@ -58,6 +59,7 @@ function DashboardView() {
   const [recargarAvisos, setRecargarAvisos] = useState(0);
   const [partidosPendientes, setPartidosPendientes] = useState(0);
   const [totalNoLeidos, setTotalNoLeidos] = useState(0);
+  const [esAdmin, setEsAdmin] = useState(false);
 
   useEffect(() => {
     let activo = true;
@@ -81,20 +83,22 @@ function DashboardView() {
     };
   }, [recargarAvisos]);
 
-  // Partidos pendientes y mensajes sin leer: se consultan al montar y
-  // se refrescan con polling ligero.
+  // Partidos pendientes, mensajes sin leer y acceso al monitoreo: se
+  // consultan al montar y se refrescan con polling ligero.
   useEffect(() => {
     let activo = true;
 
     const cargar = async () => {
       try {
-        const [solicitudesRes, conversacionesRes] = await Promise.all([
+        const [solicitudesRes, conversacionesRes, accesoRes] = await Promise.all([
           apiFetch('/api/matchmaking/requests'),
           apiFetch('/api/chat/conversations'),
+          apiFetch('/api/monitoring/acceso'),
         ]);
-        const [solicitudes, conversaciones] = await Promise.all([
+        const [solicitudes, conversaciones, acceso] = await Promise.all([
           solicitudesRes.json(),
           conversacionesRes.json(),
+          accesoRes.json(),
         ]);
 
         if (!activo) return;
@@ -110,6 +114,11 @@ function DashboardView() {
         if (conversacionesRes.ok && conversaciones.success) {
           const lista = conversaciones.data || [];
           setTotalNoLeidos(lista.reduce((acc, c) => acc + (c.noLeidos || 0), 0));
+        }
+
+        // El acceso al panel de monitoreo es exclusivo de administradores.
+        if (accesoRes.ok && acceso.success) {
+          setEsAdmin(Boolean(acceso.data?.esAdmin));
         }
       } catch {
         // Silencioso: el dashboard funciona igual sin estos contadores.
@@ -208,6 +217,17 @@ function DashboardView() {
               onAbrir={marcarVistos}
               onAsistencia={responderAsistencia}
             />
+            {esAdmin && (
+              <button
+                type="button"
+                onClick={() => navigate('/monitoreo')}
+                aria-label="Panel de monitoreo"
+                title="Monitoreo"
+                className="rounded-xl border border-slate-700/50 bg-slate-800/60 p-2.5 text-slate-400 shadow-2xl backdrop-blur-md transition-colors hover:border-emerald-500/50 hover:bg-emerald-500/10 hover:text-emerald-300"
+              >
+                <Activity className="h-5 w-5" />
+              </button>
+            )}
             <button
               type="button"
               onClick={handleLogout}

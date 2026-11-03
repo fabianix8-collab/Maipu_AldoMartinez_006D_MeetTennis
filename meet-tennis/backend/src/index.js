@@ -12,6 +12,8 @@ import notificationsRouter from './routes/notifications.js';
 import reviewsRouter from './routes/reviews.js';
 import chatRouter from './routes/chat.js';
 import productsRouter from './routes/products.js';
+import monitoringRouter from './routes/monitoring.js';
+import { registrar } from './lib/requestMetrics.js';
 
 dotenv.config();
 
@@ -39,6 +41,7 @@ app.use((req, res, next) => {
     console.log(
       `[${new Date().toISOString()}] ${req.method} ${req.originalUrl} -> ${res.statusCode} (${duration}ms)`,
     );
+    registrar(req, res, duration);
   });
 
   next();
@@ -55,6 +58,7 @@ app.use('/api/notifications', notificationsRouter);
 app.use('/api/reviews', reviewsRouter);
 app.use('/api/chat', chatRouter);
 app.use('/api/products', productsRouter);
+app.use('/api/monitoring', monitoringRouter);
 
 app.get('/api/health', (req, res) => {
   res.status(200).json({
