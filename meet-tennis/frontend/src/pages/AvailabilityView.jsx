@@ -78,7 +78,7 @@ function AvailabilityView() {
 
     const cargarCanchas = async () => {
       try {
-        const response = await fetch('/api/courts');
+        const response = await apiFetch('/api/courts');
         const result = await response.json();
 
         if (activo && response.ok && result.success && result.data) {

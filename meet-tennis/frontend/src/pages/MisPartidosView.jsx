@@ -151,7 +151,7 @@ function MisPartidosView() {
         const [partidosRes, rankingRes, canchasRes, solicitudesRes] = await Promise.all([
           apiFetch('/api/matches'),
           apiFetch('/api/ranking'),
-          fetch('/api/courts'),
+          apiFetch('/api/courts'),
           apiFetch('/api/matchmaking/requests'),
         ]);
         const [partidosData, rankingData, canchasData, solicitudesData] =

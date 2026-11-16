@@ -11,6 +11,7 @@ import { Link } from 'react-router-dom';
 import BrandLogo from '../components/BrandLogo.jsx';
 import TennisBackground from '../components/TennisBackground.jsx';
 import MapEmbed from '../components/MapEmbed.jsx';
+import { apiFetch } from '../lib/api.js';
 
 const inputBase =
   'w-full rounded-xl border border-slate-700/50 bg-slate-800/70 px-4 py-3 text-slate-100 placeholder-slate-500 outline-none transition-colors focus:border-emerald-500';
@@ -65,7 +66,7 @@ function CourtsView() {
 
     const cargarCanchas = async () => {
       try {
-        const response = await fetch('/api/courts');
+        const response = await apiFetch('/api/courts');
         const result = await response.json();
 
         if (!activo) return;
