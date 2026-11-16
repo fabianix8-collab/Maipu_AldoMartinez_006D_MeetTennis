@@ -649,6 +649,7 @@ function MatchmakingView() {
                               <MapEmbed
                                 latitud={recomendada.recomendada.latitud}
                                 longitud={recomendada.recomendada.longitud}
+                                direccion={recomendada.recomendada.direccion}
                                 titulo={`Mapa de ${recomendada.recomendada.nombre}`}
                                 className="mt-3 h-64 w-full rounded-xl border border-slate-700/50"
                               />

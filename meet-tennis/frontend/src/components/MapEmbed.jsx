@@ -3,11 +3,21 @@
 // externas. Usa el endpoint público de embed de Google Maps, que no
 // requiere API key.
 //
+// Precisión: si se pasa "direccion", Google Maps la geocodifica y muestra
+// el punto exacto (mucho más preciso que coordenadas aproximadas). Si no
+// hay dirección, se usa el par latitud/longitud.
+//
 // Uso:
-//   <MapEmbed latitud={-33.5} longitud={-70.7} titulo="Mapa de la cancha" />
+//   <MapEmbed direccion="Av. Los Pajaritos 1234, Maipú" titulo="Mapa" />
+//   <MapEmbed latitud={-33.5} longitud={-70.7} titulo="Mapa" />
 
-function MapEmbed({ latitud, longitud, titulo, className }) {
-  const src = `https://maps.google.com/maps?q=${latitud},${longitud}&z=15&output=embed`;
+function MapEmbed({ latitud, longitud, direccion, titulo, className }) {
+  const consulta = direccion
+    ? encodeURIComponent(direccion)
+    : `${latitud},${longitud}`;
+
+  // z=17: nivel de calle, suficiente para distinguir la cancha exacta.
+  const src = `https://maps.google.com/maps?q=${consulta}&z=17&output=embed`;
 
   return (
     <iframe

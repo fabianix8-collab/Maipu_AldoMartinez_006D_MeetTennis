@@ -49,6 +49,22 @@ Copia `backend/.env.example` como `backend/.env` y completa los valores:
 | `SUPABASE_SERVICE_ROLE_KEY` | Clave de servicio (solo backend, nunca exponer). |
 | `CORS_ORIGIN` | Orígenes permitidos en producción, separados por coma. Sin esto se deniegan las peticiones cross-origin. |
 | `MONITORING_EMAILS` | Correos admin (respaldo del panel mientras no exista la columna `rol`). |
+| `GOOGLE_MAPS_API_KEY` | (Opcional) API key de Google Maps con la Geocoding API, para el script de coordenadas exactas. |
+
+## Precisión del mapa de canchas
+
+El mapa embebido consulta a Google Maps por la **dirección exacta** de la cancha (no solo por
+coordenadas aproximadas), así el pin cae en el lugar correcto. Para afinar aún más las
+coordenadas guardadas en la base de datos:
+
+1. Crea una API key en Google Cloud con la **Geocoding API** habilitada.
+2. Define `GOOGLE_MAPS_API_KEY` en `backend/.env`.
+3. Ejecuta desde `backend/`:
+   ```
+   node scripts/geocodificar_canchas.mjs
+   ```
+   El script geocodifica la dirección de cada cancha y actualiza su `latitud`/`longitud`
+   con el punto exacto que devuelve Google Maps.
 
 ## Seguridad
 

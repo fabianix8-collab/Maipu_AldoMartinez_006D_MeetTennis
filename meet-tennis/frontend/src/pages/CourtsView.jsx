@@ -427,6 +427,7 @@ function CourtsView() {
                     <MapEmbed
                       latitud={cancha.latitud}
                       longitud={cancha.longitud}
+                      direccion={cancha.direccion}
                       titulo={`Mapa de ${cancha.nombre}`}
                       className="mt-3 h-64 w-full rounded-xl border border-slate-700/50"
                     />
