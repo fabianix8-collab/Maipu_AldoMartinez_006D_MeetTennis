@@ -161,15 +161,27 @@ router.get('/rivals', async (req, res) => {
     // Coincidencias: pares (mi bloque, bloque del rival) que comparten
     // día y horario. Son informativas: un rival sin coincidencias
     // también se muestra, para poder proponerle otro horario.
-    const rivales = [...rivalesPorId.values()].map((rival) => ({
-      ...rival,
-      nivel: rival.nivel || 'Sin nivel',
-      coincidencias: misSlots.flatMap((miSlot) =>
-        rival.slots
-          .filter((rivalSlot) => seCruzan(miSlot, rivalSlot))
-          .map((rivalSlot) => ({ miSlot, rivalSlot })),
-      ),
-    }));
+    // Cada bloque del rival se incluye una sola vez, aunque cruce con
+    // varios bloques propios, para no mostrar horarios duplicados.
+    const rivales = [...rivalesPorId.values()].map((rival) => {
+      const coincidencias = [];
+      const vistos = new Set();
+
+      for (const miSlot of misSlots) {
+        for (const rivalSlot of rival.slots) {
+          if (seCruzan(miSlot, rivalSlot) && !vistos.has(rivalSlot.id)) {
+            vistos.add(rivalSlot.id);
+            coincidencias.push({ miSlot, rivalSlot });
+          }
+        }
+      }
+
+      return {
+        ...rival,
+        nivel: rival.nivel || 'Sin nivel',
+        coincidencias,
+      };
+    });
 
     rivales.sort(
       (a, b) =>
