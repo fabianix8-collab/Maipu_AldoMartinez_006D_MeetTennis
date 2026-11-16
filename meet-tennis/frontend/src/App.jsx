@@ -12,6 +12,7 @@ import ResenasView from './pages/ResenasView.jsx';
 import ChatView from './pages/ChatView.jsx';
 import ProductosView from './pages/ProductosView.jsx';
 import MonitoreoView from './pages/MonitoreoView.jsx';
+import AdminUsuariosView from './pages/AdminUsuariosView.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 
 function App() {
@@ -103,6 +104,14 @@ function App() {
           element={
             <ProtectedRoute>
               <MonitoreoView />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin-usuarios"
+          element={
+            <ProtectedRoute>
+              <AdminUsuariosView />
             </ProtectedRoute>
           }
         />

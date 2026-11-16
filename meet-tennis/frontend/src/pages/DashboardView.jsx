@@ -12,6 +12,7 @@ import {
   Swords,
   Trophy,
   User,
+  Users,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import BrandLogo from '../components/BrandLogo.jsx';
@@ -218,15 +219,26 @@ function DashboardView() {
               onAsistencia={responderAsistencia}
             />
             {esAdmin && (
-              <button
-                type="button"
-                onClick={() => navigate('/monitoreo')}
-                aria-label="Panel de monitoreo"
-                title="Monitoreo"
-                className="rounded-xl border border-slate-700/50 bg-slate-800/60 p-2.5 text-slate-400 shadow-2xl backdrop-blur-md transition-colors hover:border-emerald-500/50 hover:bg-emerald-500/10 hover:text-emerald-300"
-              >
-                <Activity className="h-5 w-5" />
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={() => navigate('/monitoreo')}
+                  aria-label="Panel de monitoreo"
+                  title="Monitoreo"
+                  className="rounded-xl border border-slate-700/50 bg-slate-800/60 p-2.5 text-slate-400 shadow-2xl backdrop-blur-md transition-colors hover:border-emerald-500/50 hover:bg-emerald-500/10 hover:text-emerald-300"
+                >
+                  <Activity className="h-5 w-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate('/admin-usuarios')}
+                  aria-label="Administración de usuarios"
+                  title="Administrar usuarios"
+                  className="rounded-xl border border-slate-700/50 bg-slate-800/60 p-2.5 text-slate-400 shadow-2xl backdrop-blur-md transition-colors hover:border-emerald-500/50 hover:bg-emerald-500/10 hover:text-emerald-300"
+                >
+                  <Users className="h-5 w-5" />
+                </button>
+              </>
             )}
             <button
               type="button"
