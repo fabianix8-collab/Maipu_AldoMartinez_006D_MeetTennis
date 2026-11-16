@@ -42,7 +42,7 @@ router.get('/', async (req, res) => {
     const limite = new Date(Date.now() - DIAS_INFORMATIVOS * 86400000);
     const reciente = (fecha) => !!fecha && new Date(fecha) >= limite;
 
-    const [yoRes, solicitudesRes, partidosRes, convRes, chatMensajesRes] = await Promise.all([
+    const [yoRes, solicitudesRes, partidosRes, convRes] = await Promise.all([
       supabaseAdmin.from('usuario').select('avisos_vistos_at').eq('id', userId).maybeSingle(),
       supabaseAdmin
         .from('solicitudes_partido')
@@ -66,21 +66,36 @@ router.get('/', async (req, res) => {
         .from('conversaciones')
         .select('id, usuario1_id, usuario2_id, leido_por_1, leido_por_2')
         .or(`usuario1_id.eq.${userId},usuario2_id.eq.${userId}`),
-      supabaseAdmin
-        .from('mensajes')
-        .select('conversacion_id, remitente_id, created_at')
-        .order('created_at', { ascending: false })
-        .limit(1000),
     ]);
 
-    const error =
-      yoRes.error || solicitudesRes.error || partidosRes.error ||
-      convRes.error || chatMensajesRes.error;
+    const error = yoRes.error || solicitudesRes.error || partidosRes.error || convRes.error;
     if (error) {
       return res.status(500).json({
         success: false,
         data: null,
         error: error.code === '42703' ? FALTA_SCRIPT : error.message,
+      });
+    }
+
+    const convIds = (convRes.data || []).map((c) => c.id);
+
+    // Solo se traen los mensajes de las conversaciones del usuario, no
+    // de todo el sistema.
+    const { data: chatMensajes, error: chatError } =
+      convIds.length === 0
+        ? { data: [], error: null }
+        : await supabaseAdmin
+            .from('mensajes')
+            .select('conversacion_id, remitente_id, created_at')
+            .in('conversacion_id', convIds)
+            .order('created_at', { ascending: false })
+            .limit(1000);
+
+    if (chatError) {
+      return res.status(500).json({
+        success: false,
+        data: null,
+        error: chatError.code === '42703' ? FALTA_SCRIPT : chatError.message,
       });
     }
 
@@ -217,7 +232,7 @@ router.get('/', async (req, res) => {
     const chatNoLeidos = (convRes.data || []).reduce((total, conv) => {
       const soyUno = conv.usuario1_id === userId;
       const leidoHasta = soyUno ? conv.leido_por_1 : conv.leido_por_2;
-      const delHilo = (chatMensajesRes.data || []).filter(
+      const delHilo = (chatMensajes || []).filter(
         (m) => m.conversacion_id === conv.id,
       );
       return (

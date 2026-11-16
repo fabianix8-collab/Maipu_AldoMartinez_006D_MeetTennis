@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
+import { requireAuth } from '../middleware/auth.js';
 import { extraerComuna } from '../lib/utils.js';
 
 dotenv.config();
@@ -12,6 +13,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY,
 );
 
+router.use(requireAuth);
 
 // Lista las canchas registradas y las comunas disponibles.
 // Sirve para elegir una zona general (comuna) o una cancha específica.

@@ -18,3 +18,12 @@ services:
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
+      # Dominio del frontend (Vercel) para permitir peticiones
+      # cross-origin directas. El proxy de Vercel funciona igual,
+      # pero sin esto se deniegan los orígenes externos.
+      - key: CORS_ORIGIN
+        value: https://meettennis.vercel.app
+      # Correos admin (separados por coma) para el panel de monitoreo,
+      # mientras no se ejecute scripts/09_admin_rol.sql en Supabase.
+      - key: MONITORING_EMAILS
+        sync: false

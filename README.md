@@ -4,7 +4,11 @@
 
 La app incluye un **panel de monitoreo** en `/monitoreo`, exclusivo para usuarios con rol
 `admin`. Desde ahí se ven las estadísticas generales de MeetTennis (usuarios, partidos,
-solicitudes, canchas, chat, reseñas, tendencias de 7 días) y se administran los roles.
+solicitudes, canchas, chat, reseñas, tendencias de 7 días).
+
+La **administración de usuarios** vive en una vista separada, `/admin-usuarios`, accesible
+desde el botón junto al de monitoreo en el dashboard (solo para admins). Ahí se listan los
+jugadores y se gestionan los roles sin saturar el panel de métricas.
 
 ### Roles de usuario
 - `jugador` (por defecto): experiencia normal de la app.
@@ -19,6 +23,10 @@ Para darse de alta como admin (UNA vez):
 3. Alternativa local sin SQL: `node scripts/promover_admin.mjs --aplicar --email tu@correo.cl`
    (desde `backend/`, usa las credenciales del `.env`; nunca muestra las claves).
 
+> **Importante:** si aún no se ejecutó el script 09, el acceso al panel se decide por la
+> variable `MONITORING_EMAILS` (correos admin separados por coma). Sin el script 09 y sin
+> esa variable, **nadie** puede ver el panel (por seguridad).
+
 Desde el propio panel, un admin puede promover o revocar a otros usuarios sin tocar SQL.
 
 ### Endpoints del panel (requieren rol admin)
@@ -28,7 +36,35 @@ Desde el propio panel, un admin puede promover o revocar a otros usuarios sin to
 - `PATCH /api/monitoring/usuarios/:id/rol` — cambia el rol (`admin` | `jugador`); no permite
   cambiarse el propio rol.
 
-### Seguridad básica
-- Las rutas de login/registro tienen rate limit por IP (en memoria, sin dependencias):
-  login 10 intentos / 15 min y registro 5 / hora. (Middleware `backend/src/middleware/rateLimit.js`.)
+## Configuración del backend
+
+Copia `backend/.env.example` como `backend/.env` y completa los valores:
+
+| Variable | Descripción |
+| --- | --- |
+| `PORT` | Puerto del servidor (Render lo inyecta). |
+| `NODE_ENV` | `development` o `production`. |
+| `SUPABASE_URL` | URL del proyecto Supabase. |
+| `SUPABASE_ANON_KEY` | Clave pública `anon` (para login/registro/refresh). |
+| `SUPABASE_SERVICE_ROLE_KEY` | Clave de servicio (solo backend, nunca exponer). |
+| `CORS_ORIGIN` | Orígenes permitidos en producción, separados por coma. Sin esto se deniegan las peticiones cross-origin. |
+| `MONITORING_EMAILS` | Correos admin (respaldo del panel mientras no exista la columna `rol`). |
+
+## Seguridad
+
+- **Rate limit por IP** (en memoria, sin dependencias): login 10 intentos / 15 min, registro
+  5 / hora, y un límite general de 120 peticiones / minuto en toda la API.
+  (Middleware `backend/src/middleware/rateLimit.js`.)
+- **CORS restringido**: en producción solo se aceptan los orígenes de `CORS_ORIGIN`.
+- **Headers de seguridad**: `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`,
+  `X-XSS-Protection` y `Permissions-Policy`.
+- **Avatares**: máximo 5 MB y validación del contenido real (magic bytes), no solo el mimetype.
 - Todo el acceso a datos pasa por el backend con la `service_role`; RLS sin políticas públicas.
+
+## Despliegue
+
+- **Backend**: Render (ver `render.yaml`). Configurar `SUPABASE_URL`, `SUPABASE_ANON_KEY`,
+  `SUPABASE_SERVICE_ROLE_KEY`, `CORS_ORIGIN` y `MONITORING_EMAILS`.
+- **Frontend**: Vercel (ver `frontend/vercel.json`), con proxy de `/api/*` hacia el backend.
+- **Base de datos**: ejecutar los scripts de `backend/scripts/` en Supabase (SQL Editor) en
+  orden: `02_disponibilidad_partidos.sql` … `10_usuario_fechas.sql`.
