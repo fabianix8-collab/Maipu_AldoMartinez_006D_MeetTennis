@@ -14,7 +14,8 @@ const admin = createClient(get('SUPABASE_URL'), get('SUPABASE_SERVICE_ROLE_KEY')
 
 // Coordenadas precisas por nombre de cancha (Santiago de Chile).
 const COORDENADAS = {
-  'Club de Tenis Maipú': [-33.508905, -70.756532],
+  // Coordenadas exactas de Google Maps (Club de Tenis Maipú).
+  'Club de Tenis Maipú': [-33.508924, -70.7563532],
   'Club de Tenis Parque Araucano': [-33.4024, -70.5753],
   'Canchas de Tenis Parque O\'Higgins': [-33.4651, -70.6603],
   'Club de Tenis La Reina (Aldea del Encuentro)': [-33.4542, -70.5402],
