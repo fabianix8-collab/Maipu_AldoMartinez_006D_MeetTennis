@@ -6,11 +6,31 @@ import { createClient } from '@supabase/supabase-js';
 import { requireAuth, requireSelf } from '../middleware/auth.js';
 import { categoriaSuperior, NOMBRES_CATEGORIAS, resumenJugador } from '../lib/ranking.js';
 import { partidosConfirmadosPorJugador } from './ranking.js';
+import { AVATAR_MAX_BYTES, esImagenValida } from '../lib/utils.js';
 
 dotenv.config();
 
 const router = Router();
-const upload = multer({ storage: multer.memoryStorage() });
+
+// Subida de avatar: máximo 5 MB. El error de multer (tamaño, archivo
+// corrupto) se convierte en un 400 con mensaje claro, no en un 500.
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: AVATAR_MAX_BYTES },
+});
+
+function subirAvatar(req, res, next) {
+  upload.single('avatar')(req, res, (err) => {
+    if (err) {
+      const mensaje =
+        err.code === 'LIMIT_FILE_SIZE'
+          ? 'La imagen no puede superar los 5 MB.'
+          : 'El avatar debe ser una imagen válida.';
+      return res.status(400).json({ success: false, data: null, error: mensaje });
+    }
+    return next();
+  });
+}
 
 // Cliente admin con service_role key para operaciones de escritura
 // que requieren bypass de RLS en la tabla 'usuario'.
@@ -80,7 +100,8 @@ router.get('/:id', requireAuth, async (req, res) => {
 // Actualiza la foto de perfil: sube la imagen al bucket "avatars"
 // y guarda la URL pública en la tabla usuario.
 // Requiere sesión y que el usuario modifique solo su propio perfil.
-router.post('/:id/avatar', requireAuth, requireSelf, upload.single('avatar'), async (req, res) => {
+router.post('/:id/avatar', requireAuth, requireSelf, subirAvatar, async (req, res) => {
+  let avatarPath = null;
   try {
     const { id } = req.params;
 
@@ -100,8 +121,16 @@ router.post('/:id/avatar', requireAuth, requireSelf, upload.single('avatar'), as
       });
     }
 
+    if (!esImagenValida(req.file.buffer)) {
+      return res.status(400).json({
+        success: false,
+        data: null,
+        error: 'El archivo no es una imagen válida.',
+      });
+    }
+
     const extension = req.file.mimetype.split('/')[1] || 'jpg';
-    const avatarPath = `${randomUUID()}.${extension}`;
+    avatarPath = `${randomUUID()}.${extension}`;
 
     const { error: uploadError } = await supabaseAdmin.storage
       .from('avatars')
@@ -131,6 +160,7 @@ router.post('/:id/avatar', requireAuth, requireSelf, upload.single('avatar'), as
       .select();
 
     if (updateError) {
+      await supabaseAdmin.storage.from('avatars').remove([avatarPath]).catch(() => {});
       return res.status(500).json({
         success: false,
         data: null,
@@ -139,6 +169,7 @@ router.post('/:id/avatar', requireAuth, requireSelf, upload.single('avatar'), as
     }
 
     if (!profiles || profiles.length === 0) {
+      await supabaseAdmin.storage.from('avatars').remove([avatarPath]).catch(() => {});
       return res.status(404).json({
         success: false,
         data: null,
@@ -152,6 +183,9 @@ router.post('/:id/avatar', requireAuth, requireSelf, upload.single('avatar'), as
       error: null,
     });
   } catch (err) {
+    if (avatarPath) {
+      await supabaseAdmin.storage.from('avatars').remove([avatarPath]).catch(() => {});
+    }
     return res.status(500).json({
       success: false,
       data: null,

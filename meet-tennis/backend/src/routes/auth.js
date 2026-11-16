@@ -4,11 +4,31 @@ import dotenv from 'dotenv';
 import { randomUUID } from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 import { crearRateLimit } from '../middleware/rateLimit.js';
+import { AVATAR_MAX_BYTES, esImagenValida } from '../lib/utils.js';
 
 dotenv.config();
 
 const router = Router();
-const upload = multer({ storage: multer.memoryStorage() });
+
+// Subida de avatar: máximo 5 MB. El error de multer (tamaño, archivo
+// corrupto) se convierte en un 400 con mensaje claro, no en un 500.
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: AVATAR_MAX_BYTES },
+});
+
+function subirAvatar(req, res, next) {
+  upload.single('avatar')(req, res, (err) => {
+    if (err) {
+      const mensaje =
+        err.code === 'LIMIT_FILE_SIZE'
+          ? 'La imagen no puede superar los 5 MB.'
+          : 'El avatar debe ser una imagen válida.';
+      return res.status(400).json({ success: false, data: null, error: mensaje });
+    }
+    return next();
+  });
+}
 
 // Cliente admin con service_role key para operaciones de escritura
 // que requieren bypass de RLS en la tabla 'usuario'.
@@ -150,7 +170,8 @@ router.post('/refresh', async (req, res) => {
   }
 });
 
-router.post('/register', limitarRegistro, upload.single('avatar'), async (req, res) => {
+router.post('/register', limitarRegistro, subirAvatar, async (req, res) => {
+  let avatarPath = null;
   try {
     const {
       nombre: nombreRaw,
@@ -189,7 +210,7 @@ router.post('/register', limitarRegistro, upload.single('avatar'), async (req, r
       });
     }
 
-    // a) Validar que el avatar sea una imagen.
+    // a) Validar que el avatar sea una imagen (mimetype y contenido real).
     if (!req.file || !req.file.mimetype.startsWith('image/')) {
       return res.status(400).json({
         success: false,
@@ -198,8 +219,16 @@ router.post('/register', limitarRegistro, upload.single('avatar'), async (req, r
       });
     }
 
+    if (!esImagenValida(req.file.buffer)) {
+      return res.status(400).json({
+        success: false,
+        data: null,
+        error: 'El archivo no es una imagen válida.',
+      });
+    }
+
     const extension = req.file.mimetype.split('/')[1] || 'jpg';
-    const avatarPath = `${randomUUID()}.${extension}`;
+    avatarPath = `${randomUUID()}.${extension}`;
 
     // b) Subir el avatar al bucket público "avatars" y obtener su URL.
     const { error: uploadError } = await supabaseAdmin.storage
@@ -230,6 +259,8 @@ router.post('/register', limitarRegistro, upload.single('avatar'), async (req, r
     });
 
     if (authError) {
+      // El avatar ya se subió: se elimina para no dejar archivos huérfanos.
+      await supabaseAdmin.storage.from('avatars').remove([avatarPath]).catch(() => {});
       return res.status(400).json({
         success: false,
         data: null,
@@ -265,6 +296,7 @@ router.post('/register', limitarRegistro, upload.single('avatar'), async (req, r
       .select();
 
     if (profileError) {
+      await supabaseAdmin.storage.from('avatars').remove([avatarPath]).catch(() => {});
       return res.status(500).json({
         success: false,
         data: null,
@@ -273,6 +305,7 @@ router.post('/register', limitarRegistro, upload.single('avatar'), async (req, r
     }
 
     if (!profiles || profiles.length === 0) {
+      await supabaseAdmin.storage.from('avatars').remove([avatarPath]).catch(() => {});
       return res.status(500).json({
         success: false,
         data: null,
@@ -288,6 +321,9 @@ router.post('/register', limitarRegistro, upload.single('avatar'), async (req, r
       error: null,
     });
   } catch (err) {
+    if (avatarPath) {
+      await supabaseAdmin.storage.from('avatars').remove([avatarPath]).catch(() => {});
+    }
     return res.status(500).json({
       success: false,
       data: null,

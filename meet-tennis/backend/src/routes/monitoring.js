@@ -44,8 +44,9 @@ const SIN_PERMISO = 'No tienes permisos para ver el panel de monitoreo.';
 // ¿El usuario autenticado es administrador?
 //  - Si la tabla ya tiene la columna 'rol' (script 09 aplicado), decide
 //    solo el rol: 'admin' permite, 'jugador' deniega.
-//  - Si aún no existe la columna, se cae al respaldo: MONITORING_EMAILS
-//    si está configurado, o acceso abierto solo en desarrollo.
+//  - Si aún no existe la columna, se cae al respaldo: MONITORING_EMAILS.
+//    Sin lista configurada se DENIEGA el acceso: el panel expone datos
+//    sensibles y no debe quedar abierto a cualquier usuario con sesión.
 async function usuarioEsAdmin(user) {
   const { data, error } = await supabaseAdmin
     .from('usuario')
@@ -57,7 +58,7 @@ async function usuarioEsAdmin(user) {
   if (columnaRol) return data?.rol === 'admin';
 
   const email = (user?.email || '').toLowerCase();
-  if (ADMINS.length === 0) return true;
+  if (ADMINS.length === 0) return false;
   return ADMINS.includes(email);
 }
 

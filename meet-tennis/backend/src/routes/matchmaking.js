@@ -65,10 +65,30 @@ function formatearSolicitud(solicitud) {
   };
 }
 
-function seCruzan(a, b) {
+export function seCruzan(a, b) {
   return (
     a.dias.some((dia) => b.dias.includes(dia)) && a.desde < b.hasta && b.desde < a.hasta
   );
+}
+
+// Coincidencias entre mis bloques y los del rival: pares (mi bloque,
+// bloque del rival) que comparten día y horario. Cada bloque del rival
+// se incluye una sola vez, aunque cruce con varios bloques propios,
+// para no mostrar horarios duplicados.
+export function calcularCoincidencias(misSlots, rivalSlots) {
+  const coincidencias = [];
+  const vistos = new Set();
+
+  for (const miSlot of misSlots) {
+    for (const rivalSlot of rivalSlots) {
+      if (seCruzan(miSlot, rivalSlot) && !vistos.has(rivalSlot.id)) {
+        vistos.add(rivalSlot.id);
+        coincidencias.push({ miSlot, rivalSlot });
+      }
+    }
+  }
+
+  return coincidencias;
 }
 
 // Punto de referencia de un jugador según las zonas de su disponibilidad:
@@ -163,25 +183,11 @@ router.get('/rivals', async (req, res) => {
     // también se muestra, para poder proponerle otro horario.
     // Cada bloque del rival se incluye una sola vez, aunque cruce con
     // varios bloques propios, para no mostrar horarios duplicados.
-    const rivales = [...rivalesPorId.values()].map((rival) => {
-      const coincidencias = [];
-      const vistos = new Set();
-
-      for (const miSlot of misSlots) {
-        for (const rivalSlot of rival.slots) {
-          if (seCruzan(miSlot, rivalSlot) && !vistos.has(rivalSlot.id)) {
-            vistos.add(rivalSlot.id);
-            coincidencias.push({ miSlot, rivalSlot });
-          }
-        }
-      }
-
-      return {
-        ...rival,
-        nivel: rival.nivel || 'Sin nivel',
-        coincidencias,
-      };
-    });
+    const rivales = [...rivalesPorId.values()].map((rival) => ({
+      ...rival,
+      nivel: rival.nivel || 'Sin nivel',
+      coincidencias: calcularCoincidencias(misSlots, rival.slots),
+    }));
 
     rivales.sort(
       (a, b) =>

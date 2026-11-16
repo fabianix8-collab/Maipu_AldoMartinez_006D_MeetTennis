@@ -103,33 +103,43 @@ router.get('/conversations', async (req, res) => {
   try {
     const userId = req.user.id;
 
-    const [convRes, mensajesRes] = await Promise.all([
-      supabaseAdmin
-        .from('conversaciones')
-        .select(COLUMNAS_CONV)
-        .or(`usuario1_id.eq.${userId},usuario2_id.eq.${userId}`)
-        .order('updated_at', { ascending: false }),
-      supabaseAdmin
-        .from('mensajes')
-        .select('id, conversacion_id, remitente_id, contenido, created_at')
-        .order('created_at', { ascending: false })
-        .limit(1000),
-    ]);
+    const { data: conversaciones, error: convError } = await supabaseAdmin
+      .from('conversaciones')
+      .select(COLUMNAS_CONV)
+      .or(`usuario1_id.eq.${userId},usuario2_id.eq.${userId}`)
+      .order('updated_at', { ascending: false });
 
-    const error = convRes.error || mensajesRes.error;
-    if (error) {
+    if (convError) {
       return res.status(500).json({
         success: false,
         data: null,
-        error: mensajeError(error),
+        error: mensajeError(convError),
       });
     }
 
-    const conversaciones = convRes.data || [];
-    const convIds = conversaciones.map((c) => c.id);
-    const mensajes = (mensajesRes.data || []).filter((m) => convIds.includes(m.conversacion_id));
+    const convIds = (conversaciones || []).map((c) => c.id);
 
-    const data = conversaciones.map((conv) => {
+    // Solo se traen los mensajes de las conversaciones del usuario, no
+    // de todo el sistema.
+    const { data: mensajes, error: msgError } =
+      convIds.length === 0
+        ? { data: [], error: null }
+        : await supabaseAdmin
+            .from('mensajes')
+            .select('id, conversacion_id, remitente_id, contenido, created_at')
+            .in('conversacion_id', convIds)
+            .order('created_at', { ascending: false })
+            .limit(1000);
+
+    if (msgError) {
+      return res.status(500).json({
+        success: false,
+        data: null,
+        error: mensajeError(msgError),
+      });
+    }
+
+    const data = (conversaciones || []).map((conv) => {
       const soyUno = conv.usuario1_id === userId;
       const leidoHasta = soyUno ? conv.leido_por_1 : conv.leido_por_2;
       const delHilo = mensajes.filter((m) => m.conversacion_id === conv.id);
