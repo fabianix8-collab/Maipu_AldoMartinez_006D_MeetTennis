@@ -3,6 +3,7 @@ import {
   ArrowLeft,
   ExternalLink,
   Loader2,
+  Mail,
   ShoppingBag,
   Store,
   Tag,
@@ -136,10 +137,34 @@ function ProductosView() {
           <div>
             <h1 className="text-lg font-bold text-slate-100">Recomendaciones</h1>
             <p className="text-xs text-slate-400">
-              Equipo de tenis de tiendas asociadas para mejorar tu juego.
+              Equipo de tenis para mejorar tu juego.
             </p>
           </div>
         </div>
+
+        <section
+          aria-labelledby="anuncio-tiendas"
+          className="mt-4 rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 to-slate-800/60 p-4 shadow-2xl backdrop-blur-md"
+        >
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-600/20 text-emerald-300">
+              <Store className="h-5 w-5" aria-hidden="true" />
+            </span>
+            <h2 id="anuncio-tiendas" className="text-sm font-semibold text-slate-100">
+              Tu tienda en MeetTennis
+            </h2>
+          </div>
+          <p className="mt-3 text-sm leading-relaxed text-slate-300">
+            Si tienes una tienda y te gustaría aparecer acá, ¡contáctanos!
+          </p>
+          <a
+            href="mailto:meettennischile@gmail.com"
+            className="mt-3 inline-flex max-w-full items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-600/15 px-3 py-2 text-xs font-semibold text-emerald-300 transition-colors hover:border-emerald-400/60 hover:bg-emerald-600/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
+          >
+            <Mail className="h-4 w-4 shrink-0" aria-hidden="true" />
+            <span className="min-w-0 break-all">meettennischile@gmail.com</span>
+          </a>
+        </section>
 
         {/* Filtro por categoría */}
         <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
