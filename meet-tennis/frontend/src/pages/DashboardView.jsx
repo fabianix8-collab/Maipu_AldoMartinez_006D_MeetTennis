@@ -177,7 +177,7 @@ function DashboardView() {
       <TennisBackground />
 
       <div className="relative mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-md flex-col">
-        <header className="flex items-start justify-between gap-4">
+        <header className="relative flex items-start justify-between gap-4">
           <div>
             <BrandLogo className="mb-4 h-12 sm:h-14" />
             <div className="flex items-center gap-3">
