@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { hoyChile } from '../src/lib/utils.js';
-import { referenciaPartido } from '../../frontend/src/lib/partidos.js';
+import { referenciaPartido, rutaSolicitud } from '../../frontend/src/lib/partidos.js';
 
 // Solo datos sintéticos: ninguna consulta de estas pruebas llega a Supabase.
 process.env.SUPABASE_URL = 'https://supabase.test';
@@ -48,7 +48,7 @@ async function ejecutar(router, ruta, fixtures, t) {
   return { data: res.body.data, consultas };
 }
 
-test('cada tipo de aviso abre su solicitud o resultado exacto en Mis partidos', async (t) => {
+test('cada aviso abre el elemento exacto en Solicitudes, Próximos partidos o Mis partidos', async (t) => {
   const { data } = await ejecutar(notificaciones, '/', {
     usuario: { avisos_vistos_at: null }, conversaciones: [],
     solicitudes_partido: [
@@ -60,18 +60,32 @@ test('cada tipo de aviso abre su solicitud o resultado exacto en Mis partidos', 
     partidos: [resultado(11, 'pendiente', false), resultado(12, 'confirmado', true), resultado(13, 'rechazado', true)],
   }, t);
   const esperados = {
-    'solicitud-11': '#solicitud-11', 'asistencia-12': '#solicitud-12', 'solicitud-12-aceptada': '#solicitud-12',
-    'solicitud-13-rechazada': '#solicitud-13', 'solicitud-14-cancelada': '#solicitud-14',
-    'asistencia-15-si': '#solicitud-15', 'asistencia-16-no': '#solicitud-16',
-    'partido-11': '#partido-11', 'partido-12-confirmado': '#partido-12', 'partido-13-rechazado': '#partido-13',
+    'solicitud-11': '/solicitudes#solicitud-11',
+    'asistencia-12': '/proximos-partidos#solicitud-12',
+    'solicitud-12-aceptada': '/proximos-partidos#solicitud-12',
+    'solicitud-13-rechazada': '/solicitudes#solicitud-13',
+    'solicitud-14-cancelada': '/solicitudes#solicitud-14',
+    'asistencia-15-si': '/proximos-partidos#solicitud-15',
+    'asistencia-16-no': '/solicitudes#solicitud-16',
+    'partido-11': '/mis-partidos#partido-11',
+    'partido-12-confirmado': '/mis-partidos#partido-12',
+    'partido-13-rechazado': '/mis-partidos#partido-13',
   };
   assert.equal(data.avisos.length, Object.keys(esperados).length);
   for (const aviso of data.avisos) {
-    assert.equal(aviso.destino, `/mis-partidos${esperados[aviso.id]}`, aviso.id);
-    const referencia = referenciaPartido(new URL(aviso.destino, 'https://meet.test').hash);
+    assert.equal(aviso.destino, esperados[aviso.id], aviso.id);
+    const destino = new URL(aviso.destino, 'https://meet.test');
+    const referencia = referenciaPartido(destino.hash);
     assert.ok(referencia, 'El frontend debe reconocer el destino del backend');
-    assert.equal(`#${referencia.ancla}`, esperados[aviso.id]);
+    assert.equal(`#${referencia.ancla}`, destino.hash);
+    if (referencia.tipo === 'solicitud') {
+      const estado = [12, 15].includes(Number(referencia.id)) ? 'aceptada' : 'pendiente';
+      assert.equal(rutaSolicitud({ estado }), destino.pathname, 'Los enlaces antiguos deben resolverse a la misma sección');
+    }
   }
+  assert.equal(data.pendientes.solicitudes, 1, 'Solo las invitaciones por responder cuentan en Solicitudes');
+  assert.equal(data.pendientes.proximos, 1, 'La asistencia pertenece a los encuentros aceptados');
+  assert.equal(data.pendientes.partidos, 1, 'Los resultados por confirmar cuentan en Mis partidos');
 });
 
 test('solicitudes y resultados incluyen el destino cartográfico de su cancha, aunque ya no esté en el selector', async (t) => {
@@ -89,4 +103,8 @@ test('los destinos separan solicitudes y resultados y rechazan fragmentos descon
   for (const hash of ['', '#partidos-pendientes', '#partido--1', '#solicitud-0', '#solicitud-11/otro', '#partido-NaN']) {
     assert.equal(referenciaPartido(hash), null);
   }
+  for (const estado of ['pendiente', 'rechazada', 'cancelada']) {
+    assert.equal(rutaSolicitud({ estado }), '/solicitudes');
+  }
+  assert.equal(rutaSolicitud({ estado: 'aceptada' }), '/proximos-partidos');
 });
