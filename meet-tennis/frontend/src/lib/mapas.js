@@ -20,9 +20,17 @@ export function crearUrlMapa(cancha) {
   return `https://maps.google.com/maps?${parametros}`;
 }
 
-export function crearUrlComoLlegar(cancha) {
+export function crearUrlComoLlegar(cancha, origen, modo) {
   const destino = consultaUbicacion(cancha);
   if (!destino) return null;
   const parametros = new URLSearchParams({ api: '1', destination: destino, dir_action: 'navigate' });
+  if (coordenadasValidas(origen?.lat, origen?.lng)) {
+    parametros.set('origin', `${Number(origen.lat)},${Number(origen.lng)}`);
+  }
+  if (modo !== undefined) {
+    const medios = { auto: 'driving', pie: 'walking' };
+    if (!Object.hasOwn(medios, modo)) throw new Error('Medio de transporte no válido.');
+    parametros.set('travelmode', medios[modo]);
+  }
   return `https://www.google.com/maps/dir/?${parametros}`;
 }

@@ -64,6 +64,20 @@ test('English registration translates labels while keeping stored Spanish enum v
   assert.ok(html.includes('placeholder="Your first name"'));
 });
 
+test('court actions open an in-app route dialog while retaining the map and selected language', async () => {
+  const { default: Actions } = await server.ssrLoadModule('/src/components/CanchaPartido.jsx');
+  const i18n = await server.ssrLoadModule('/src/lib/i18n.js');
+  const cancha = { nombre: 'Club de Tenis Maipú', latitud: -33.5088252, longitud: -70.7563751 };
+  for (const [language, mapLabel, directionsLabel] of [['es', 'Ver cancha', 'Cómo llegar'], ['en', 'View court', 'Directions']]) {
+    i18n.setLanguage(language);
+    const html = render(Actions, { cancha, origen: { lat: -33.44889, lng: -70.669265 } });
+    assert.ok(html.includes(mapLabel) && html.includes(directionsLabel));
+    assert.ok(html.includes('aria-haspopup="dialog"'));
+    assert.ok(!html.includes('maps/dir/'));
+    assert.ok(html.includes('Club de Tenis Maipú'));
+  }
+});
+
 test('tennis language switch exposes its selected language and destination', async () => {
   const { default: Selector } = await server.ssrLoadModule('/src/components/LanguageSelector.jsx');
   const i18n = await server.ssrLoadModule('/src/lib/i18n.js');

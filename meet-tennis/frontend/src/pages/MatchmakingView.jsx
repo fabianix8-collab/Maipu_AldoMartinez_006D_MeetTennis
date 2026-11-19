@@ -1,4 +1,5 @@
 import LanguageSelector from '../components/LanguageSelector.jsx';
+import { recordarUbicacion } from '../lib/ubicacion.js';
 import { useLanguage } from '../lib/i18n.js';
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -132,10 +133,11 @@ function MatchmakingView() {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           if (!activo) return;
-          setUbicacion({
+          setUbicacion(recordarUbicacion({
             lat: position.coords.latitude,
             lng: position.coords.longitude,
-          });
+            precision: position.coords.accuracy,
+          }));
           setGeoStatus('success');
         },
         () => {

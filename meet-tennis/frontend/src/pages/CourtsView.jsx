@@ -12,9 +12,10 @@ import {
 import { Link } from 'react-router-dom';
 import BrandLogo from '../components/BrandLogo.jsx';
 import TennisBackground from '../components/TennisBackground.jsx';
-import MapEmbed from '../components/MapEmbed.jsx';
+import CanchaPartido from '../components/CanchaPartido.jsx';
 import { apiFetch } from '../lib/api.js';
 import { coordenadasValidas } from '../lib/mapas.js';
+import { recordarUbicacion } from '../lib/ubicacion.js';
 
 const inputBase =
   'w-full rounded-xl border border-slate-700/50 bg-slate-800/70 px-4 py-3 text-slate-100 placeholder-slate-500 outline-none transition-colors focus:border-emerald-500';
@@ -62,9 +63,6 @@ function CourtsView() {
   const [geoStatus, setGeoStatus] = useState('idle');
   const [geoError, setGeoError] = useState('');
 
-  // Canchas con el mapa embebido abierto (por id de cancha).
-  const [mapaAbierto, setMapaAbierto] = useState({});
-
   useEffect(() => {
     let activo = true;
 
@@ -107,10 +105,11 @@ function CourtsView() {
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setUbicacion({
+        setUbicacion(recordarUbicacion({
           lat: position.coords.latitude,
           lng: position.coords.longitude,
-        });
+          precision: position.coords.accuracy,
+        }));
         setGeoStatus('success');
       },
       () => {
@@ -308,8 +307,12 @@ function CourtsView() {
               )}
 
               {geoStatus === 'success' && (
-                <p className="mt-3 flex items-center gap-2 text-xs text-emerald-300">
-                  <Navigation className="h-3.5 w-3.5" />{t("Usando tu ubicación actual · radio de ")}{t(radioKm)}{t(" km")}</p>
+                <div className="mt-3">
+                  <p className="flex items-center gap-2 text-xs text-emerald-300">
+                    <Navigation className="h-3.5 w-3.5" />{t("Usando tu ubicación actual · radio de ")}{t(radioKm)}{t(" km")}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-400">{t('Pulsa Cómo llegar para ver el recorrido aquí, desde tu ubicación actual.')}</p>
+                </div>
               )}
 
               {geoStatus === 'error' && (
@@ -383,30 +386,7 @@ function CourtsView() {
                     </div>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setMapaAbierto((prev) => ({
-                        ...prev,
-                        [cancha.id]: !prev[cancha.id],
-                      }))
-                    }
-                    aria-expanded={mapaAbierto[cancha.id] ? 'true' : 'false'}
-                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-700/50 bg-slate-900/60 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:border-emerald-500/50 hover:text-emerald-300"
-                  >
-                    <Navigation className="h-4 w-4" />
-                    {mapaAbierto[cancha.id] ? t('Ocultar mapa') : t('Ver en el mapa')}
-                  </button>
-
-                  {mapaAbierto[cancha.id] && (
-                    <MapEmbed
-                      latitud={cancha.latitud}
-                      longitud={cancha.longitud}
-                      direccion={cancha.direccion}
-                      titulo={t("Mapa de {0}", { 0: cancha.nombre })}
-                      className="mt-3 h-64 w-full rounded-xl border border-slate-700/50"
-                    />
-                  )}
+                  <CanchaPartido cancha={cancha} origen={ubicacion} />
                 </li>
               ))}
             </ul>

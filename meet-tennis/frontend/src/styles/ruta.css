@@ -1,0 +1,31 @@
+.tennis-route-map { background: #e3e4e6; font-family: inherit; }
+.tennis-route-map .leaflet-tile-pane { filter: none; }
+.tennis-route-map .maplibregl-canvas { outline: none; }
+.tennis-route-map .leaflet-control-zoom { border: 1px solid #34d39966; border-radius: .75rem; overflow: hidden; box-shadow: 0 4px 16px #022c2255; }
+.tennis-route-map .leaflet-control-zoom a { background: #064e3bf5; color: #d1fae5; border-color: #10b98155; }
+.tennis-route-map .leaflet-control-zoom a:hover { background: #047857; color: #ecfccb; }
+.tennis-route-map .leaflet-bottom.leaflet-right { max-width: 100%; }
+.tennis-route-map .leaflet-control-attribution { max-width: 100%; background: #0f172af2; color: #94a3b8; font-size: 11px; line-height: 1.35; padding: 2px 6px; text-align: right; white-space: normal; }
+.tennis-route-map .leaflet-control-attribution a { color: #6ee7b7; }
+.tennis-route-map .leaflet-tooltip { border: 1px solid #475569; border-radius: .5rem; background: #0f172a; color: #e2e8f0; box-shadow: 0 4px 12px #02061755; }
+.tennis-route-map .leaflet-tooltip-top::before { border-top-color: #475569; }
+.tennis-map-destination { background: transparent; border: 0; }
+.tennis-map-ball { display: flex; width: 36px; height: 36px; align-items: center; justify-content: center; border: 2px solid #a7f3d0; border-radius: 50%; background: #047857; color: #d1fae5; box-shadow: 0 3px 12px #02061799, 0 0 0 5px #10b98126; }
+.tennis-map-ball svg { width: 30px; height: 30px; }
+.tennis-route-map :focus-visible { outline: 2px solid #34d399; outline-offset: 3px; }
+
+/* Movimiento decorativo del recorrido, sin simular desplazamiento del GPS. */
+@keyframes tennis-route-flow { to { stroke-dashoffset: -20; } }
+@keyframes tennis-location-pulse {
+  0% { transform: scale(.75); opacity: .65; }
+  85%, 100% { transform: scale(1.8); opacity: 0; }
+}
+@keyframes tennis-ball-roll { to { transform: rotate(360deg); } }
+.tennis-route-flow { animation: tennis-route-flow 1.2s linear infinite; }
+.tennis-map-origin-pulse { transform-box: fill-box; transform-origin: center; animation: tennis-location-pulse 2.6s ease-out infinite; }
+.tennis-map-ball svg { animation: tennis-ball-roll 12s linear infinite; transform-origin: center; }
+@media (prefers-reduced-motion: reduce) {
+  .tennis-route-flow { animation: none; opacity: 0; }
+  .tennis-map-origin-pulse { animation: none; opacity: 0; }
+  .tennis-map-ball svg { animation: none; }
+}
