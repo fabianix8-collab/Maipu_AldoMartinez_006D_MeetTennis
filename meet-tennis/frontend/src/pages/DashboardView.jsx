@@ -14,7 +14,7 @@ import {
   User,
   Users,
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import BrandLogo from '../components/BrandLogo.jsx';
 import NotificationBell from '../components/NotificationBell.jsx';
 import TennisBackground from '../components/TennisBackground.jsx';
@@ -202,7 +202,13 @@ function DashboardView() {
               </button>
               <div>
                 <h1 className="text-xl font-bold leading-tight text-slate-100 drop-shadow-[0_0_18px_rgba(16,185,129,0.3)]">
-                  Hola, {firstName}
+                  <Link
+                    to="/perfil"
+                    title="Mi perfil"
+                    className="rounded-md transition-colors hover:text-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
+                  >
+                    Hola, {firstName}
+                  </Link>
                 </h1>
                 <p className="mt-0.5 text-xs text-slate-400">
                   ¿Listo para jugar hoy?

@@ -275,7 +275,7 @@ function RegisterView() {
 
       <div className="relative mx-auto flex min-h-screen max-w-md flex-col justify-center">
         <div className="mb-8 text-center">
-          <BrandLogo className="mx-auto mb-8 h-32 sm:h-40" />
+          <BrandLogo homeLink={false} className="mx-auto mb-8 h-32 sm:h-40" />
           <h1 className="text-2xl font-bold text-slate-100">Crear cuenta</h1>
           <p className="mt-2 text-sm text-slate-400">
             Únete a la comunidad de MeetTennis

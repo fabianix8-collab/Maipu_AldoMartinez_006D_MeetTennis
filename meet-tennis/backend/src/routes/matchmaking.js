@@ -2,6 +2,7 @@ import { Router } from 'express';
 import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import { requireAuth } from '../middleware/auth.js';
+import { esCanchaVigente, nombresCanchasVigentes } from '../lib/catalogoCanchas.js';
 import { distanciaKm, esUuid, extraerComuna, hoyChile } from '../lib/utils.js';
 
 dotenv.config();
@@ -24,7 +25,7 @@ const COLUMNAS_SLOT =
 const COLUMNAS_SOLICITUD = `id, solicitante_id, receptor_id, fecha, hora_desde, hora_hasta,
   mensaje, estado, created_at, respondida_at,
   asiste_solicitante, asiste_receptor, asistencia_solicitante_at, asistencia_receptor_at,
-  cancha:canchas(id, nombre, direccion),
+  cancha:canchas(id, nombre, direccion, latitud, longitud),
   solicitante:usuario!solicitudes_partido_solicitante_id_fkey(${JUGADOR}),
   receptor:usuario!solicitudes_partido_receptor_id_fkey(${JUGADOR})`;
 
@@ -230,7 +231,8 @@ router.get('/recommend-court', async (req, res) => {
     }
 
     const [canchasRes, slotsRes] = await Promise.all([
-      supabaseAdmin.from('canchas').select('id, nombre, direccion, latitud, longitud'),
+      supabaseAdmin.from('canchas').select('id, nombre, direccion, latitud, longitud')
+        .in('nombre', nombresCanchasVigentes),
       supabaseAdmin
         .from('disponibilidad')
         .select('usuario_id, comuna, cancha_id')
@@ -243,6 +245,7 @@ router.get('/recommend-court', async (req, res) => {
     }
 
     const canchas = (canchasRes.data || [])
+      .filter((c) => c.latitud !== null && c.longitud !== null)
       .map((c) => ({
         ...c,
         latitud: Number(c.latitud),
@@ -405,6 +408,10 @@ router.post('/requests', async (req, res) => {
         data: null,
         error: 'Cancha no válida.',
       });
+    }
+
+    if (canchaId !== null && !(await esCanchaVigente(supabaseAdmin, canchaId))) {
+      return res.status(400).json({ success: false, data: null, error: 'Esta cancha ya no está disponible. Elige otra del listado.' });
     }
 
     const { data: receptor } = await supabaseAdmin

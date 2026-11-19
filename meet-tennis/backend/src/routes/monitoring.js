@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import { requireAuth } from '../middleware/auth.js';
 import { resumen as resumenTecnico } from '../lib/requestMetrics.js';
+import { nombresCanchasVigentes } from '../lib/catalogoCanchas.js';
 
 dotenv.config();
 
@@ -296,7 +297,8 @@ router.get('/', requireAuth, async (req, res) => {
   // Conteos simples con head:true (solo el count).
   const [canchasRes, disponibilidadRes, conversacionesRes, mensajesRes] =
     await Promise.all([
-      supabaseAdmin.from('canchas').select('*', { count: 'exact', head: true }),
+      supabaseAdmin.from('canchas').select('*', { count: 'exact', head: true })
+        .in('nombre', nombresCanchasVigentes),
       supabaseAdmin
         .from('disponibilidad')
         .select('*', { count: 'exact', head: true }),

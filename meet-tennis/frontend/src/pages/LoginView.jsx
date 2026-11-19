@@ -146,7 +146,7 @@ function LoginView() {
 
       <div className="relative mx-auto flex h-full max-w-md flex-col justify-center -mt-8">
         <div className="mb-6 text-center">
-          <BrandLogo className="mx-auto mb-6 h-32 sm:h-36" />
+          <BrandLogo homeLink={false} className="mx-auto mb-6 h-32 sm:h-36" />
           <h1 className="text-2xl font-bold text-slate-100">Iniciar sesión</h1>
           <p className="mt-2 text-sm text-slate-400">
             Bienvenido de nuevo a MeetTennis
