@@ -1,3 +1,5 @@
+import LanguageSelector from '../components/LanguageSelector.jsx';
+import { useLanguage } from '../lib/i18n.js';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ArrowLeft,
@@ -19,11 +21,12 @@ const inputBase =
   'w-full rounded-xl border border-slate-700/50 bg-slate-800/70 px-4 py-3 text-slate-100 placeholder-slate-500 outline-none transition-colors focus:border-emerald-500';
 
 function Avatar({ jugador, size = 'h-11 w-11' }) {
+  const { t } = useLanguage();
   if (jugador?.avatar_url) {
     return (
       <img
         src={jugador.avatar_url}
-        alt={`Foto de ${nombreCompleto(jugador)}`}
+        alt={t("Foto de {0}", { 0: nombreCompleto(jugador) })}
         className={`${size} shrink-0 rounded-full border-2 border-slate-900 object-cover`}
       />
     );
@@ -47,6 +50,7 @@ function otroDe(conv, miId) {
 
 // Lista de conversaciones (sidebar). Se reutiliza en escritorio y móvil.
 function ListaConversaciones({ conversaciones, activaId, miId, onAbrir, cargando }) {
+  const { t } = useLanguage();
   if (cargando) {
     return (
       <div className="flex justify-center py-12">
@@ -61,10 +65,8 @@ function ListaConversaciones({ conversaciones, activaId, miId, onAbrir, cargando
         <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-600/15 text-emerald-400">
           <MessageSquare className="h-8 w-8" />
         </span>
-        <p className="font-semibold text-slate-200">Aún no tienes chats</p>
-        <p className="text-sm text-slate-400">
-          Inicia una conversación para coordinar la cancha, la hora y los detalles de tu partido.
-        </p>
+        <p className="font-semibold text-slate-200">{t("Aún no tienes chats")}</p>
+        <p className="text-sm text-slate-400">{t("Inicia una conversación para coordinar la cancha, la hora y los detalles de tu partido.")}</p>
       </div>
     );
   }
@@ -89,7 +91,7 @@ function ListaConversaciones({ conversaciones, activaId, miId, onAbrir, cargando
               <Avatar jugador={otro} />
               {conv.noLeidos > 0 && (
                 <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-emerald-500 px-1 text-[11px] font-bold text-white">
-                  {conv.noLeidos}
+                  {t(conv.noLeidos)}
                 </span>
               )}
             </div>
@@ -98,7 +100,7 @@ function ListaConversaciones({ conversaciones, activaId, miId, onAbrir, cargando
                 <p className="truncate font-semibold text-slate-100">{nombreCompleto(otro)}</p>
                 {ultimo && (
                   <span className="shrink-0 text-[11px] text-slate-500">
-                    {haceCuanto(ultimo.created_at)}
+                    {t(haceCuanto(ultimo.created_at))}
                   </span>
                 )}
               </div>
@@ -107,7 +109,7 @@ function ListaConversaciones({ conversaciones, activaId, miId, onAbrir, cargando
                   conv.noLeidos > 0 ? 'font-medium text-slate-200' : 'text-slate-400'
                 }`}
               >
-                {ultimo ? `${esMio ? 'Tú: ' : ''}${ultimo.contenido}` : 'Sin mensajes todavía'}
+                {ultimo ? <>{esMio && t('Tú: ')}{ultimo.contenido}</> : t('Sin mensajes todavía')}
               </p>
             </div>
           </button>
@@ -118,6 +120,7 @@ function ListaConversaciones({ conversaciones, activaId, miId, onAbrir, cargando
 }
 
 function ChatView() {
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const miId = getStoredAuth()?.user?.id;
@@ -291,35 +294,36 @@ function ChatView() {
   );
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-slate-900 px-4 py-5">
+    <div className="relative min-h-dvh overflow-x-hidden bg-slate-900 px-4 py-5">
       <TennisBackground />
 
-      <div className="relative mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-5xl flex-col">
+      <div className="relative mx-auto flex min-h-[calc(100dvh-2.5rem)] max-w-5xl flex-col">
         <header className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => (activa ? setActiva(null) : navigate('/'))}
-              aria-label="Volver"
+              aria-label={t("Volver")}
               className="rounded-xl border border-slate-700/50 bg-slate-800/60 p-2.5 text-slate-400 shadow-2xl backdrop-blur-md transition-colors hover:border-emerald-500/50 hover:text-emerald-400"
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
             <BrandLogo className="h-10" />
           </div>
-          <button
-            type="button"
-            onClick={abrirNuevoChat}
-            className="flex items-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-600/15 px-3 py-2.5 text-sm font-semibold text-emerald-300 shadow-2xl backdrop-blur-md transition-colors hover:bg-emerald-600/25"
-          >
-            <Plus className="h-4 w-4" />
-            Nuevo chat
-          </button>
+          <div className="flex shrink-0 flex-col items-end gap-2">
+            <button
+              type="button"
+              onClick={abrirNuevoChat}
+              className="flex items-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-600/15 px-3 py-2.5 text-sm font-semibold text-emerald-300 shadow-2xl backdrop-blur-md transition-colors hover:bg-emerald-600/25"
+            >
+              <Plus className="h-4 w-4" />{t("Nuevo chat")}</button>
+            <LanguageSelector />
+          </div>
         </header>
 
         {error && (
           <div className="mt-4 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-300">
-            {error}
+            {t(error)}
           </div>
         )}
 
@@ -328,7 +332,7 @@ function ChatView() {
           <aside className="hidden w-72 shrink-0 flex-col overflow-hidden rounded-2xl border border-slate-700/50 bg-slate-800/60 shadow-2xl backdrop-blur-md sm:flex">
             <div className="flex items-center gap-2 border-b border-slate-700/50 bg-slate-800/80 px-4 py-3">
               <MessagesSquare className="h-5 w-5 text-emerald-400" />
-              <h2 className="font-semibold text-slate-100">Conversaciones</h2>
+              <h2 className="font-semibold text-slate-100">{t("Conversaciones")}</h2>
             </div>
             <ListaConversaciones
               conversaciones={conversaciones}
@@ -344,7 +348,7 @@ function ChatView() {
             <div className="flex flex-1 flex-col overflow-hidden rounded-2xl border border-slate-700/50 bg-slate-800/60 shadow-2xl backdrop-blur-md sm:hidden">
               <div className="flex items-center gap-2 border-b border-slate-700/50 bg-slate-800/80 px-4 py-3">
                 <MessagesSquare className="h-5 w-5 text-emerald-400" />
-                <h2 className="font-semibold text-slate-100">Conversaciones</h2>
+                <h2 className="font-semibold text-slate-100">{t("Conversaciones")}</h2>
               </div>
               <ListaConversaciones
                 conversaciones={conversaciones}
@@ -371,16 +375,14 @@ function ChatView() {
                       {nombreCompleto(otroDe(activa, miId))}
                     </p>
                     <p className="text-xs text-slate-400">
-                      {otroDe(activa, miId)?.nivel || 'Jugador'}
+                      {otroDe(activa, miId)?.nivel || t('Jugador')}
                     </p>
                   </div>
                 </div>
 
                 <div className="flex-1 space-y-2 overflow-y-auto px-4 py-4">
                   {mensajes.length === 0 ? (
-                    <p className="py-10 text-center text-sm text-slate-500">
-                      Aún no hay mensajes. ¡Coordina la cancha y la hora!
-                    </p>
+                    <p className="py-10 text-center text-sm text-slate-500">{t("Aún no hay mensajes. ¡Coordina la cancha y la hora!")}</p>
                   ) : (
                     mensajes.map((m) => {
                       const mio = m.remitente_id === miId;
@@ -399,7 +401,7 @@ function ChatView() {
                                 mio ? 'text-emerald-100/80' : 'text-slate-400'
                               }`}
                             >
-                              {haceCuanto(m.created_at)}
+                              {t(haceCuanto(m.created_at))}
                             </p>
                           </div>
                         </div>
@@ -416,14 +418,14 @@ function ChatView() {
                   <input
                     value={texto}
                     onChange={(e) => setTexto(e.target.value)}
-                    placeholder="Escribe un mensaje..."
+                    placeholder={t("Escribe un mensaje...")}
                     maxLength={1000}
                     className={inputBase}
                   />
                   <button
                     type="submit"
                     disabled={!texto.trim() || enviando}
-                    aria-label="Enviar mensaje"
+                    aria-label={t("Enviar mensaje")}
                     className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-lg transition-colors hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     {enviando ? (
@@ -439,10 +441,8 @@ function ChatView() {
                 <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-600/15 text-emerald-400">
                   <MessageSquare className="h-8 w-8" />
                 </span>
-                <p className="font-semibold text-slate-200">Selecciona una conversación</p>
-                <p className="text-sm text-slate-400">
-                  Elige un rival de la lista para coordinar la cancha y la hora del partido.
-                </p>
+                <p className="font-semibold text-slate-200">{t("Selecciona una conversación")}</p>
+                <p className="text-sm text-slate-400">{t("Elige un rival de la lista para coordinar la cancha y la hora del partido.")}</p>
               </div>
             )}
           </div>
@@ -454,11 +454,11 @@ function ChatView() {
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/70 backdrop-blur-sm sm:items-center">
           <div className="flex max-h-[85vh] w-full max-w-md flex-col rounded-t-2xl border border-slate-700/50 bg-slate-900 p-4 shadow-2xl sm:rounded-2xl">
             <div className="mb-3 flex items-center justify-between">
-              <h3 className="font-semibold text-slate-100">Nuevo chat</h3>
+              <h3 className="font-semibold text-slate-100">{t("Nuevo chat")}</h3>
               <button
                 type="button"
                 onClick={() => setMostrandoNuevo(false)}
-                aria-label="Cerrar"
+                aria-label={t("Cerrar")}
                 className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-800 hover:text-slate-200"
               >
                 <X className="h-5 w-5" />
@@ -470,7 +470,7 @@ function ChatView() {
               <input
                 value={filtro}
                 onChange={(e) => setFiltro(e.target.value)}
-                placeholder="Buscar jugador..."
+                placeholder={t("Buscar jugador...")}
                 className={`${inputBase} pl-9`}
               />
             </div>
@@ -481,10 +481,7 @@ function ChatView() {
                   <Loader2 className="h-6 w-6 animate-spin text-emerald-400" />
                 </div>
               ) : jugadoresFiltrados.length === 0 ? (
-                <p className="px-4 py-10 text-center text-sm text-slate-500">
-                  Solo puedes chatear con jugadores con los que ya tienes un partido confirmado
-                  para jugar.
-                </p>
+                <p className="px-4 py-10 text-center text-sm text-slate-500">{t("Solo puedes chatear con jugadores con los que ya tienes un partido confirmado para jugar.")}</p>
               ) : (
                 jugadoresFiltrados.map((j) => (
                   <button
@@ -496,7 +493,7 @@ function ChatView() {
                     <Avatar jugador={j} size="h-10 w-10" />
                     <div className="min-w-0">
                       <p className="truncate font-medium text-slate-100">{nombreCompleto(j)}</p>
-                      <p className="text-xs text-slate-400">{j.nivel || 'Jugador'}</p>
+                      <p className="text-xs text-slate-400">{j.nivel || t('Jugador')}</p>
                     </div>
                   </button>
                 ))

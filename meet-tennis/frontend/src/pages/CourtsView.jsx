@@ -1,3 +1,5 @@
+import LanguageSelector from '../components/LanguageSelector.jsx';
+import { useLanguage } from '../lib/i18n.js';
 import { useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
@@ -45,6 +47,7 @@ function distanciaKm(lat1, lon1, lat2, lon2) {
 }
 
 function CourtsView() {
+  const { t } = useLanguage();
   const [canchas, setCanchas] = useState([]);
   const [comunas, setComunas] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -165,23 +168,18 @@ function CourtsView() {
         }`;
 
   const sinResultadosCerca = (
-    <p className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-800/40 p-5 text-center text-sm text-slate-500">
-      No hay canchas en un radio de {radioKm} km. Prueba ampliar el radio de
-      búsqueda.
-    </p>
+    <p className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-800/40 p-5 text-center text-sm text-slate-500">{t("No hay canchas en un radio de ")}{t(radioKm)}{t(" km. Prueba ampliar el radio de búsqueda.")}</p>
   );
 
   const sinResultadosComuna = (
-    <p className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-800/40 p-5 text-center text-sm text-slate-500">
-      No se encontraron canchas para esa búsqueda.
-    </p>
+    <p className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-800/40 p-5 text-center text-sm text-slate-500">{t("No se encontraron canchas para esa búsqueda.")}</p>
   );
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-slate-900 px-4 py-8">
+    <div className="relative min-h-dvh overflow-hidden bg-slate-900 px-4 py-8">
       <TennisBackground />
 
-      <div className="relative mx-auto flex min-h-[calc(100vh-4rem)] max-w-md flex-col">
+      <div className="relative mx-auto flex min-h-[calc(100dvh-4rem)] max-w-md flex-col">
         <header className="flex items-start justify-between gap-4">
           <div>
             <BrandLogo className="mb-4 h-16 sm:h-20" />
@@ -190,27 +188,26 @@ function CourtsView() {
                 <MapPin className="h-5 w-5" />
               </span>
               <div>
-                <h1 className="text-2xl font-bold leading-tight text-slate-100">
-                  Canchas Cercanas
-                </h1>
-                <p className="mt-1 text-sm text-slate-400">
-                  Encuentra canchas de Santiago
-                </p>
+                <h1 className="text-2xl font-bold leading-tight text-slate-100">{t("Canchas Cercanas")}</h1>
+                <p className="mt-1 text-sm text-slate-400">{t("Encuentra canchas de Santiago")}</p>
               </div>
             </div>
           </div>
 
-          <Link
-            to="/"
-            aria-label="Volver al inicio"
-            className="rounded-xl border border-slate-700/50 bg-slate-800/60 p-2.5 text-slate-400 shadow-2xl backdrop-blur-md transition-colors hover:border-emerald-500/50 hover:text-emerald-300"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
+          <div className="flex shrink-0 flex-col items-end gap-2">
+            <Link
+              to="/"
+              aria-label={t("Volver al inicio")}
+              className="rounded-xl border border-slate-700/50 bg-slate-800/60 p-2.5 text-slate-400 shadow-2xl backdrop-blur-md transition-colors hover:border-emerald-500/50 hover:text-emerald-300"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
+            <LanguageSelector />
+          </div>
         </header>
 
         <div className="mt-8 rounded-2xl border border-slate-700/50 bg-slate-900/60 p-6 shadow-2xl backdrop-blur-md">
-          <span className={labelClass}>Buscar por</span>
+          <span className={labelClass}>{t("Buscar por")}</span>
           <div className="grid grid-cols-2 gap-2 rounded-xl border border-slate-700/50 bg-slate-800/50 p-1">
             <button
               type="button"
@@ -222,9 +219,7 @@ function CourtsView() {
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              <MapPin className="h-4 w-4" />
-              Por comuna
-            </button>
+              <MapPin className="h-4 w-4" />{t("Por comuna")}</button>
             <button
               type="button"
               onClick={seleccionarCerca}
@@ -235,17 +230,13 @@ function CourtsView() {
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              <Navigation className="h-4 w-4" />
-              Cerca de mí
-            </button>
+              <Navigation className="h-4 w-4" />{t("Cerca de mí")}</button>
           </div>
 
           {modo === 'comuna' ? (
             <>
               <div className="mt-4">
-                <label className={labelClass} htmlFor="comuna">
-                  Comuna o zona
-                </label>
+                <label className={labelClass} htmlFor="comuna">{t("Comuna o zona")}</label>
                 <div className="relative">
                   <MapPin className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
                   <select
@@ -257,7 +248,7 @@ function CourtsView() {
                     className={`${inputBase} appearance-none pl-11 disabled:cursor-not-allowed disabled:opacity-60`}
                   >
                     <option value="" className="bg-slate-800 text-slate-100">
-                      {loading ? 'Cargando comunas...' : 'Todas las comunas'}
+                      {loading ? t('Cargando comunas...') : t('Todas las comunas')}
                     </option>
                     {comunas.map((item) => (
                       <option
@@ -265,7 +256,7 @@ function CourtsView() {
                         value={item}
                         className="bg-slate-800 text-slate-100"
                       >
-                        {item}
+                        {t(item)}
                       </option>
                     ))}
                   </select>
@@ -273,9 +264,7 @@ function CourtsView() {
               </div>
 
               <div className="mt-4">
-                <label className={labelClass} htmlFor="busqueda">
-                  Buscar cancha
-                </label>
+                <label className={labelClass} htmlFor="busqueda">{t("Buscar cancha")}</label>
                 <div className="relative">
                   <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
                   <input
@@ -284,7 +273,7 @@ function CourtsView() {
                     type="text"
                     value={busqueda}
                     onChange={(event) => setBusqueda(event.target.value)}
-                    placeholder="Ej: Parque, Club, Municipal..."
+                    placeholder={t("Ej: Parque, Club, Municipal...")}
                     className={`${inputBase} pl-11`}
                   />
                 </div>
@@ -292,9 +281,7 @@ function CourtsView() {
             </>
           ) : (
             <div className="mt-4">
-              <label className={labelClass} htmlFor="radio">
-                Radio de búsqueda
-              </label>
+              <label className={labelClass} htmlFor="radio">{t("Radio de búsqueda")}</label>
               <div className="relative">
                 <Navigation className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
                 <select
@@ -310,38 +297,31 @@ function CourtsView() {
                       value={radio}
                       className="bg-slate-800 text-slate-100"
                     >
-                      {radio} km a la redonda
-                    </option>
+                      {t(radio)}{t(" km a la redonda")}</option>
                   ))}
                 </select>
               </div>
 
               {geoStatus === 'loading' && (
                 <p className="mt-3 flex items-center gap-2 text-xs text-slate-400">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  Obteniendo tu ubicación...
-                </p>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />{t("Obteniendo tu ubicación...")}</p>
               )}
 
               {geoStatus === 'success' && (
                 <p className="mt-3 flex items-center gap-2 text-xs text-emerald-300">
-                  <Navigation className="h-3.5 w-3.5" />
-                  Usando tu ubicación actual · radio de {radioKm} km
-                </p>
+                  <Navigation className="h-3.5 w-3.5" />{t("Usando tu ubicación actual · radio de ")}{t(radioKm)}{t(" km")}</p>
               )}
 
               {geoStatus === 'error' && (
                 <div className="mt-3 flex items-start gap-2 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-xs text-red-300">
                   <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                   <span>
-                    {geoError}
+                    {t(geoError)}
                     <button
                       type="button"
                       onClick={solicitarUbicacion}
                       className="ml-1 font-semibold text-red-200 underline"
-                    >
-                      Reintentar
-                    </button>
+                    >{t("Reintentar")}</button>
                   </span>
                 </div>
               )}
@@ -351,28 +331,22 @@ function CourtsView() {
 
         <section className="mt-8">
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">
-            {loading ? 'Buscando canchas...' : resumen}
+            {loading ? t('Buscando canchas...') : t(resumen)}
           </h2>
 
           {loading ? (
             <p className="flex items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-700/50 bg-slate-800/40 p-5 text-center text-sm text-slate-500">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Cargando canchas...
-            </p>
+              <Loader2 className="h-4 w-4 animate-spin" />{t("Cargando canchas...")}</p>
           ) : error ? (
             <p className="flex items-start gap-2 rounded-2xl border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-300">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-              {error}
+              {t(error)}
             </p>
           ) : modo === 'cerca' && geoStatus === 'loading' ? (
             <p className="flex items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-700/50 bg-slate-800/40 p-5 text-center text-sm text-slate-500">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Obteniendo tu ubicación...
-            </p>
+              <Loader2 className="h-4 w-4 animate-spin" />{t("Obteniendo tu ubicación...")}</p>
           ) : modo === 'cerca' && geoStatus === 'error' ? (
-            <p className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-800/40 p-5 text-center text-sm text-slate-500">
-              Activa tu ubicación para ver las canchas cercanas.
-            </p>
+            <p className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-800/40 p-5 text-center text-sm text-slate-500">{t("Activa tu ubicación para ver las canchas cercanas.")}</p>
           ) : filtradas.length === 0 ? (
             modo === 'cerca' ? (
               sinResultadosCerca
@@ -403,9 +377,7 @@ function CourtsView() {
                         </span>
                         {typeof cancha.distancia === 'number' && (
                           <span className="inline-flex items-center gap-1 rounded-full border border-slate-600/50 bg-slate-900/60 px-2.5 py-0.5 text-xs font-semibold text-slate-300">
-                            <Navigation className="h-3 w-3" />
-                            a {cancha.distancia.toFixed(1)} km
-                          </span>
+                            <Navigation className="h-3 w-3" />{t("a ")}{t(cancha.distancia.toFixed(1))}{t(" km")}</span>
                         )}
                       </div>
                     </div>
@@ -423,7 +395,7 @@ function CourtsView() {
                     className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-700/50 bg-slate-900/60 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:border-emerald-500/50 hover:text-emerald-300"
                   >
                     <Navigation className="h-4 w-4" />
-                    {mapaAbierto[cancha.id] ? 'Ocultar mapa' : 'Ver en el mapa'}
+                    {mapaAbierto[cancha.id] ? t('Ocultar mapa') : t('Ver en el mapa')}
                   </button>
 
                   {mapaAbierto[cancha.id] && (
@@ -431,7 +403,7 @@ function CourtsView() {
                       latitud={cancha.latitud}
                       longitud={cancha.longitud}
                       direccion={cancha.direccion}
-                      titulo={`Mapa de ${cancha.nombre}`}
+                      titulo={t("Mapa de {0}", { 0: cancha.nombre })}
                       className="mt-3 h-64 w-full rounded-xl border border-slate-700/50"
                     />
                   )}
@@ -441,9 +413,7 @@ function CourtsView() {
           )}
         </section>
 
-        <p className="mt-auto pt-10 text-center text-xs text-slate-500">
-          Solo se muestran canchas de Santiago.
-        </p>
+        <p className="mt-auto pt-10 text-center text-xs text-slate-500">{t("Solo se muestran canchas de Santiago.")}</p>
       </div>
     </div>
   );

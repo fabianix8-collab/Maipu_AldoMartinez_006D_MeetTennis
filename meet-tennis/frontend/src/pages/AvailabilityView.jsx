@@ -1,3 +1,5 @@
+import LanguageSelector from '../components/LanguageSelector.jsx';
+import { useLanguage } from '../lib/i18n.js';
 import { useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
@@ -60,6 +62,7 @@ function nombresDias(dias) {
 }
 
 function AvailabilityView() {
+  const { t } = useLanguage();
   const [selectedDays, setSelectedDays] = useState([]);
   const [desde, setDesde] = useState('');
   const [hasta, setHasta] = useState('');
@@ -229,16 +232,16 @@ function AvailabilityView() {
     return (
       <p className="mt-1.5 flex items-center gap-1 text-xs text-red-400">
         <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-        {errors[name]}
+        {t(errors[name])}
       </p>
     );
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-slate-900 px-4 py-8">
+    <div className="relative min-h-dvh overflow-hidden bg-slate-900 px-4 py-8">
       <TennisBackground />
 
-      <div className="relative mx-auto flex min-h-[calc(100vh-4rem)] max-w-md flex-col">
+      <div className="relative mx-auto flex min-h-[calc(100dvh-4rem)] max-w-md flex-col">
         <header className="flex items-start justify-between gap-4">
           <div>
             <BrandLogo className="mb-4 h-16 sm:h-20" />
@@ -247,23 +250,22 @@ function AvailabilityView() {
                 <CalendarClock className="h-5 w-5" />
               </span>
               <div>
-                <h1 className="text-2xl font-bold leading-tight text-slate-100">
-                  Mi Disponibilidad
-                </h1>
-                <p className="mt-1 text-sm text-slate-400">
-                  Publica cuándo puedes jugar
-                </p>
+                <h1 className="text-2xl font-bold leading-tight text-slate-100">{t("Mi Disponibilidad")}</h1>
+                <p className="mt-1 text-sm text-slate-400">{t("Publica cuándo puedes jugar")}</p>
               </div>
             </div>
           </div>
 
-          <Link
-            to="/"
-            aria-label="Volver al inicio"
-            className="rounded-xl border border-slate-700/50 bg-slate-800/60 p-2.5 text-slate-400 shadow-2xl backdrop-blur-md transition-colors hover:border-emerald-500/50 hover:text-emerald-300"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
+          <div className="flex shrink-0 flex-col items-end gap-2">
+            <Link
+              to="/"
+              aria-label={t("Volver al inicio")}
+              className="rounded-xl border border-slate-700/50 bg-slate-800/60 p-2.5 text-slate-400 shadow-2xl backdrop-blur-md transition-colors hover:border-emerald-500/50 hover:text-emerald-300"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
+            <LanguageSelector />
+          </div>
         </header>
 
         <form
@@ -272,7 +274,7 @@ function AvailabilityView() {
           className="mt-8 rounded-2xl border border-slate-700/50 bg-slate-900/60 p-6 shadow-2xl backdrop-blur-md"
         >
           <div>
-            <span className={labelClass}>Días disponibles</span>
+            <span className={labelClass}>{t("Días disponibles")}</span>
             <div className="flex flex-wrap gap-2">
               {DIAS.map((dia) => {
                 const active = selectedDays.includes(dia);
@@ -288,19 +290,17 @@ function AvailabilityView() {
                         : 'border-slate-700/50 bg-slate-800/70 text-slate-400 hover:border-slate-600 hover:text-slate-200'
                     }`}
                   >
-                    {dia}
+                    {t(dia)}
                   </button>
                 );
               })}
             </div>
-            {renderError('dias')}
+            {t(renderError('dias'))}
           </div>
 
           <div className="mt-5 grid grid-cols-2 gap-4">
             <div>
-              <label className={labelClass} htmlFor="desde">
-                Desde
-              </label>
+              <label className={labelClass} htmlFor="desde">{t("Desde")}</label>
               <div className="relative">
                 <Clock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
                 <select
@@ -322,18 +322,16 @@ function AvailabilityView() {
                       value={hora}
                       className="bg-slate-800 text-slate-100"
                     >
-                      {hora}
+                      {t(hora)}
                     </option>
                   ))}
                 </select>
               </div>
-              {renderError('desde')}
+              {t(renderError('desde'))}
             </div>
 
             <div>
-              <label className={labelClass} htmlFor="hasta">
-                Hasta
-              </label>
+              <label className={labelClass} htmlFor="hasta">{t("Hasta")}</label>
               <div className="relative">
                 <Clock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
                 <select
@@ -355,19 +353,17 @@ function AvailabilityView() {
                       value={hora}
                       className="bg-slate-800 text-slate-100"
                     >
-                      {hora}
+                      {t(hora)}
                     </option>
                   ))}
                 </select>
               </div>
-              {renderError('hasta')}
+              {t(renderError('hasta'))}
             </div>
           </div>
 
           <div className="mt-5">
-            <label className={labelClass} htmlFor="zona">
-              Zona o cancha preferida (opcional)
-            </label>
+            <label className={labelClass} htmlFor="zona">{t("Zona o cancha preferida (opcional)")}</label>
             <div className="relative">
               <MapPin className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
               <select
@@ -379,9 +375,7 @@ function AvailabilityView() {
                 className={`${inputBase} appearance-none pl-11 disabled:cursor-not-allowed disabled:opacity-60`}
               >
                 <option value="" className="bg-slate-800 text-slate-100">
-                  {loadingCanchas
-                    ? 'Cargando zonas y canchas...'
-                    : 'Cualquier zona o cancha'}
+                  {loadingCanchas ? t('Cargando zonas y canchas...') : t('Cualquier zona o cancha')}
                 </option>
                 {comunas.length > 0 && (
                   <optgroup
@@ -417,22 +411,20 @@ function AvailabilityView() {
                 )}
               </select>
             </div>
-            <p className="mt-1.5 text-xs text-slate-500">
-              Elige una comuna para buscar por zona o una cancha específica.
-            </p>
+            <p className="mt-1.5 text-xs text-slate-500">{t("Elige una comuna para buscar por zona o una cancha específica.")}</p>
           </div>
 
           {status.type === 'success' && (
             <div className="mt-4 flex items-start gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm text-emerald-300">
               <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-              {status.message}
+              {t(status.message)}
             </div>
           )}
 
           {status.type === 'error' && (
             <div className="mt-4 flex items-start gap-2 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-300">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-              {status.message}
+              {t(status.message)}
             </div>
           )}
 
@@ -442,23 +434,17 @@ function AvailabilityView() {
             className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 font-semibold text-slate-100 transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <Save className="h-5 w-5" />
-            {guardando ? 'Guardando...' : 'Guardar disponibilidad'}
+            {guardando ? t('Guardando...') : t('Guardar disponibilidad')}
           </button>
         </form>
 
         <section className="mt-8">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">
-            Bloques guardados
-          </h2>
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">{t("Bloques guardados")}</h2>
 
           {loadingSlots ? (
-            <p className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-800/40 p-5 text-center text-sm text-slate-500">
-              Cargando tu disponibilidad...
-            </p>
+            <p className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-800/40 p-5 text-center text-sm text-slate-500">{t("Cargando tu disponibilidad...")}</p>
           ) : slots.length === 0 ? (
-            <p className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-800/40 p-5 text-center text-sm text-slate-500">
-              Aún no has publicado tu disponibilidad.
-            </p>
+            <p className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-800/40 p-5 text-center text-sm text-slate-500">{t("Aún no has publicado tu disponibilidad.")}</p>
           ) : (
             <ul className="grid gap-3">
               {slots.map((slot) => (
@@ -469,20 +455,20 @@ function AvailabilityView() {
                   <div>
                     <p className="flex items-center gap-2 text-sm font-semibold text-emerald-400">
                       <Clock className="h-4 w-4" />
-                      {slot.desde} - {slot.hasta}
+                      {t(slot.desde)} - {t(slot.hasta)}
                     </p>
                     <p className="mt-1 text-sm text-slate-300">
-                      {nombresDias(slot.dias).join(', ')}
+                      {t(nombresDias(slot.dias).join(', '))}
                     </p>
                     {formatZona(slot) && (
-                      <p className="mt-1 text-xs text-slate-500">{formatZona(slot)}</p>
+                      <p className="mt-1 text-xs text-slate-500">{t(formatZona(slot))}</p>
                     )}
                   </div>
 
                   <button
                     type="button"
                     onClick={() => removeSlot(slot.id)}
-                    aria-label="Eliminar bloque"
+                    aria-label={t("Eliminar bloque")}
                     className="rounded-xl border border-slate-700/50 bg-slate-900/60 p-2 text-slate-400 transition-colors hover:border-red-500/50 hover:bg-red-500/10 hover:text-red-400"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -494,9 +480,7 @@ function AvailabilityView() {
         </section>
 
         <p className="mt-auto pt-10 text-center text-xs text-slate-500">
-          <Plus className="mr-1 inline h-3.5 w-3.5" />
-          Puedes agregar varios bloques de disponibilidad.
-        </p>
+          <Plus className="mr-1 inline h-3.5 w-3.5" />{t("Puedes agregar varios bloques de disponibilidad.")}</p>
       </div>
     </div>
   );

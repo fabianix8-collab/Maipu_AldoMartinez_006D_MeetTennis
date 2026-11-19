@@ -6,6 +6,7 @@ export function referenciaPartido(hash) {
     ? { tipo: referencia[1], id: referencia[2], ancla: referencia[0].slice(1) }
     : null;
 }
+
 export const SECCIONES_PARTIDOS = {
   solicitudes: {
     ruta: '/solicitudes',
@@ -31,4 +32,3 @@ export function rutaSolicitud(solicitud) {
     ? SECCIONES_PARTIDOS.proximos.ruta
     : SECCIONES_PARTIDOS.solicitudes.ruta;
 }
-

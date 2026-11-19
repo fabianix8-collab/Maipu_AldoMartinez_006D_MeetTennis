@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import LanguageSelector from '../components/LanguageSelector.jsx';
+import { useLanguage } from '../lib/i18n.js';
+import { useEffect, useState } from 'react';
 import {
   AlertCircle,
   ArrowLeft,
@@ -35,6 +37,7 @@ const NOMBRES_CATEGORIAS = [
 ];
 
 function RankingView() {
+  const { t } = useLanguage();
   const storedUser = getStoredAuth();
   const profile = storedUser?.profile || {};
   const userId = storedUser?.user?.id || profile.id || '';
@@ -105,25 +108,17 @@ function RankingView() {
   const grupoPropio = NOMBRES_CATEGORIAS.includes(miNivel) ? miNivel : 'Sin categoría';
   const categoriaVisible = categoriaActiva || grupoPropio;
 
-  const rankingPorCategoria = useMemo(() => {
-    const grupos = {};
-    for (const [categoria, lista] of Object.entries(ranking)) {
-      grupos[categoria] = (lista || []).map((jugador) => ({
+  const rankingPorCategoria = Object.fromEntries(Object.entries(ranking).map(([categoria, lista]) => [
+      categoria, (lista || []).map((jugador) => ({
         ...jugador,
         esYo: jugador.id === userId,
-      }));
-    }
-    return grupos;
-  }, [ranking, userId]);
+      })),
+  ]));
 
   const tablaVisible = rankingPorCategoria[categoriaVisible] || [];
-  const totalesPorCategoria = useMemo(() => {
-    const totales = {};
-    for (const cat of Object.keys(rankingPorCategoria)) {
-      totales[cat] = rankingPorCategoria[cat].length;
-    }
-    return totales;
-  }, [rankingPorCategoria]);
+  const totalesPorCategoria = Object.fromEntries(
+    Object.entries(rankingPorCategoria).map(([categoria, jugadores]) => [categoria, jugadores.length]),
+  );
 
   const solicitarAscenso = async () => {
     if (!puedeAscender || !proximaCategoria || !userId) return;
@@ -168,10 +163,10 @@ function RankingView() {
       : NOMBRES_CATEGORIAS;
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-slate-900 px-4 py-8">
+    <div className="relative min-h-dvh overflow-hidden bg-slate-900 px-4 py-8">
       <TennisBackground />
 
-      <div className="relative mx-auto flex min-h-[calc(100vh-4rem)] max-w-md flex-col">
+      <div className="relative mx-auto flex min-h-[calc(100dvh-4rem)] max-w-md flex-col">
         <header className="flex items-start justify-between gap-4">
           <div>
             <BrandLogo className="mb-4 h-16 sm:h-20" />
@@ -180,23 +175,22 @@ function RankingView() {
                 <Trophy className="h-5 w-5" />
               </span>
               <div>
-                <h1 className="text-2xl font-bold leading-tight text-slate-100">
-                  Mi Ranking
-                </h1>
-                <p className="mt-1 text-sm text-slate-400">
-                  Compite dentro de tu categoría
-                </p>
+                <h1 className="text-2xl font-bold leading-tight text-slate-100">{t("Mi Ranking")}</h1>
+                <p className="mt-1 text-sm text-slate-400">{t("Compite dentro de tu categoría")}</p>
               </div>
             </div>
           </div>
 
-          <Link
-            to="/"
-            aria-label="Volver al inicio"
-            className="rounded-xl border border-slate-700/50 bg-slate-800/60 p-2.5 text-slate-400 shadow-2xl backdrop-blur-md transition-colors hover:border-emerald-500/50 hover:text-emerald-300"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
+          <div className="flex shrink-0 flex-col items-end gap-2">
+            <Link
+              to="/"
+              aria-label={t("Volver al inicio")}
+              className="rounded-xl border border-slate-700/50 bg-slate-800/60 p-2.5 text-slate-400 shadow-2xl backdrop-blur-md transition-colors hover:border-emerald-500/50 hover:text-emerald-300"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
+            <LanguageSelector />
+          </div>
         </header>
 
 
@@ -207,7 +201,7 @@ function RankingView() {
               {miAvatar ? (
                 <img
                   src={miAvatar}
-                  alt={`Foto de perfil de ${miNombre}`}
+                  alt={t("Foto de perfil de {0}", { 0: t(miNombre) })}
                   className="h-16 w-16 rounded-full border-2 border-slate-900 object-cover"
                 />
               ) : (
@@ -219,33 +213,27 @@ function RankingView() {
 
             <div className="min-w-0">
               <h2 className="truncate text-lg font-bold text-slate-100">
-                {`${miNombre} ${miApellido}`.trim()}
+                {t(`${miNombre} ${miApellido}`.trim())}
               </h2>
               <span className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300">
                 <Trophy className="h-3.5 w-3.5" />
-                {miCategoria}
+                {t(miCategoria)}
               </span>
             </div>
           </div>
 
           <div className="mt-6 flex items-end justify-between gap-4">
             <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                Puntos en esta categoría
-              </p>
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{t("Puntos en esta categoría")}</p>
               <p className="mt-1 text-4xl font-bold text-slate-100">
-                {puntos}
-                <span className="ml-1 text-sm font-medium text-slate-500">
-                  pts
-                </span>
+                {t(puntos)}
+                <span className="ml-1 text-sm font-medium text-slate-500">{t("pts")}</span>
               </p>
             </div>
 
             <span className="inline-flex items-center gap-2 rounded-xl border border-amber-400/40 bg-amber-400/10 px-3 py-2 text-sm font-semibold text-amber-300">
               <Crown className="h-4 w-4" />
-              {miPosicion
-                ? `#${miPosicion} de ${jugadoresEnMiCategoria}`
-                : 'Sin posición'}
+              {miPosicion ? t("#{0} de {1}", { 0: t(miPosicion), 1: t(jugadoresEnMiCategoria) }) : t('Sin posición')}
             </span>
           </div>
 
@@ -253,10 +241,7 @@ function RankingView() {
               encima del nivel actual. */}
           {puedeAscender && proximaCategoria && (
             <div className="mt-5 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-4">
-              <p className="text-sm text-slate-200">
-                Hemos notado que tu rendimiento está por encima del nivel,
-                ¿deseas subir de categoría?
-              </p>
+              <p className="text-sm text-slate-200">{t("Hemos notado que tu rendimiento está por encima del nivel, ¿deseas subir de categoría?")}</p>
               <button
                 type="button"
                 onClick={solicitarAscenso}
@@ -267,8 +252,7 @@ function RankingView() {
                   <Loader2 className="h-5 w-5 animate-spin" />
                 ) : (
                   <ArrowUpRight className="h-5 w-5" />
-                )}
-                Subir a {proximaCategoria}
+                )}{t("Subir a ")}{t(proximaCategoria)}
               </button>
             </div>
           )}
@@ -276,13 +260,13 @@ function RankingView() {
           {status.type === 'success' && (
             <div className="mt-4 flex items-start gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm text-emerald-300">
               <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-              {status.message}
+              {t(status.message)}
             </div>
           )}
           {status.type === 'error' && (
             <div className="mt-4 flex items-start gap-2 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-300">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-              {status.message}
+              {t(status.message)}
             </div>
           )}
         </section>
@@ -294,9 +278,9 @@ function RankingView() {
               <Swords className="h-5 w-5" />
             </span>
             <p className="mt-3 text-2xl font-bold text-slate-100">
-              {estadisticas.jugados}
+              {t(estadisticas.jugados)}
             </p>
-            <p className="text-xs text-slate-400">Partidos en categoría</p>
+            <p className="text-xs text-slate-400">{t("Partidos en categoría")}</p>
           </div>
 
           <div className="rounded-2xl border border-slate-700/50 bg-slate-900/60 p-4 shadow-2xl backdrop-blur-md">
@@ -304,9 +288,9 @@ function RankingView() {
               <Percent className="h-5 w-5" />
             </span>
             <p className="mt-3 text-2xl font-bold text-slate-100">
-              {estadisticas.efectividad}%
+              {t(estadisticas.efectividad)}%
             </p>
-            <p className="text-xs text-slate-400">Efectividad</p>
+            <p className="text-xs text-slate-400">{t("Efectividad")}</p>
           </div>
 
           <div className="rounded-2xl border border-slate-700/50 bg-slate-900/60 p-4 shadow-2xl backdrop-blur-md">
@@ -314,9 +298,9 @@ function RankingView() {
               <TrendingUp className="h-5 w-5" />
             </span>
             <p className="mt-3 text-2xl font-bold text-slate-100">
-              {estadisticas.ganados}
+              {t(estadisticas.ganados)}
             </p>
-            <p className="text-xs text-slate-400">Partidos ganados</p>
+            <p className="text-xs text-slate-400">{t("Partidos ganados")}</p>
           </div>
 
           <div className="rounded-2xl border border-slate-700/50 bg-slate-900/60 p-4 shadow-2xl backdrop-blur-md">
@@ -324,9 +308,9 @@ function RankingView() {
               <TrendingDown className="h-5 w-5" />
             </span>
             <p className="mt-3 text-2xl font-bold text-slate-100">
-              {estadisticas.perdidos}
+              {t(estadisticas.perdidos)}
             </p>
-            <p className="text-xs text-slate-400">Partidos perdidos</p>
+            <p className="text-xs text-slate-400">{t("Partidos perdidos")}</p>
           </div>
         </section>
 
@@ -342,8 +326,7 @@ function RankingView() {
             >
               <Flame className="h-5 w-5" />
             </span>
-            <p className="text-sm text-slate-300">
-              Racha actual:{' '}
+            <p className="text-sm text-slate-300">{t("Racha actual:")}{' '}
               <span
                 className={`font-semibold ${
                   estadisticas.racha.resultado === 'Ganado'
@@ -351,12 +334,10 @@ function RankingView() {
                     : 'text-red-300'
                 }`}
               >
-                {estadisticas.racha.cantidad}{' '}
-                {estadisticas.racha.cantidad === 1 ? 'partido' : 'partidos'}{' '}
-                {estadisticas.racha.resultado === 'Ganado'
-                  ? 'ganado'
-                  : 'perdido'}
-                {estadisticas.racha.cantidad === 1 ? '' : 's'}
+                {t(estadisticas.racha.cantidad)}{' '}
+                {estadisticas.racha.cantidad === 1 ? t('partido') : t('partidos')}{' '}
+                {estadisticas.racha.resultado === 'Ganado' ? t('ganado') : t('perdido')}
+                {estadisticas.racha.cantidad === 1 ? '' : t('s')}
               </span>
             </p>
           </div>
@@ -371,12 +352,8 @@ function RankingView() {
             <ClipboardCheck className="h-5 w-5" />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-sm font-semibold text-slate-100">
-              Registrar un resultado
-            </span>
-            <span className="mt-0.5 block text-xs text-slate-400">
-              Los puntos se suman cuando tu rival confirma el partido.
-            </span>
+            <span className="block text-sm font-semibold text-slate-100">{t("Registrar un resultado")}</span>
+            <span className="mt-0.5 block text-xs text-slate-400">{t("Los puntos se suman cuando tu rival confirma el partido.")}</span>
           </span>
           <ChevronRight className="h-5 w-5 shrink-0 text-emerald-300" />
         </Link>
@@ -384,9 +361,7 @@ function RankingView() {
         {/* Categorías del circuito + tabla de posiciones */}
         <section className="mt-6 rounded-2xl border border-slate-700/50 bg-slate-900/60 p-4 shadow-2xl backdrop-blur-md">
           <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-400">
-            <Layers className="h-4 w-4 text-emerald-400" />
-            Categorías del circuito
-          </h2>
+            <Layers className="h-4 w-4 text-emerald-400" />{t("Categorías del circuito")}</h2>
           <div className="grid gap-1.5">
             {tabs.map((categoria) => {
               const activa = categoria === categoriaVisible;
@@ -430,7 +405,7 @@ function RankingView() {
                   <span
                     className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border text-sm font-bold ${insignia}`}
                   >
-                    {numero}
+                    {t(numero)}
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-2">
@@ -439,19 +414,15 @@ function RankingView() {
                           activa ? 'text-slate-100' : 'text-slate-300'
                         }`}
                       >
-                        {categoria}
+                        {t(categoria)}
                       </span>
                       {esMiCategoria && (
-                        <span className="shrink-0 rounded-full bg-emerald-600/30 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-200">
-                          Tú
-                        </span>
+                        <span className="shrink-0 rounded-full bg-emerald-600/30 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-200">{t("Tú")}</span>
                       )}
                     </span>
                     <span className="text-xs text-slate-500">
                       {totalesPorCategoria[categoria] || 0}{' '}
-                      {totalesPorCategoria[categoria] === 1
-                        ? 'jugador'
-                        : 'jugadores'}
+                      {totalesPorCategoria[categoria] === 1 ? t('jugador') : t('jugadores')}
                     </span>
                   </span>
                   <span
@@ -471,26 +442,21 @@ function RankingView() {
           {/* Tabla de posiciones de la categoría seleccionada */}
           <div className="mt-5">
             <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-400">
-              <ListOrdered className="h-4 w-4" />
-              Tabla de posiciones · {categoriaVisible}
+              <ListOrdered className="h-4 w-4" />{t("Tabla de posiciones · ")}{t(categoriaVisible)}
             </h3>
 
             {loadingRanking ? (
               <p className="flex items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-700/50 bg-slate-800/40 p-5 text-center text-sm text-slate-500">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Cargando jugadores...
-              </p>
+                <Loader2 className="h-4 w-4 animate-spin" />{t("Cargando jugadores...")}</p>
             ) : rankingError ? (
               <p className="mb-3 flex items-start gap-2 rounded-2xl border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-300">
                 <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                {rankingError}
+                {t(rankingError)}
               </p>
             ) : null}
 
             {!loadingRanking && tablaVisible.length === 0 && (
-              <p className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-800/40 p-5 text-center text-sm text-slate-500">
-                Aún no hay jugadores registrados en esta categoría.
-              </p>
+              <p className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-800/40 p-5 text-center text-sm text-slate-500">{t("Aún no hay jugadores registrados en esta categoría.")}</p>
             )}
 
             {!loadingRanking && tablaVisible.length > 0 && (
@@ -526,7 +492,7 @@ function RankingView() {
                         {jugador.avatar_url ? (
                           <img
                             src={jugador.avatar_url}
-                            alt={`Foto de ${jugador.nombre}`}
+                            alt={t("Foto de {0}", { 0: jugador.nombre })}
                             className="h-9 w-9 rounded-full border-2 border-slate-900 object-cover"
                           />
                         ) : (
@@ -538,24 +504,19 @@ function RankingView() {
 
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold text-slate-100">
-                          {`${jugador.nombre} ${jugador.apellido}`.trim() ||
-                            'Jugador'}
+                          {`${jugador.nombre} ${jugador.apellido}`.trim() || t('Jugador')}
                           {jugador.esYo && (
-                            <span className="ml-2 rounded-full bg-emerald-600/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-300">
-                              Tú
-                            </span>
+                            <span className="ml-2 rounded-full bg-emerald-600/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-300">{t("Tú")}</span>
                           )}
                         </p>
                         <p className="truncate text-xs text-slate-400">
-                          {jugador.nivel}
+                          {t(jugador.nivel)}
                         </p>
                       </div>
 
                       <span className="shrink-0 text-sm font-bold text-slate-100">
-                        {jugador.puntos}
-                        <span className="ml-1 text-xs font-medium text-slate-500">
-                          pts
-                        </span>
+                        {t(jugador.puntos)}
+                        <span className="ml-1 text-xs font-medium text-slate-500">{t("pts")}</span>
                       </span>
                     </li>
                   );
@@ -568,43 +529,23 @@ function RankingView() {
         {/* Cómo funciona */}
         <section className="mt-6 rounded-2xl border border-slate-700/50 bg-slate-900/60 p-5 shadow-2xl backdrop-blur-md">
           <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-300">
-            <Info className="h-4 w-4 text-emerald-400" />
-            ¿Cómo funciona el ranking?
-          </h2>
+            <Info className="h-4 w-4 text-emerald-400" />{t("¿Cómo funciona el ranking?")}</h2>
           <ul className="mt-3 grid gap-2 text-xs text-slate-400">
             <li className="flex items-start gap-2">
-              <Layers className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" />
-              Cada categoría tiene su propia tabla de posiciones. Compites
-              contra jugadores de tu mismo nivel, como en el tenis real.
-            </li>
+              <Layers className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" />{t("Cada categoría tiene su propia tabla de posiciones. Compites contra jugadores de tu mismo nivel, como en el tenis real.")}</li>
             <li className="flex items-start gap-2">
-              <TrendingUp className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" />
-              Ganar a un rival de categoría superior suma{' '}
-              <span className="font-semibold text-emerald-300">+40 pts</span>,
-              a uno igual{' '}
-              <span className="font-semibold text-emerald-300">+25 pts</span> y
-              a uno inferior{' '}
-              <span className="font-semibold text-emerald-300">+10 pts</span>.
-              Perder resta puntos.
-            </li>
+              <TrendingUp className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" />{t("Ganar a un rival de categoría superior suma")}{' '}
+              <span className="font-semibold text-emerald-300">{t("+40 pts")}</span>{t(", a uno igual")}{' '}
+              <span className="font-semibold text-emerald-300">{t("+25 pts")}</span>{t(" y a uno inferior")}{' '}
+              <span className="font-semibold text-emerald-300">{t("+10 pts")}</span>{t(". Perder resta puntos.")}</li>
             <li className="flex items-start gap-2">
-              <TrendingUp className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" />
-              Si tu rendimiento está muy por encima de tu nivel actual (alta
-              tasa de victorias sostenida), el sistema te recomendará subir a
-              la siguiente categoría.
-            </li>
+              <TrendingUp className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" />{t("Si tu rendimiento está muy por encima de tu nivel actual (alta tasa de victorias sostenida), el sistema te recomendará subir a la siguiente categoría.")}</li>
             <li className="flex items-start gap-2">
-              <ArrowUpRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-300" />
-              Al ascender tu perfil se actualiza y tu desafío parte desde cero
-              en la nueva categoría. Subir cuesta, como debe ser.
-            </li>
+              <ArrowUpRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-300" />{t("Al ascender tu perfil se actualiza y tu desafío parte desde cero en la nueva categoría. Subir cuesta, como debe ser.")}</li>
           </ul>
         </section>
 
-        <p className="mt-auto pt-10 text-center text-xs text-slate-500">
-          Registra tus partidos para escalar posiciones dentro de tu
-          categoría.
-        </p>
+        <p className="mt-auto pt-10 text-center text-xs text-slate-500">{t("Registra tus partidos para escalar posiciones dentro de tu categoría.")}</p>
       </div>
     </div>
   );

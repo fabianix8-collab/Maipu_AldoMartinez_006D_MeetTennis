@@ -1,3 +1,5 @@
+import LanguageSelector from '../components/LanguageSelector.jsx';
+import { useLanguage } from '../lib/i18n.js';
 import { useMemo, useState } from 'react';
 import {
   AlertCircle,
@@ -138,6 +140,7 @@ const passwordInputBase =
 const labelClass = 'mb-1.5 block text-sm font-medium text-slate-400';
 
 function RegisterView() {
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [values, setValues] = useState(initialValues);
   const [avatar, setAvatar] = useState(null);
@@ -264,22 +267,21 @@ function RegisterView() {
     return (
       <p className="mt-1.5 flex items-center gap-1 text-xs text-red-400">
         <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-        {errors[name]}
+        {t(errors[name])}
       </p>
     );
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-slate-900 px-4 py-10">
+    <div className="relative min-h-dvh overflow-hidden bg-slate-900 px-4 py-10">
       <TennisBackground />
+      <LanguageSelector className="absolute right-4 top-4 z-20" />
 
-      <div className="relative mx-auto flex min-h-screen max-w-md flex-col justify-center">
+      <div className="relative mx-auto flex min-h-dvh max-w-md flex-col justify-center">
         <div className="mb-8 text-center">
           <BrandLogo homeLink={false} className="mx-auto mb-8 h-32 sm:h-40" />
-          <h1 className="text-2xl font-bold text-slate-100">Crear cuenta</h1>
-          <p className="mt-2 text-sm text-slate-400">
-            Únete a la comunidad de MeetTennis
-          </p>
+          <h1 className="text-2xl font-bold text-slate-100">{t("Crear cuenta")}</h1>
+          <p className="mt-2 text-sm text-slate-400">{t("Únete a la comunidad de MeetTennis")}</p>
         </div>
 
         <form
@@ -289,9 +291,7 @@ function RegisterView() {
         >
           <div className="grid grid-cols-1 gap-4">
             <div>
-              <label className={labelClass} htmlFor="nombre">
-                Nombre
-              </label>
+              <label className={labelClass} htmlFor="nombre">{t("Nombre")}</label>
               <div className="relative">
                 <User className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
                 <input
@@ -301,17 +301,15 @@ function RegisterView() {
                   value={values.nombre}
                   onChange={handleChange}
                   onBlur={handleBlur}
-                  placeholder="Tu nombre"
+                  placeholder={t("Tu nombre")}
                   className={`${inputBase} ${borderFor('nombre')}`}
                 />
               </div>
-              {renderFieldError('nombre')}
+              {t(renderFieldError('nombre'))}
             </div>
 
             <div>
-              <label className={labelClass} htmlFor="apellido">
-                Apellido
-              </label>
+              <label className={labelClass} htmlFor="apellido">{t("Apellido")}</label>
               <div className="relative">
                 <User className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
                 <input
@@ -321,17 +319,15 @@ function RegisterView() {
                   value={values.apellido}
                   onChange={handleChange}
                   onBlur={handleBlur}
-                  placeholder="Tu apellido"
+                  placeholder={t("Tu apellido")}
                   className={`${inputBase} ${borderFor('apellido')}`}
                 />
               </div>
-              {renderFieldError('apellido')}
+              {t(renderFieldError('apellido'))}
             </div>
 
             <div>
-              <label className={labelClass} htmlFor="fecha_nacimiento">
-                Fecha de nacimiento
-              </label>
+              <label className={labelClass} htmlFor="fecha_nacimiento">{t("Fecha de nacimiento")}</label>
               <div className="relative">
                 <Calendar className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
                 <input
@@ -344,14 +340,12 @@ function RegisterView() {
                   className={`${inputBase} ${borderFor('fecha_nacimiento')}`}
                 />
               </div>
-              {renderFieldError('fecha_nacimiento')}
+              {t(renderFieldError('fecha_nacimiento'))}
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <label className={labelClass} htmlFor="genero">
-                  Género
-                </label>
+                <label className={labelClass} htmlFor="genero">{t("Género")}</label>
                 <div className="relative">
                   <select
                     id="genero"
@@ -363,28 +357,24 @@ function RegisterView() {
                       values.genero ? 'text-slate-100' : 'text-slate-500'
                     }`}
                   >
-                    <option className="bg-slate-800 text-slate-100" value="" disabled>
-                      Selecciona
-                    </option>
+                    <option className="bg-slate-800 text-slate-100" value="" disabled>{t("Selecciona")}</option>
                     {GENEROS.map((genero) => (
                       <option
                         key={genero}
                         value={genero}
                         className="bg-slate-800 text-slate-100"
                       >
-                        {genero}
+                        {t(genero)}
                       </option>
                     ))}
                   </select>
                   <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
                 </div>
-                {renderFieldError('genero')}
+                {t(renderFieldError('genero'))}
               </div>
 
               <div>
-                <label className={labelClass} htmlFor="nivel">
-                  Nivel
-                </label>
+                <label className={labelClass} htmlFor="nivel">{t("Nivel")}</label>
                 <div className="relative">
                   <select
                     id="nivel"
@@ -396,29 +386,25 @@ function RegisterView() {
                       values.nivel ? 'text-slate-100' : 'text-slate-500'
                     }`}
                   >
-                    <option className="bg-slate-800 text-slate-100" value="" disabled>
-                      Selecciona
-                    </option>
+                    <option className="bg-slate-800 text-slate-100" value="" disabled>{t("Selecciona")}</option>
                     {NIVELES.map((nivel) => (
                       <option
                         key={nivel}
                         value={nivel}
                         className="bg-slate-800 text-slate-100"
                       >
-                        {nivel}
+                        {t(nivel)}
                       </option>
                     ))}
                   </select>
                   <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
                 </div>
-                {renderFieldError('nivel')}
+                {t(renderFieldError('nivel'))}
               </div>
             </div>
 
             <div>
-              <label className={labelClass} htmlFor="comuna">
-                Comuna
-              </label>
+              <label className={labelClass} htmlFor="comuna">{t("Comuna")}</label>
               <div className="relative">
                 <MapPin className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
                 <select
@@ -431,9 +417,7 @@ function RegisterView() {
                     values.comuna ? 'text-slate-100' : 'text-slate-500'
                   }`}
                 >
-                  <option className="bg-slate-800 text-slate-100" value="" disabled>
-                    Selecciona tu comuna
-                  </option>
+                  <option className="bg-slate-800 text-slate-100" value="" disabled>{t("Selecciona tu comuna")}</option>
                   {COMUNAS.map((comuna) => (
                     <option
                       key={comuna}
@@ -446,13 +430,11 @@ function RegisterView() {
                 </select>
                 <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
               </div>
-              {renderFieldError('comuna')}
+              {t(renderFieldError('comuna'))}
             </div>
 
             <div>
-              <label className={labelClass} htmlFor="email">
-                Email
-              </label>
+              <label className={labelClass} htmlFor="email">{t("Email")}</label>
               <div className="relative">
                 <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
                 <input
@@ -462,17 +444,15 @@ function RegisterView() {
                   value={values.email}
                   onChange={handleChange}
                   onBlur={handleBlur}
-                  placeholder="tu@email.com"
+                  placeholder={t("tu@email.com")}
                   className={`${inputBase} ${borderFor('email')}`}
                 />
               </div>
-              {renderFieldError('email')}
+              {t(renderFieldError('email'))}
             </div>
 
             <div>
-              <label className={labelClass} htmlFor="password">
-                Contraseña
-              </label>
+              <label className={labelClass} htmlFor="password">{t("Contraseña")}</label>
               <div className="relative">
                 <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
                 <input
@@ -482,13 +462,13 @@ function RegisterView() {
                   value={values.password}
                   onChange={handleChange}
                   onBlur={handleBlur}
-                  placeholder="Mínimo 6 caracteres"
+                  placeholder={t("Mínimo 6 caracteres")}
                   className={`${passwordInputBase} ${borderFor('password')}`}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
-                  aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                  aria-label={showPassword ? t('Ocultar contraseña') : t('Mostrar contraseña')}
                   className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-slate-200"
                 >
                   {showPassword ? (
@@ -498,13 +478,11 @@ function RegisterView() {
                   )}
                 </button>
               </div>
-              {renderFieldError('password')}
+              {t(renderFieldError('password'))}
             </div>
 
             <div>
-              <label className={labelClass} htmlFor="avatar">
-                Foto de perfil
-              </label>
+              <label className={labelClass} htmlFor="avatar">{t("Foto de perfil")}</label>
               <div
                 className={`flex cursor-pointer items-center gap-3 rounded-xl border bg-slate-800/70 px-4 py-3 transition-colors ${borderFor(
                   'avatar',
@@ -513,7 +491,7 @@ function RegisterView() {
               >
                 <Camera className="h-5 w-5 shrink-0 text-slate-500" />
                 <span className="truncate text-sm text-slate-400">
-                  {avatar ? avatar.name : 'Seleccionar imagen'}
+                  {avatar ? t(avatar.name) : t('Seleccionar imagen')}
                 </span>
               </div>
               <input
@@ -524,21 +502,21 @@ function RegisterView() {
                 onChange={handleAvatarChange}
                 className="hidden"
               />
-              {renderFieldError('avatar')}
+              {t(renderFieldError('avatar'))}
             </div>
           </div>
 
           {status.type === 'success' && (
             <div className="mt-4 flex items-start gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm text-emerald-300">
               <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-              {status.message}
+              {t(status.message)}
             </div>
           )}
 
           {status.type === 'error' && (
             <div className="mt-4 flex items-start gap-2 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-300">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-              {status.message}
+              {t(status.message)}
             </div>
           )}
 
@@ -549,22 +527,17 @@ function RegisterView() {
           >
             {loading ? (
               <>
-                <Loader2 className="h-5 w-5 animate-spin" />
-                Creando cuenta...
-              </>
+                <Loader2 className="h-5 w-5 animate-spin" />{t("Creando cuenta...")}</>
             ) : (
               'Crear cuenta'
             )}
           </button>
 
-          <p className="mt-6 text-center text-sm text-slate-400">
-            ¿Ya tienes cuenta?{' '}
+          <p className="mt-6 text-center text-sm text-slate-400">{t("¿Ya tienes cuenta?")}{' '}
             <Link
               to="/login"
               className="font-semibold text-emerald-400 transition-colors hover:text-emerald-300"
-            >
-              Inicia sesión
-            </Link>
+            >{t("Inicia sesión")}</Link>
           </p>
         </form>
       </div>

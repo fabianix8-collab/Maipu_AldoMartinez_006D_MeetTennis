@@ -1,3 +1,5 @@
+import LanguageSelector from '../components/LanguageSelector.jsx';
+import { useLanguage } from '../lib/i18n.js';
 import { useMemo, useState } from 'react';
 import {
   AlertCircle,
@@ -44,6 +46,7 @@ const passwordInputBase =
 const labelClass = 'mb-1.5 block text-sm font-medium text-slate-400';
 
 function LoginView() {
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [values, setValues] = useState(initialValues);
   const [touched, setTouched] = useState({});
@@ -135,22 +138,21 @@ function LoginView() {
     return (
       <p className="mt-1.5 flex items-center gap-1 text-xs text-red-400">
         <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-        {errors[name]}
+        {t(errors[name])}
       </p>
     );
   };
 
   return (
-    <div className="relative h-screen overflow-hidden bg-slate-900 px-4 py-6">
+    <div className="relative min-h-dvh overflow-x-hidden bg-slate-900 px-4 py-6">
       <TennisBackground />
+      <LanguageSelector className="absolute right-4 top-4 z-20" />
 
-      <div className="relative mx-auto flex h-full max-w-md flex-col justify-center -mt-8">
+      <div className="relative mx-auto flex min-h-[calc(100dvh-3rem)] max-w-md flex-col justify-center">
         <div className="mb-6 text-center">
           <BrandLogo homeLink={false} className="mx-auto mb-6 h-32 sm:h-36" />
-          <h1 className="text-2xl font-bold text-slate-100">Iniciar sesión</h1>
-          <p className="mt-2 text-sm text-slate-400">
-            Bienvenido de nuevo a MeetTennis
-          </p>
+          <h1 className="text-2xl font-bold text-slate-100">{t("Iniciar sesión")}</h1>
+          <p className="mt-2 text-sm text-slate-400">{t("Bienvenido de nuevo a MeetTennis")}</p>
         </div>
 
         <form
@@ -160,9 +162,7 @@ function LoginView() {
         >
           <div className="grid grid-cols-1 gap-4">
             <div>
-              <label className={labelClass} htmlFor="email">
-                Email
-              </label>
+              <label className={labelClass} htmlFor="email">{t("Email")}</label>
               <div className="relative">
                 <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
                 <input
@@ -172,17 +172,15 @@ function LoginView() {
                   value={values.email}
                   onChange={handleChange}
                   onBlur={handleBlur}
-                  placeholder="tu@email.com"
+                  placeholder={t("tu@email.com")}
                   className={`${inputBase} ${borderFor('email')}`}
                 />
               </div>
-              {renderFieldError('email')}
+              {t(renderFieldError('email'))}
             </div>
 
             <div>
-              <label className={labelClass} htmlFor="password">
-                Contraseña
-              </label>
+              <label className={labelClass} htmlFor="password">{t("Contraseña")}</label>
               <div className="relative">
                 <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
                 <input
@@ -192,13 +190,13 @@ function LoginView() {
                   value={values.password}
                   onChange={handleChange}
                   onBlur={handleBlur}
-                  placeholder="Tu contraseña"
+                  placeholder={t("Tu contraseña")}
                   className={`${passwordInputBase} ${borderFor('password')}`}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
-                  aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                  aria-label={showPassword ? t('Ocultar contraseña') : t('Mostrar contraseña')}
                   className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-slate-200"
                 >
                   {showPassword ? (
@@ -208,21 +206,21 @@ function LoginView() {
                   )}
                 </button>
               </div>
-              {renderFieldError('password')}
+              {t(renderFieldError('password'))}
             </div>
           </div>
 
           {status.type === 'success' && (
             <div className="mt-4 flex items-start gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm text-emerald-300">
               <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-              {status.message}
+              {t(status.message)}
             </div>
           )}
 
           {status.type === 'error' && (
             <div className="mt-4 flex items-start gap-2 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-300">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-              {status.message}
+              {t(status.message)}
             </div>
           )}
 
@@ -233,32 +231,25 @@ function LoginView() {
           >
             {loading ? (
               <>
-                <Loader2 className="h-5 w-5 animate-spin" />
-                Iniciando sesión...
-              </>
+                <Loader2 className="h-5 w-5 animate-spin" />{t("Iniciando sesión...")}</>
             ) : (
               <>
-                <LogIn className="h-5 w-5" />
-                Iniciar sesión
-              </>
+                <LogIn className="h-5 w-5" />{t("Iniciar sesión")}</>
             )}
           </button>
 
-          <p className="mt-6 text-center text-sm text-slate-400">
-            ¿No tienes cuenta?{' '}
+          <p className="mt-6 text-center text-sm text-slate-400">{t("¿No tienes cuenta?")}{' '}
             <Link
               to="/register"
               className="font-semibold text-emerald-400 transition-colors hover:text-emerald-300"
-            >
-              Regístrate
-            </Link>
+            >{t("Regístrate")}</Link>
           </p>
 
           <a
             href="https://www.instagram.com/meettennischl/"
             target="_blank"
             rel="noopener noreferrer"
-            aria-label="Síguenos en Instagram"
+            aria-label={t("Síguenos en Instagram")}
             className="mt-6 flex items-center justify-center gap-2 text-xs text-slate-500 transition-colors hover:text-emerald-400"
           >
             <svg
@@ -274,9 +265,7 @@ function LoginView() {
               <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
               <circle cx="12" cy="12" r="5" />
               <circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none" />
-            </svg>
-            @meettennischl
-          </a>
+            </svg>{t("@meettennischl")}</a>
         </form>
       </div>
     </div>

@@ -1,3 +1,5 @@
+import LanguageSelector from '../components/LanguageSelector.jsx';
+import { getLocale, translate, useLanguage } from '../lib/i18n.js';
 import { useEffect, useState } from 'react';
 import {
   AlertCircle,
@@ -54,10 +56,11 @@ function persistBio(value) {
 }
 
 function formatFecha(fecha) {
-  if (!fecha) return 'No registrada';
+  if (!fecha) return translate('No registrada');
   const [anio, mes, dia] = String(fecha).split('-');
   if (!anio || !mes || !dia) return fecha;
-  return `${dia}/${mes}/${anio}`;
+  return new Intl.DateTimeFormat(getLocale(), { day: '2-digit', month: '2-digit', year: 'numeric' })
+    .format(new Date(`${anio}-${mes}-${dia.slice(0, 2)}T12:00:00`));
 }
 
 // Estrellas de solo lectura: muestran la calificación promedio del jugador.
@@ -79,6 +82,7 @@ function Estrellas({ valor, size = 'h-4 w-4' }) {
 }
 
 function ProfileView() {
+  const { t } = useLanguage();
   const storedUser = getStoredUser();
   const profile = storedUser?.profile || {};
   const userId = profile.id || storedUser?.user?.id || '';
@@ -200,10 +204,10 @@ function ProfileView() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-slate-900 px-4 py-8">
+    <div className="relative min-h-dvh overflow-hidden bg-slate-900 px-4 py-8">
       <TennisBackground />
 
-      <div className="relative mx-auto flex min-h-[calc(100vh-4rem)] max-w-md flex-col">
+      <div className="relative mx-auto flex min-h-[calc(100dvh-4rem)] max-w-md flex-col">
         <header className="flex items-start justify-between gap-4">
           <div>
             <BrandLogo className="mb-4 h-16 sm:h-20" />
@@ -212,23 +216,22 @@ function ProfileView() {
                 <User className="h-5 w-5" />
               </span>
               <div>
-                <h1 className="text-2xl font-bold leading-tight text-slate-100">
-                  Mi Perfil
-                </h1>
-                <p className="mt-1 text-sm text-slate-400">
-                  Tus datos y preferencias
-                </p>
+                <h1 className="text-2xl font-bold leading-tight text-slate-100">{t("Mi Perfil")}</h1>
+                <p className="mt-1 text-sm text-slate-400">{t("Tus datos y preferencias")}</p>
               </div>
             </div>
           </div>
 
-          <Link
-            to="/"
-            aria-label="Volver al inicio"
-            className="rounded-xl border border-slate-700/50 bg-slate-800/60 p-2.5 text-slate-400 shadow-2xl backdrop-blur-md transition-colors hover:border-emerald-500/50 hover:text-emerald-300"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
+          <div className="flex shrink-0 flex-col items-end gap-2">
+            <Link
+              to="/"
+              aria-label={t("Volver al inicio")}
+              className="rounded-xl border border-slate-700/50 bg-slate-800/60 p-2.5 text-slate-400 shadow-2xl backdrop-blur-md transition-colors hover:border-emerald-500/50 hover:text-emerald-300"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
+            <LanguageSelector />
+          </div>
         </header>
 
         <section className="mt-8 rounded-2xl border border-slate-700/50 bg-slate-900/60 p-6 shadow-2xl backdrop-blur-md">
@@ -237,7 +240,7 @@ function ProfileView() {
               {avatarUrl ? (
                 <img
                   src={avatarUrl}
-                  alt={`Foto de perfil de ${nombreCompleto}`}
+                  alt={t("Foto de perfil de {0}", { 0: nombreCompleto })}
                   className="h-20 w-20 rounded-full border-2 border-slate-900 object-cover"
                 />
               ) : (
@@ -252,21 +255,17 @@ function ProfileView() {
                 {nombreCompleto}
               </h2>
               <p className="mt-0.5 truncate text-sm text-slate-400">
-                {email || 'Sin correo'}
+                {email || t('Sin correo')}
               </p>
               <span className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300">
                 <Trophy className="h-3.5 w-3.5" />
-                {nivel}
+                {t(nivel)}
               </span>
 
               <div className="mt-2.5 flex items-center gap-2">
                 <Estrellas valor={Math.round(miPromedio || 0)} />
                 <span className="text-xs text-slate-400">
-                  {miPromedio
-                    ? `${miPromedio} de 5 · ${totalResenas} ${
-                        totalResenas === 1 ? 'reseña' : 'reseñas'
-                      }`
-                    : 'Sin reseñas aún'}
+                  {miPromedio ? t("{0} de 5 · {1} {2}", { 0: t(miPromedio), 1: t(totalResenas), 2: totalResenas === 1 ? t('reseña') : t('reseñas') }) : t('Sin reseñas aún')}
                 </span>
               </div>
             </div>
@@ -287,57 +286,51 @@ function ProfileView() {
           >
             {subiendoAvatar ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Subiendo foto...
-              </>
+                <Loader2 className="h-4 w-4 animate-spin" />{t("Subiendo foto...")}</>
             ) : (
               <>
-                <Camera className="h-4 w-4" />
-                Cambiar foto de perfil
-              </>
+                <Camera className="h-4 w-4" />{t("Cambiar foto de perfil")}</>
             )}
           </label>
 
           {avatarStatus.type === 'success' && (
             <p className="mt-3 flex items-center gap-1.5 text-xs text-emerald-300">
               <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
-              {avatarStatus.message}
+              {t(avatarStatus.message)}
             </p>
           )}
           {avatarStatus.type === 'error' && (
             <p className="mt-3 flex items-center gap-1.5 text-xs text-red-400">
               <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-              {avatarStatus.message}
+              {t(avatarStatus.message)}
             </p>
           )}
         </section>
 
         <section className="mt-6 rounded-2xl border border-slate-700/50 bg-slate-900/60 p-6 shadow-2xl backdrop-blur-md">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">
-            Mis datos
-          </h2>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">{t("Mis datos")}</h2>
 
           <dl className="mt-4 grid gap-4">
             <div>
-              <dt className={labelClass}>Nombre completo</dt>
+              <dt className={labelClass}>{t("Nombre completo")}</dt>
               <dd className="mt-0.5 text-sm text-slate-100">{nombreCompleto}</dd>
             </div>
 
             <div>
-              <dt className={labelClass}>Email</dt>
+              <dt className={labelClass}>{t("Email")}</dt>
               <dd className="mt-0.5 flex items-center gap-2 text-sm text-slate-100">
                 <Mail className="h-4 w-4 shrink-0 text-slate-500" />
-                {email || 'No registrado'}
+                {email || t('No registrado')}
               </dd>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <dt className={labelClass}>Género</dt>
-                <dd className="mt-0.5 text-sm text-slate-100">{genero}</dd>
+                <dt className={labelClass}>{t("Género")}</dt>
+                <dd className="mt-0.5 text-sm text-slate-100">{t(genero)}</dd>
               </div>
               <div>
-                <dt className={labelClass}>Nacimiento</dt>
+                <dt className={labelClass}>{t("Nacimiento")}</dt>
                 <dd className="mt-0.5 flex items-center gap-2 text-sm text-slate-100">
                   <Calendar className="h-4 w-4 shrink-0 text-slate-500" />
                   {formatFecha(profile.fecha_nacimiento)}
@@ -346,23 +339,18 @@ function ProfileView() {
             </div>
 
             <div>
-              <dt className={labelClass}>Nivel de juego</dt>
+              <dt className={labelClass}>{t("Nivel de juego")}</dt>
               <dd className="mt-0.5 inline-flex items-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-1.5 text-sm font-semibold text-emerald-300">
                 <Trophy className="h-4 w-4" />
-                {nivel}
+                {t(nivel)}
               </dd>
             </div>
           </dl>
         </section>
 
         <section className="mt-6 rounded-2xl border border-slate-700/50 bg-slate-900/60 p-6 shadow-2xl backdrop-blur-md">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">
-            Sobre mí
-          </h2>
-          <p className="mt-1 text-xs text-slate-500">
-            Cuéntale a la comunidad tu estilo de juego, disponibilidad o lo que
-            buscas.
-          </p>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">{t("Sobre mí")}</h2>
+          <p className="mt-1 text-xs text-slate-500">{t("Cuéntale a la comunidad tu estilo de juego, disponibilidad o lo que buscas.")}</p>
 
           <textarea
             id="bio"
@@ -374,28 +362,26 @@ function ProfileView() {
               setBio(event.target.value);
               setBioStatus({ type: 'idle', message: '' });
             }}
-            placeholder="Ej: Juego los fines de semana, nivel intermedio, busco partidos amistosos..."
+            placeholder={t("Ej: Juego los fines de semana, nivel intermedio, busco partidos amistosos...")}
             className="mt-3 w-full resize-none rounded-xl border border-slate-700/50 bg-slate-800/70 px-4 py-3 text-sm text-slate-100 placeholder-slate-500 outline-none transition-colors focus:border-emerald-500"
           />
 
           <div className="mt-2 flex items-center justify-between">
             <span className="text-xs text-slate-500">
-              {bio.length}/{BIO_MAX}
+              {t(bio.length)}/{t(BIO_MAX)}
             </span>
             <button
               type="button"
               onClick={handleGuardarBio}
               className="flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-slate-100 transition-colors hover:bg-emerald-700"
             >
-              <Save className="h-4 w-4" />
-              Guardar
-            </button>
+              <Save className="h-4 w-4" />{t("Guardar")}</button>
           </div>
 
           {bioStatus.type === 'success' && (
             <p className="mt-3 flex items-center gap-1.5 text-xs text-emerald-300">
               <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
-              {bioStatus.message}
+              {t(bioStatus.message)}
             </p>
           )}
         </section>

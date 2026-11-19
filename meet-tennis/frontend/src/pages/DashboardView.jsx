@@ -1,3 +1,5 @@
+import LanguageSelector from '../components/LanguageSelector.jsx';
+import { useLanguage } from '../lib/i18n.js';
 import { useEffect, useState } from 'react';
 import {
   Activity,
@@ -43,10 +45,11 @@ function getStoredUser() {
 }
 
 function DashboardView() {
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const storedUser = getStoredUser();
 
-  const firstName = storedUser?.profile?.nombre || 'Deportista';
+  const firstName = storedUser?.profile?.nombre || t('Deportista');
   const avatarUrl = storedUser?.profile?.avatar_url || null;
 
   // Avisos de la campana y contadores de pendientes de cada sección.
@@ -57,6 +60,7 @@ function DashboardView() {
   });
   const [recargarAvisos, setRecargarAvisos] = useState(0);
   const [partidosAceptados, setPartidosAceptados] = useState(0);
+  const [solicitudesPendientes, setSolicitudesPendientes] = useState(0);
   const [totalNoLeidos, setTotalNoLeidos] = useState(0);
   const [esAdmin, setEsAdmin] = useState(false);
 
@@ -108,6 +112,7 @@ function DashboardView() {
             ...(solicitudes.data?.enviadas || []),
           ];
           setPartidosAceptados(todas.filter((s) => s.estado === 'aceptada').length);
+          setSolicitudesPendientes((solicitudes.data?.recibidas || []).filter((s) => s.estado === 'pendiente').length);
         }
 
         if (conversacionesRes.ok && conversaciones.success) {
@@ -171,10 +176,10 @@ function DashboardView() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-slate-900 px-4 py-5">
+    <div className="relative min-h-dvh overflow-x-hidden bg-slate-900 px-4 py-5">
       <TennisBackground />
 
-      <div className="relative mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-md flex-col">
+      <div className="relative mx-auto flex min-h-[calc(100dvh-2.5rem)] max-w-md flex-col">
         <header className="relative flex items-start justify-between gap-4">
           <div>
             <BrandLogo className="mb-4 h-12 sm:h-14" />
@@ -182,14 +187,14 @@ function DashboardView() {
               <button
                 type="button"
                 onClick={() => navigate('/perfil')}
-                aria-label="Ir a mi perfil"
-                title="Mi Perfil"
+                aria-label={t("Ir a mi perfil")}
+                title={t("Mi Perfil")}
                 className="relative inline-flex shrink-0 cursor-pointer rounded-full bg-gradient-to-tr from-emerald-500 via-emerald-400 to-lime-300 p-[2px] shadow-[0_0_25px_rgba(16,185,129,0.35)] transition-transform duration-200 hover:scale-105"
               >
                 {avatarUrl ? (
                   <img
                     src={avatarUrl}
-                    alt={`Foto de perfil de ${firstName}`}
+                    alt={t("Foto de perfil de {0}", { 0: firstName })}
                     className="h-10 w-10 rounded-full border-2 border-slate-900 object-cover"
                   />
                 ) : (
@@ -202,56 +207,56 @@ function DashboardView() {
                 <h1 className="text-xl font-bold leading-tight text-slate-100 drop-shadow-[0_0_18px_rgba(16,185,129,0.3)]">
                   <Link
                     to="/perfil"
-                    title="Mi perfil"
+                    title={t("Mi perfil")}
                     className="rounded-md transition-colors hover:text-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
-                  >
-                    Hola, {firstName}
+                  >{t("Hola, ")}{firstName}
                   </Link>
                 </h1>
-                <p className="mt-0.5 text-xs text-slate-400">
-                  ¿Listo para jugar hoy?
-                </p>
+                <p className="mt-0.5 text-xs text-slate-400">{t("¿Listo para jugar hoy?")}</p>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <NotificationBell
-              avisos={notificaciones.avisos}
-              noLeidos={notificaciones.noLeidos}
-              onAbrir={marcarVistos}
-              onAsistencia={responderAsistencia}
-            />
-            {esAdmin && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => navigate('/monitoreo')}
-                  aria-label="Panel de monitoreo"
-                  title="Monitoreo"
-                  className="rounded-xl border border-slate-700/50 bg-slate-800/60 p-2.5 text-slate-400 shadow-2xl backdrop-blur-md transition-colors hover:border-emerald-500/50 hover:bg-emerald-500/10 hover:text-emerald-300"
-                >
-                  <Activity className="h-5 w-5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => navigate('/admin-usuarios')}
-                  aria-label="Administración de usuarios"
-                  title="Administrar usuarios"
-                  className="rounded-xl border border-slate-700/50 bg-slate-800/60 p-2.5 text-slate-400 shadow-2xl backdrop-blur-md transition-colors hover:border-emerald-500/50 hover:bg-emerald-500/10 hover:text-emerald-300"
-                >
-                  <Users className="h-5 w-5" />
-                </button>
-              </>
-            )}
-            <button
-              type="button"
-              onClick={handleLogout}
-              aria-label="Cerrar sesión"
-              className="rounded-xl border border-slate-700/50 bg-slate-800/60 p-2.5 text-slate-400 shadow-2xl backdrop-blur-md transition-colors hover:border-red-500/50 hover:bg-red-500/10 hover:text-red-400"
-            >
-              <LogOut className="h-5 w-5" />
-            </button>
+          <div className="flex shrink-0 flex-col items-end gap-2">
+            <div className="flex items-center gap-2">
+              <NotificationBell
+                avisos={notificaciones.avisos}
+                noLeidos={notificaciones.noLeidos}
+                onAbrir={marcarVistos}
+                onAsistencia={responderAsistencia}
+              />
+              {esAdmin && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/monitoreo')}
+                    aria-label={t("Panel de monitoreo")}
+                    title={t("Monitoreo")}
+                    className="rounded-xl border border-slate-700/50 bg-slate-800/60 p-2.5 text-slate-400 shadow-2xl backdrop-blur-md transition-colors hover:border-emerald-500/50 hover:bg-emerald-500/10 hover:text-emerald-300"
+                  >
+                    <Activity className="h-5 w-5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/admin-usuarios')}
+                    aria-label={t("Administración de usuarios")}
+                    title={t("Administrar usuarios")}
+                    className="rounded-xl border border-slate-700/50 bg-slate-800/60 p-2.5 text-slate-400 shadow-2xl backdrop-blur-md transition-colors hover:border-emerald-500/50 hover:bg-emerald-500/10 hover:text-emerald-300"
+                  >
+                    <Users className="h-5 w-5" />
+                  </button>
+                </>
+              )}
+              <button
+                type="button"
+                onClick={handleLogout}
+                aria-label={t("Cerrar sesión")}
+                className="rounded-xl border border-slate-700/50 bg-slate-800/60 p-2.5 text-slate-400 shadow-2xl backdrop-blur-md transition-colors hover:border-red-500/50 hover:bg-red-500/10 hover:text-red-400"
+              >
+                <LogOut className="h-5 w-5" />
+              </button>
+            </div>
+            <LanguageSelector />
           </div>
         </header>
 
@@ -268,7 +273,7 @@ function DashboardView() {
                 <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-600/15 text-emerald-400 transition-colors group-hover:bg-emerald-600/25 group-hover:text-emerald-300">
                   <Icon className="h-6 w-6" />
                 </span>
-                <span className="font-semibold text-base">{title}</span>
+                <span className="font-semibold text-base">{t(title)}</span>
               </button>
             );
           })}
@@ -276,7 +281,9 @@ function DashboardView() {
           {/* Accesos independientes para invitaciones, encuentros y resultados. */}
           <div className="grid flex-1 auto-rows-fr grid-cols-2 gap-3">
             {NAV_ITEMS.filter((item) => !item.ancho).map(({ title, Icon, to, aviso, estrella }) => {
-              const pendientes = aviso === 'proximos' ? partidosAceptados : aviso ? notificaciones.pendientes[aviso] : 0;
+              const pendientes = aviso === 'proximos' ? partidosAceptados
+                : aviso === 'solicitudes' ? solicitudesPendientes
+                : aviso ? notificaciones.pendientes[aviso] : 0;
               return (
                 <button
                   type="button"
@@ -286,10 +293,10 @@ function DashboardView() {
                 >
                   {pendientes > 0 && (
                     <span
-                      aria-label={`${pendientes} ${aviso === 'solicitudes' ? 'solicitudes por responder' : aviso === 'proximos' ? 'encuentros aceptados' : 'resultados por confirmar'}`}
+                      aria-label={`${pendientes} ${t(aviso === 'solicitudes' ? 'solicitudes por responder' : aviso === 'proximos' ? 'encuentros aceptados' : 'resultados por confirmar')}`}
                       className="absolute right-2.5 top-2.5 rounded-full bg-amber-400 px-2 py-0.5 text-[11px] font-bold text-slate-900 shadow-lg"
                     >
-                      {pendientes}
+                      {t(pendientes)}
                     </span>
                   )}
                   <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-emerald-600/15 text-emerald-400 transition-colors group-hover:bg-emerald-600/25 group-hover:text-emerald-300">
@@ -300,7 +307,7 @@ function DashboardView() {
                       )}
                     </span>
                   </span>
-                  <span className="font-semibold text-sm">{title}</span>
+                  <span className="font-semibold text-sm">{t(title)}</span>
                 </button>
               );
             })}
@@ -313,13 +320,13 @@ function DashboardView() {
       <button
         type="button"
         onClick={() => navigate('/chat')}
-        aria-label="Abrir chat"
+        aria-label={t("Abrir chat")}
         className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-2xl transition-transform hover:scale-105 hover:bg-emerald-500"
       >
         <MessageCircle className="h-6 w-6" />
         {totalNoLeidos > 0 && (
           <span className="absolute -right-1 -top-1 flex h-6 min-w-6 items-center justify-center rounded-full border-2 border-slate-900 bg-red-500 px-1 text-xs font-bold text-white">
-            {totalNoLeidos > 99 ? '99+' : totalNoLeidos}
+            {totalNoLeidos > 99 ? '99+' : t(totalNoLeidos)}
           </span>
         )}
       </button>

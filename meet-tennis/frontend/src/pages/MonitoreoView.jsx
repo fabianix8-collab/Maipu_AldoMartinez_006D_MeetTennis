@@ -1,3 +1,5 @@
+import LanguageSelector from '../components/LanguageSelector.jsx';
+import { getLocale, useLanguage } from '../lib/i18n.js';
 import { useEffect, useState } from 'react';
 import {
   Activity,
@@ -20,7 +22,7 @@ import BrandLogo from '../components/BrandLogo.jsx';
 import TennisBackground from '../components/TennisBackground.jsx';
 import { apiFetch } from '../lib/api.js';
 
-const fmt = new Intl.NumberFormat('es-CL');
+const fmt = { format: (value) => new Intl.NumberFormat(getLocale()).format(value) };
 
 // Color de cada estado en barras y etiquetas.
 const COLOR_ESTADO = {
@@ -55,15 +57,16 @@ function hace(fechaIso) {
 
 // Tarjeta resumen (KPI) con ícono, valor y subtítulo.
 function TarjetaKpi({ etiqueta, valor, icono: Icono, sub, color = 'from-emerald-500/25 to-lime-400/10 text-emerald-300' }) {
+  const { t } = useLanguage();
   return (
     <div className="rounded-2xl border border-slate-700/50 bg-slate-800/60 p-4 shadow-2xl backdrop-blur-md">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="truncate text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-            {etiqueta}
+            {t(etiqueta)}
           </p>
-          <p className="mt-1 text-2xl font-bold text-slate-100">{valor}</p>
-          {sub && <p className="mt-1 truncate text-xs text-emerald-300">{sub}</p>}
+          <p className="mt-1 text-2xl font-bold text-slate-100">{t(valor)}</p>
+          {sub && <p className="mt-1 truncate text-xs text-emerald-300">{t(sub)}</p>}
         </div>
         <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${color}`}>
           <Icono className="h-5 w-5" />
@@ -75,13 +78,14 @@ function TarjetaKpi({ etiqueta, valor, icono: Icono, sub, color = 'from-emerald-
 
 // Tarjeta genérica con título e ícono.
 function Panel({ titulo, icono: Icono, children, className = '' }) {
+  const { t } = useLanguage();
   return (
     <section
       className={`rounded-2xl border border-slate-700/50 bg-slate-800/60 p-5 shadow-2xl backdrop-blur-md ${className}`}
     >
       <h2 className="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-slate-300">
         {Icono && <Icono className="h-4 w-4 text-emerald-400" />}
-        {titulo}
+        {t(titulo)}
       </h2>
       {children}
     </section>
@@ -90,7 +94,8 @@ function Panel({ titulo, icono: Icono, children, className = '' }) {
 
 // Barras horizontales proporcionales. colorDe permite elegir el color de
 // cada barra según su clave (p. ej. por estado).
-function Barras({ datos, color = 'bg-emerald-500', colorDe }) {
+function Barras({ datos, color = 'bg-emerald-500', colorDe, traducir = false }) {
+  const { t } = useLanguage();
   const max = Math.max(1, ...datos.map((d) => d.total || 0));
   return (
     <div className="flex flex-col gap-3">
@@ -101,8 +106,8 @@ function Barras({ datos, color = 'bg-emerald-500', colorDe }) {
         return (
           <div key={d.clave}>
             <div className="mb-1 flex items-center justify-between gap-2 text-xs">
-              <span className="truncate text-slate-300">{etiqueta}</span>
-              <span className="shrink-0 font-bold text-slate-100">{fmt.format(d.total || 0)}</span>
+              <span className="truncate text-slate-300">{traducir ? t(etiqueta) : etiqueta}</span>
+              <span className="shrink-0 font-bold text-slate-100">{t(fmt.format(d.total || 0))}</span>
             </div>
             <div className="h-2.5 overflow-hidden rounded-full bg-slate-900/70">
               <div
@@ -114,7 +119,7 @@ function Barras({ datos, color = 'bg-emerald-500', colorDe }) {
         );
       })}
       {datos.length === 0 && (
-        <p className="py-4 text-center text-xs text-slate-500">Sin datos todavía.</p>
+        <p className="py-4 text-center text-xs text-slate-500">{t("Sin datos todavía.")}</p>
       )}
     </div>
   );
@@ -122,13 +127,14 @@ function Barras({ datos, color = 'bg-emerald-500', colorDe }) {
 
 // Barras verticales para una serie de 7 días.
 function BarrasDiarias({ datos }) {
+  const { t } = useLanguage();
   const max = Math.max(1, ...datos.map((d) => d.total || 0));
   return (
     <div className="flex h-44 flex-col">
       <div className="flex flex-1 items-end gap-1.5">
         {datos.map((d) => (
           <div key={d.fecha} className="flex flex-1 flex-col items-center justify-end">
-            <span className="mb-1 text-[11px] font-bold text-slate-100">{d.total}</span>
+            <span className="mb-1 text-[11px] font-bold text-slate-100">{t(d.total)}</span>
             <div
               className="w-full rounded-t-md bg-gradient-to-t from-emerald-600 to-lime-400 transition-all duration-500"
               style={{
@@ -142,7 +148,7 @@ function BarrasDiarias({ datos }) {
       <div className="mt-2 flex gap-1.5">
         {datos.map((d) => (
           <span key={d.fecha} className="flex-1 text-center text-[10px] text-slate-400">
-            {new Date(`${d.fecha}T00:00:00`).toLocaleDateString('es-CL', { weekday: 'short' })}
+            {t(new Date(`${d.fecha}T00:00:00`).toLocaleDateString(getLocale(), { weekday: 'short' }))}
           </span>
         ))}
       </div>
@@ -153,6 +159,7 @@ function BarrasDiarias({ datos }) {
 // Resultados registrados que los rivales aún no confirman. Al confirmarse
 // suman puntos al ranking, así que es la "pendiente" más útil de ver.
 function PartidosPendientes({ partidos }) {
+  const { t } = useLanguage();
   return (
     <div className="flex flex-col gap-2.5">
       {partidos.map((p, i) => (
@@ -165,22 +172,17 @@ function PartidosPendientes({ partidos }) {
           </span>
           <div className="min-w-0 flex-1">
             <p className="truncate text-xs font-medium text-slate-100">
-              {p.jugador1} vs {p.jugador2}
+              {p.jugador1}{t(" vs ")}{p.jugador2}
             </p>
-            <p className="text-[10px] text-slate-500">
-              Jugado el {new Date(`${p.fecha}T00:00:00`).toLocaleDateString('es-CL')} ·{' '}
-              {hace(p.creadoEn)}
+            <p className="text-[10px] text-slate-500">{t("Jugado el ")}{t(new Date(`${p.fecha}T00:00:00`).toLocaleDateString(getLocale()))} ·{' '}
+              {t(hace(p.creadoEn))}
             </p>
           </div>
-          <span className="shrink-0 rounded-full bg-amber-400/20 px-2 py-0.5 text-[10px] font-bold text-amber-300">
-            pendiente
-          </span>
+          <span className="shrink-0 rounded-full bg-amber-400/20 px-2 py-0.5 text-[10px] font-bold text-amber-300">{t("pendiente")}</span>
         </div>
       ))}
       {partidos.length === 0 && (
-        <p className="py-6 text-center text-xs text-slate-500">
-          Todo confirmado: no hay resultados pendientes.
-        </p>
+        <p className="py-6 text-center text-xs text-slate-500">{t("Todo confirmado: no hay resultados pendientes.")}</p>
       )}
     </div>
   );
@@ -196,6 +198,7 @@ const ACTIVIDAD_ESTILO = {
 };
 
 function ActividadReciente({ eventos }) {
+  const { t } = useLanguage();
   return (
     <div className="flex flex-col gap-2.5">
       {eventos.map((ev, i) => {
@@ -206,26 +209,25 @@ function ActividadReciente({ eventos }) {
               <estilo.Icono className="h-4 w-4" />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm text-slate-100">{ev.texto}</p>
+              <p className="truncate text-sm text-slate-100">{ev.tipo === 'mensaje' ? ev.texto : t(ev.texto)}</p>
               <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[11px] text-slate-400">
-                <span className="text-emerald-300">{ev.detalle}</span>
+                <span className="text-emerald-300">{t(ev.detalle)}</span>
                 <span>·</span>
-                <span>{hace(ev.fecha)}</span>
+                <span>{t(hace(ev.fecha))}</span>
               </p>
             </div>
           </div>
         );
       })}
       {eventos.length === 0 && (
-        <p className="py-6 text-center text-xs text-slate-500">
-          Aún no hay actividad en la plataforma.
-        </p>
+        <p className="py-6 text-center text-xs text-slate-500">{t("Aún no hay actividad en la plataforma.")}</p>
       )}
     </div>
   );
 }
 
 function MonitoreoView() {
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [datos, setDatos] = useState(null);
   const [error, setError] = useState(null);
@@ -268,13 +270,14 @@ function MonitoreoView() {
 
   if (cargando && !datos) {
     return (
-      <div className="relative min-h-screen overflow-x-hidden bg-slate-900 px-4 py-5">
+      <div className="relative min-h-dvh overflow-x-hidden bg-slate-900 px-4 py-5">
         <TennisBackground />
+      <LanguageSelector className="absolute right-4 top-4 z-20" />
         <div className="relative mx-auto max-w-6xl">
           <div className="flex items-center justify-center py-24">
             <div className="flex flex-col items-center gap-3 text-slate-400">
               <RefreshCw className="h-8 w-8 animate-spin text-emerald-400" />
-              <p className="text-sm">Cargando métricas…</p>
+              <p className="text-sm">{t("Cargando métricas…")}</p>
             </div>
           </div>
         </div>
@@ -284,19 +287,18 @@ function MonitoreoView() {
 
   if (error && !datos) {
     return (
-      <div className="relative min-h-screen overflow-x-hidden bg-slate-900 px-4 py-5">
+      <div className="relative min-h-dvh overflow-x-hidden bg-slate-900 px-4 py-5">
         <TennisBackground />
+      <LanguageSelector className="absolute right-4 top-4 z-20" />
         <div className="relative mx-auto max-w-6xl">
           <div className="flex flex-col items-center justify-center gap-4 py-24 text-center">
             <ShieldCheck className="h-10 w-10 text-rose-400" />
             <div>
-              <h1 className="text-lg font-bold text-slate-100">No se pudo cargar el panel</h1>
-              <p className="mt-1 text-sm text-slate-400">{error}</p>
+              <h1 className="text-lg font-bold text-slate-100">{t("No se pudo cargar el panel")}</h1>
+              <p className="mt-1 text-sm text-slate-400">{t(error)}</p>
               {error === 'No tienes permisos para ver el panel de monitoreo.' && (
-                <p className="mx-auto mt-3 max-w-md text-xs text-slate-500">
-                  Este panel es exclusivo de administradores. Pide al administrador del
-                  proyecto promocionar tu cuenta con el script{' '}
-                  <code>backend/scripts/09_admin_rol.sql</code>.
+                <p className="mx-auto mt-3 max-w-md text-xs text-slate-500">{t("Este panel es exclusivo de administradores. Pide al administrador del proyecto promocionar tu cuenta con el script")}{' '}
+                  <code>{t("backend/scripts/09_admin_rol.sql")}</code>.
                 </p>
               )}
             </div>
@@ -305,9 +307,7 @@ function MonitoreoView() {
                 type="button"
                 onClick={() => navigate('/')}
                 className="rounded-xl border border-slate-700/50 bg-slate-800/60 px-4 py-2 text-sm font-semibold text-slate-200 shadow-xl backdrop-blur-md transition-colors hover:border-emerald-500/50 hover:text-emerald-300"
-              >
-                Volver al inicio
-              </button>
+              >{t("Volver al inicio")}</button>
               <button
                 type="button"
                 onClick={() => {
@@ -315,9 +315,7 @@ function MonitoreoView() {
                   setRecargar((n) => n + 1);
                 }}
                 className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-xl transition-colors hover:bg-emerald-500"
-              >
-                Reintentar
-              </button>
+              >{t("Reintentar")}</button>
             </div>
           </div>
         </div>
@@ -399,7 +397,7 @@ function MonitoreoView() {
   ];
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-slate-900 px-4 py-5">
+    <div className="relative min-h-dvh overflow-x-hidden bg-slate-900 px-4 py-5">
       <TennisBackground />
 
       <div className="relative mx-auto max-w-6xl">
@@ -409,7 +407,7 @@ function MonitoreoView() {
             <button
               type="button"
               onClick={() => navigate('/')}
-              aria-label="Volver al inicio"
+              aria-label={t("Volver al inicio")}
               className="rounded-xl border border-slate-700/50 bg-slate-800/60 p-2.5 text-slate-400 shadow-2xl backdrop-blur-md transition-colors hover:border-emerald-500/50 hover:text-emerald-300"
             >
               <ArrowLeft className="h-5 w-5" />
@@ -417,29 +415,26 @@ function MonitoreoView() {
             <BrandLogo className="h-10 sm:h-12" />
           </div>
 
-          <div className="flex items-center gap-3">
-            <span className="hidden text-xs text-slate-400 sm:block">
-              Actualización automática cada 30 s
-            </span>
-            <button
-              type="button"
-              onClick={() => {
-                setCargando(true);
-                setRecargar((n) => n + 1);
-              }}
-              className="inline-flex items-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-600/15 px-4 py-2 text-sm font-semibold text-emerald-300 shadow-xl backdrop-blur-md transition-colors hover:bg-emerald-600/25"
-            >
-              <RefreshCw className={`h-4 w-4 ${cargando ? 'animate-spin' : ''}`} />
-              Actualizar
-            </button>
+          <div className="flex shrink-0 flex-col items-end gap-2">
+            <div className="flex items-center gap-3">
+              <span className="hidden text-xs text-slate-400 sm:block">{t("Actualización automática cada 30 s")}</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setCargando(true);
+                  setRecargar((n) => n + 1);
+                }}
+                className="inline-flex items-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-600/15 px-4 py-2 text-sm font-semibold text-emerald-300 shadow-xl backdrop-blur-md transition-colors hover:bg-emerald-600/25"
+              >
+                <RefreshCw className={`h-4 w-4 ${cargando ? 'animate-spin' : ''}`} />{t("Actualizar")}</button>
+            </div>
+            <LanguageSelector />
           </div>
         </header>
 
         <div className="mt-6">
-          <h1 className="text-2xl font-bold text-slate-100">Panel de monitoreo</h1>
-          <p className="mt-1 text-sm text-slate-400">
-            Indicadores en tiempo real de MeetTennis: usuarios, partidos, mensajería y contenido.
-          </p>
+          <h1 className="text-2xl font-bold text-slate-100">{t("Panel de monitoreo")}</h1>
+          <p className="mt-1 text-sm text-slate-400">{t("Indicadores en tiempo real de MeetTennis: usuarios, partidos, mensajería y contenido.")}</p>
         </div>
 
         {/* KPIs */}
@@ -451,37 +446,38 @@ function MonitoreoView() {
 
         {/* Estadísticas de la app */}
         <div className="mt-4 grid gap-4 lg:grid-cols-2">
-          <Panel titulo="Jugadores más activos" icono={Users}>
+          <Panel titulo={t("Jugadores más activos")} icono={Users}>
             <Barras datos={estadisticasApp.jugadoresActivos || []} color="bg-emerald-400" />
           </Panel>
-          <Panel titulo="Canchas más usadas" icono={MapPin}>
+          <Panel titulo={t("Canchas más usadas")} icono={MapPin}>
             <Barras datos={estadisticasApp.canchasTop || []} color="bg-sky-400" />
           </Panel>
         </div>
 
         <div className="mt-4">
-          <Panel titulo="Partidos por confirmar" icono={Swords}>
+          <Panel titulo={t("Partidos por confirmar")} icono={Swords}>
             <PartidosPendientes partidos={estadisticasApp.partidosPendientes || []} />
           </Panel>
         </div>
 
         {/* Tendencias de los últimos 7 días */}
         <div className="mt-4 grid gap-4 lg:grid-cols-3">
-          <Panel titulo="Registros de usuarios" icono={UserPlus}>
+          <Panel titulo={t("Registros de usuarios")} icono={UserPlus}>
             <BarrasDiarias datos={usuarios.registrosPorDia || []} />
           </Panel>
-          <Panel titulo="Partidos registrados" icono={Swords}>
+          <Panel titulo={t("Partidos registrados")} icono={Swords}>
             <BarrasDiarias datos={partidos.porDia || []} />
           </Panel>
-          <Panel titulo="Solicitudes de partido" icono={Send}>
+          <Panel titulo={t("Solicitudes de partido")} icono={Send}>
             <BarrasDiarias datos={solicitudes.porDia || []} />
           </Panel>
         </div>
 
         {/* Distribuciones */}
         <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <Panel titulo="Partidos por estado" icono={Swords}>
+          <Panel titulo={t("Partidos por estado")} icono={Swords}>
             <Barras
+              traducir
               datos={(partidos.porEstado || []).map((p) => ({
                 clave: p.clave,
                 etiqueta: ETIQUETA_ESTADO[p.clave] || p.clave,
@@ -491,8 +487,9 @@ function MonitoreoView() {
             />
           </Panel>
 
-          <Panel titulo="Solicitudes por estado" icono={Send}>
+          <Panel titulo={t("Solicitudes por estado")} icono={Send}>
             <Barras
+              traducir
               datos={(solicitudes.porEstado || []).map((s) => ({
                 clave: s.clave,
                 etiqueta: ETIQUETA_ESTADO[s.clave] || s.clave,
@@ -502,12 +499,13 @@ function MonitoreoView() {
             />
           </Panel>
 
-          <Panel titulo="Usuarios por categoría" icono={Users}>
-            <Barras datos={usuarios.porCategoria || []} color="bg-lime-400" />
+          <Panel titulo={t("Usuarios por categoría")} icono={Users}>
+            <Barras traducir datos={usuarios.porCategoria || []} color="bg-lime-400" />
           </Panel>
 
-          <Panel titulo="Calificaciones por estrellas" icono={Star}>
+          <Panel titulo={t("Calificaciones por estrellas")} icono={Star}>
             <Barras
+              traducir
               datos={(resenas.porEstrella || []).map((r) => ({
                 clave: `${r.estrellas} ${r.estrellas === 1 ? 'estrella' : 'estrellas'}`,
                 total: r.total,
@@ -516,25 +514,23 @@ function MonitoreoView() {
             />
           </Panel>
 
-          <Panel titulo="Productos por categoría" icono={ShoppingBag}>
-            <Barras datos={productos.porCategoria || []} color="bg-violet-400" />
+          <Panel titulo={t("Productos por categoría")} icono={ShoppingBag}>
+            <Barras traducir datos={productos.porCategoria || []} color="bg-violet-400" />
           </Panel>
 
-          <Panel titulo="Usuarios por comuna" icono={MapPin}>
+          <Panel titulo={t("Usuarios por comuna")} icono={MapPin}>
             <Barras datos={usuarios.porComuna || []} color="bg-rose-400" />
           </Panel>
         </div>
 
         {/* Actividad reciente */}
         <div className="mt-4">
-          <Panel titulo="Actividad reciente" icono={Activity}>
+          <Panel titulo={t("Actividad reciente")} icono={Activity}>
             <ActividadReciente eventos={actividadReciente} />
           </Panel>
         </div>
 
-        <footer className="mt-8 pb-4 text-center text-[11px] text-slate-500">
-          MeetTennis · Panel de monitoreo de la app
-          {generadoEn ? ` · Actualizado ${new Date(generadoEn).toLocaleString('es-CL')}` : ''}
+        <footer className="mt-8 pb-4 text-center text-[11px] text-slate-500">{t("MeetTennis · Panel de monitoreo de la app")}{generadoEn ? t(" · Actualizado {0}", { 0: t(new Date(generadoEn).toLocaleString(getLocale())) }) : ''}
         </footer>
       </div>
     </div>

@@ -1,3 +1,5 @@
+import LanguageSelector from '../components/LanguageSelector.jsx';
+import { useLanguage } from '../lib/i18n.js';
 import { useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
@@ -54,11 +56,12 @@ const MARCADOR_REGEX =
 const CATEGORIA_BASE = '5ta Categoría';
 
 function Avatar({ jugador, size = 'h-10 w-10' }) {
+  const { t } = useLanguage();
   if (jugador?.avatar_url) {
     return (
       <img
         src={jugador.avatar_url}
-        alt={`Foto de ${nombreCompleto(jugador)}`}
+        alt={t("Foto de {0}", { 0: nombreCompleto(jugador) })}
         className={`${size} shrink-0 rounded-full border-2 border-slate-900 object-cover`}
       />
     );
@@ -73,6 +76,7 @@ function Avatar({ jugador, size = 'h-10 w-10' }) {
 }
 
 function Aviso({ status }) {
+  const { t } = useLanguage();
   if (status.type === 'idle') return null;
   const exito = status.type === 'success';
   return (
@@ -88,7 +92,7 @@ function Aviso({ status }) {
       ) : (
         <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
       )}
-      {status.message}
+      {t(status.message)}
     </div>
   );
 }
@@ -107,6 +111,7 @@ function ResultadoIcono({ partido }) {
 }
 
 function MisPartidosView({ seccion = 'resultados' }) {
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { hash, pathname } = useLocation();
@@ -138,7 +143,7 @@ function MisPartidosView({ seccion = 'resultados' }) {
   const [perfilError, setPerfilError] = useState('');
 
   // El formulario se puede precargar desde una solicitud aceptada
-  // (Buscar Partido → "Registrar resultado").
+  // (Próximos partidos → "Registrar resultado").
   const [rivalId, setRivalId] = useState(searchParams.get('rival') || '');
   const [resultado, setResultado] = useState('Ganado');
   const [marcador, setMarcador] = useState('');
@@ -172,40 +177,36 @@ function MisPartidosView({ seccion = 'resultados' }) {
         }
 
         if (seccion === 'resultados' && !enlaceSolicitud) {
-        const [partidosRes, rankingRes, canchasRes] = await Promise.all([
-          apiFetch('/api/matches'),
-          apiFetch('/api/ranking'),
-          apiFetch('/api/courts'),
-        ]);
-        const [partidosData, rankingData, canchasData] =
-          await Promise.all([
-            partidosRes.json(),
-            rankingRes.json(),
-            canchasRes.json(),
+          const [partidosRes, rankingRes, canchasRes] = await Promise.all([
+            apiFetch('/api/matches'),
+            apiFetch('/api/ranking'),
+            apiFetch('/api/courts'),
+          ]);
+          const [partidosData, rankingData, canchasData] = await Promise.all([
+            partidosRes.json(), rankingRes.json(), canchasRes.json(),
           ]);
 
-        if (!activo) return;
+          if (!activo) return;
 
-        if (!partidosRes.ok || !partidosData.success) {
-          throw new Error(partidosData.error || 'No se pudieron cargar tus partidos.');
-        }
+          if (!partidosRes.ok || !partidosData.success) {
+            throw new Error(partidosData.error || 'No se pudieron cargar tus partidos.');
+          }
 
-        setPartidos(partidosData.data.partidos || []);
-        setMiCategoria(partidosData.data.miCategoria || CATEGORIA_BASE);
+          setPartidos(partidosData.data.partidos || []);
+          setMiCategoria(partidosData.data.miCategoria || CATEGORIA_BASE);
 
-        if (rankingRes.ok && rankingData.success) {
-          const todos = Object.values(rankingData.data.ranking || {})
-            .flat()
-            .filter((jugador) => jugador.id !== miId)
-            .sort((a, b) => nombreCompleto(a).localeCompare(nombreCompleto(b), 'es'));
-          setJugadores(todos);
-          setReglas(rankingData.data.reglas);
-        }
+          if (rankingRes.ok && rankingData.success) {
+            const todos = Object.values(rankingData.data.ranking || {})
+              .flat()
+              .filter((jugador) => jugador.id !== miId)
+              .sort((a, b) => nombreCompleto(a).localeCompare(nombreCompleto(b), 'es'));
+            setJugadores(todos);
+            setReglas(rankingData.data.reglas);
+          }
 
-        if (canchasRes.ok && canchasData.success) {
-          setCanchas(canchasData.data?.canchas || []);
-        }
-
+          if (canchasRes.ok && canchasData.success) {
+            setCanchas(canchasData.data?.canchas || []);
+          }
         }
 
         setErrorCarga('');
@@ -376,7 +377,7 @@ function MisPartidosView({ seccion = 'resultados' }) {
     return (
       <p className="mt-1.5 flex items-center gap-1 text-xs text-red-400">
         <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-        {errors[name]}
+        {t(errors[name])}
       </p>
     );
   };
@@ -463,7 +464,7 @@ function MisPartidosView({ seccion = 'resultados' }) {
           partido.resultado === 'Ganado' ? 'text-emerald-300' : 'text-red-300'
         }`}
       >
-        {partido.resultado}
+        {t(partido.resultado)}
       </span>
       {partido.marcador ? ` · ${partido.marcador}` : ''} · {formatFecha(partido.fecha)}
       {partido.cancha?.nombre ? ` · ${partido.cancha.nombre}` : ''}
@@ -482,10 +483,10 @@ function MisPartidosView({ seccion = 'resultados' }) {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-slate-900 px-4 py-8">
+    <div className="relative min-h-dvh overflow-hidden bg-slate-900 px-4 py-8">
       <TennisBackground />
 
-      <div className="relative mx-auto flex min-h-[calc(100vh-4rem)] max-w-md flex-col">
+      <div className="relative mx-auto flex min-h-[calc(100dvh-4rem)] max-w-md flex-col">
         <header className="flex items-start justify-between gap-4">
           <div>
             <BrandLogo className="mb-4 h-16 sm:h-20" />
@@ -495,25 +496,28 @@ function MisPartidosView({ seccion = 'resultados' }) {
               </span>
               <div>
                 <h1 className="text-2xl font-bold leading-tight text-slate-100">
-                  {vista.titulo}
+                  {t(vista.titulo)}
                 </h1>
                 <p className="mt-1 text-sm text-slate-400">
-                  {vista.descripcion}
+                  {t(vista.descripcion)}
                 </p>
               </div>
             </div>
           </div>
 
-          <Link
-            to="/"
-            aria-label="Volver al inicio"
-            className="rounded-xl border border-slate-700/50 bg-slate-800/60 p-2.5 text-slate-400 shadow-2xl backdrop-blur-md transition-colors hover:border-emerald-500/50 hover:text-emerald-300"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
+          <div className="flex shrink-0 flex-col items-end gap-2">
+            <Link
+              to="/"
+              aria-label={t("Volver al inicio")}
+              className="rounded-xl border border-slate-700/50 bg-slate-800/60 p-2.5 text-slate-400 shadow-2xl backdrop-blur-md transition-colors hover:border-emerald-500/50 hover:text-emerald-300"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
+            <LanguageSelector />
+          </div>
         </header>
 
-        <nav aria-label="Secciones de partidos" className="mt-6 grid grid-cols-3 gap-1 rounded-xl border border-slate-700/50 bg-slate-800/60 p-1">
+        <nav aria-label={t("Secciones de partidos")} className="mt-6 grid grid-cols-3 gap-1 rounded-xl border border-slate-700/50 bg-slate-800/60 p-1">
           {Object.entries(SECCIONES_PARTIDOS).map(([clave, item]) => (
             <Link
               key={clave}
@@ -521,7 +525,7 @@ function MisPartidosView({ seccion = 'resultados' }) {
               aria-current={seccion === clave ? 'page' : undefined}
               className={`flex items-center justify-center rounded-lg px-2 py-3 text-center text-sm font-semibold transition-colors ${seccion === clave ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:bg-slate-700/50 hover:text-slate-100'}`}
             >
-              {clave === 'proximos' ? 'Próximos' : item.titulo}
+              {clave === 'proximos' ? t('Próximos') : t(item.titulo)}
             </Link>
           ))}
         </nav>
@@ -531,35 +535,33 @@ function MisPartidosView({ seccion = 'resultados' }) {
         {errorCarga && (
           <p className="mt-6 flex items-start gap-2 rounded-2xl border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-300">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-            {errorCarga}
+            {t(errorCarga)}
           </p>
         )}
 
         {errorSolicitudes && (
           <p className="mt-6 flex items-start gap-2 rounded-2xl border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-300">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-            {errorSolicitudes}
+            {t(errorSolicitudes)}
           </p>
         )}
 
         {referencia && !cargando && !errorCarga && !errorSolicitudes && !existeDestino && (
-          <p role="status" className="mt-6 rounded-xl border border-slate-700/50 bg-slate-800/60 p-4 text-sm text-slate-400">
-            El partido de esta notificación ya no está disponible.
-          </p>
+          <p role="status" className="mt-6 rounded-xl border border-slate-700/50 bg-slate-800/60 p-4 text-sm text-slate-400">{t("El partido de esta notificación ya no está disponible.")}</p>
         )}
 
         {seccion === 'solicitudes' && solicitudCerradaDelAviso && (
           <section className="mt-8">
-            <h2 className={tituloSeccion}>Detalle de la solicitud</h2>
+            <h2 className={tituloSeccion}>{t("Detalle de la solicitud")}</h2>
             <article id={`solicitud-${solicitudCerradaDelAviso.id}`} tabIndex={-1} className={`${tarjeta} ${claseAviso('solicitud', solicitudCerradaDelAviso.id)}`}>
               <p className="text-sm font-semibold text-slate-100">
                 {nombreCompleto(contrincanteDe(solicitudCerradaDelAviso))}
               </p>
               <p className="mt-1 text-xs text-slate-400">
-                {formatFecha(solicitudCerradaDelAviso.fecha)} · {solicitudCerradaDelAviso.hora_desde} - {solicitudCerradaDelAviso.hora_hasta}
+                {formatFecha(solicitudCerradaDelAviso.fecha)} · {t(solicitudCerradaDelAviso.hora_desde)} - {t(solicitudCerradaDelAviso.hora_hasta)}
               </p>
               <p className="mt-2 text-sm text-amber-300">
-                {solicitudCerradaDelAviso.estado === 'cancelada' ? 'Solicitud cancelada' : 'Solicitud rechazada'}
+                {solicitudCerradaDelAviso.estado === 'cancelada' ? t('Solicitud cancelada') : t('Solicitud rechazada')}
               </p>
               {solicitudCerradaDelAviso.cancha && (
                 <p className="mt-2 text-xs text-slate-400">
@@ -576,18 +578,14 @@ function MisPartidosView({ seccion = 'resultados' }) {
         {seccion === 'proximos' && (
         <section className="mt-8 scroll-mt-6">
           <h2 className={tituloSeccion}>
-            <ClipboardCheck className="h-4 w-4 text-emerald-300" />
-            Encuentros aceptados{!cargando && ` (${solicitudesAceptadas.length})`}
+            <ClipboardCheck className="h-4 w-4 text-emerald-300" />{t("Encuentros aceptados")}{!cargando && ` (${solicitudesAceptadas.length})`}
           </h2>
 
           {cargando ? (
             <p role="status" className={`${tarjeta} flex items-center justify-center gap-2 text-sm text-slate-400`}>
-              <Loader2 className="h-4 w-4 animate-spin" /> Cargando encuentros...
-            </p>
+              <Loader2 className="h-4 w-4 animate-spin" />{t(" Cargando encuentros...")}</p>
           ) : errorCarga ? null : solicitudesAceptadas.length === 0 ? (
-            <p className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-800/40 p-5 text-center text-sm text-slate-500">
-              Aún no tienes encuentros aceptados. Revisa tus solicitudes o busca un rival.
-            </p>
+            <p className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-800/40 p-5 text-center text-sm text-slate-500">{t("Aún no tienes encuentros aceptados. Revisa tus solicitudes o busca un rival.")}</p>
           ) : (
             <ul className="grid gap-3">
               {solicitudesAceptadas.map((solicitud) => {
@@ -605,7 +603,7 @@ function MisPartidosView({ seccion = 'resultados' }) {
                           {nombreCompleto(contrincante)}
                         </p>
                         <p className="mt-0.5 text-xs text-slate-400">
-                          {contrincante?.nivel || 'Sin nivel'}
+                          {contrincante?.nivel || t('Sin nivel')}
                         </p>
                       </div>
                     </div>
@@ -617,15 +615,13 @@ function MisPartidosView({ seccion = 'resultados' }) {
                         {solicitud.hora_desde && (
                           <>
                             <Clock className="ml-1 h-3.5 w-3.5 text-slate-500" />
-                            {solicitud.hora_desde} - {solicitud.hora_hasta}
+                            {t(solicitud.hora_desde)} - {t(solicitud.hora_hasta)}
                           </>
                         )}
                       </p>
                       <p className="flex items-center gap-1.5">
                         <MapPin className="h-3.5 w-3.5 text-slate-500" />
-                        {solicitud.cancha?.nombre
-                          ? `${solicitud.cancha.nombre}${solicitud.cancha.direccion ? ` · ${solicitud.cancha.direccion}` : ''}`
-                          : 'Cancha por definir'}
+                        {solicitud.cancha?.nombre ? `${solicitud.cancha.nombre}${solicitud.cancha.direccion ? ` · ${solicitud.cancha.direccion}` : ''}` : t('Cancha por definir')}
                       </p>
                       {solicitud.mensaje && (
                         <p className="mt-1 rounded-lg bg-slate-900/60 p-2 text-slate-400">
@@ -642,30 +638,24 @@ function MisPartidosView({ seccion = 'resultados' }) {
                         onClick={() => verPerfil(contrincante)}
                         className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-700/50 bg-slate-800/70 py-2.5 text-xs font-semibold text-slate-200 transition-colors hover:border-emerald-500/50 hover:text-emerald-300"
                       >
-                        <Eye className="h-4 w-4" />
-                        Ver perfil
-                      </button>
+                        <Eye className="h-4 w-4" />{t("Ver perfil")}</button>
                       <button
                         type="button"
                         onClick={() => navigate(`/chat?usuario=${contrincante?.id}`)}
                         className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-700/50 bg-slate-800/70 py-2.5 text-xs font-semibold text-slate-200 transition-colors hover:border-emerald-500/50 hover:text-emerald-300"
                       >
-                        <MessageCircle className="h-4 w-4" />
-                        Abrir chat
-                      </button>
+                        <MessageCircle className="h-4 w-4" />{t("Abrir chat")}</button>
                       <button
                         type="button"
                         onClick={() => prellenarResultado(solicitud)}
                         disabled={solicitud.fecha > hoyISO()}
-                        title={solicitud.fecha > hoyISO() ? 'Podrás registrar el resultado desde el día del encuentro' : 'Registrar resultado'}
+                        title={solicitud.fecha > hoyISO() ? t('Podrás registrar el resultado desde el día del encuentro') : t('Registrar resultado')}
                         className="flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 py-2.5 text-xs font-semibold text-slate-100 transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        <ClipboardCheck className="h-4 w-4" />
-                        Registrar
-                      </button>
+                        <ClipboardCheck className="h-4 w-4" />{t("Registrar")}</button>
                     </div>
                     {solicitud.fecha > hoyISO() && (
-                      <p className="mt-2 text-sm text-slate-400">Podrás registrar el resultado desde el día del encuentro.</p>
+                      <p className="mt-2 text-sm text-slate-400">{t("Podrás registrar el resultado desde el día del encuentro.")}</p>
                     )}
                   </li>
                 );
@@ -679,11 +669,9 @@ function MisPartidosView({ seccion = 'resultados' }) {
         {seccion === 'solicitudes' && (
         <section className="mt-8">
           <h2 className={tituloSeccion}>
-            <Hourglass className="h-4 w-4 text-amber-300" />
-            Invitaciones pendientes
-          </h2>
+            <Hourglass className="h-4 w-4 text-amber-300" />{t("Invitaciones pendientes")}</h2>
 
-          <nav aria-label="Bandejas de solicitudes" className="mb-4 grid grid-cols-2 gap-2">
+          <nav aria-label={t("Bandejas de solicitudes")} className="mb-4 grid grid-cols-2 gap-2">
             {['recibidas', 'enviadas'].map((tipo) => (
               <Link
                 key={tipo}
@@ -691,7 +679,7 @@ function MisPartidosView({ seccion = 'resultados' }) {
                 aria-current={bandeja === tipo ? 'page' : undefined}
                 className={`rounded-xl border px-3 py-3 text-center text-sm font-semibold transition-colors ${bandeja === tipo ? 'border-emerald-500/50 bg-emerald-500/15 text-emerald-300' : 'border-slate-700/50 bg-slate-800/60 text-slate-400 hover:text-slate-100'}`}
               >
-                {tipo === 'recibidas' ? 'Recibidas' : 'Enviadas'}
+                {tipo === 'recibidas' ? t('Recibidas') : t('Enviadas')}
                 {!cargando && ` (${tipo === 'recibidas' ? recibidasPendientes.length : enviadasPendientes.length})`}
               </Link>
             ))}
@@ -699,18 +687,16 @@ function MisPartidosView({ seccion = 'resultados' }) {
 
           {cargando ? (
             <p role="status" className={`${tarjeta} flex items-center justify-center gap-2 text-sm text-slate-400`}>
-              <Loader2 className="h-4 w-4 animate-spin" /> Cargando solicitudes...
-            </p>
+              <Loader2 className="h-4 w-4 animate-spin" />{t(" Cargando solicitudes...")}</p>
           ) : errorCarga ? null : (bandeja === 'recibidas' ? recibidasPendientes : enviadasPendientes).length === 0 ? (
             <p className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-800/40 p-5 text-center text-sm text-slate-500">
-              {bandeja === 'recibidas' ? 'No tienes invitaciones recibidas pendientes de respuesta.' : 'No tienes invitaciones enviadas pendientes de respuesta.'}
+              {bandeja === 'recibidas' ? t('No tienes invitaciones recibidas pendientes de respuesta.') : t('No tienes invitaciones enviadas pendientes de respuesta.')}
             </p>
           ) : (
             <div className="grid gap-6">
               {bandeja === 'recibidas' && recibidasPendientes.length > 0 && (
                 <div>
-                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-amber-300">
-                    Recibidas pendientes ({recibidasPendientes.length})
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-amber-300">{t("Recibidas pendientes (")}{t(recibidasPendientes.length)})
                   </h3>
                   <ul className="grid gap-3">
                     {recibidasPendientes.map((solicitud) => {
@@ -729,8 +715,7 @@ function MisPartidosView({ seccion = 'resultados' }) {
                               </p>
                               <p className="mt-0.5 text-xs text-slate-400">
                                 {formatFecha(solicitud.fecha)}
-                                {solicitud.hora_desde &&
-                                  ` · ${solicitud.hora_desde} - ${solicitud.hora_hasta}`}
+                                {solicitud.hora_desde && ` · ${solicitud.hora_desde} - ${solicitud.hora_hasta}`}
                               </p>
                               {solicitud.cancha?.nombre && (
                                 <p className="mt-0.5 text-xs text-slate-400">
@@ -752,18 +737,14 @@ function MisPartidosView({ seccion = 'resultados' }) {
                               disabled={procesandoSolicitud === solicitud.id}
                               className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-slate-100 transition-colors hover:bg-emerald-700 disabled:opacity-60"
                             >
-                              <Check className="h-4 w-4" />
-                              Aceptar
-                            </button>
+                              <Check className="h-4 w-4" />{t("Aceptar")}</button>
                             <button
                               type="button"
                               onClick={() => responderSolicitud(solicitud.id, 'rechazar')}
                               disabled={procesandoSolicitud === solicitud.id}
                               className="flex items-center justify-center gap-2 rounded-xl border border-red-500/40 bg-red-500/10 py-2.5 text-sm font-semibold text-red-300 transition-colors hover:bg-red-500/20 disabled:opacity-60"
                             >
-                              <X className="h-4 w-4" />
-                              Rechazar
-                            </button>
+                              <X className="h-4 w-4" />{t("Rechazar")}</button>
                           </div>
                         </li>
                       );
@@ -774,8 +755,7 @@ function MisPartidosView({ seccion = 'resultados' }) {
 
               {bandeja === 'enviadas' && enviadasPendientes.length > 0 && (
                 <div>
-                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                    Enviadas pendientes ({enviadasPendientes.length})
+                  <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">{t("Enviadas pendientes (")}{t(enviadasPendientes.length)})
                   </h3>
                   <ul className="grid gap-3">
                     {enviadasPendientes.map((solicitud) => {
@@ -794,8 +774,7 @@ function MisPartidosView({ seccion = 'resultados' }) {
                               </p>
                               <p className="mt-0.5 text-xs text-slate-400">
                                 {formatFecha(solicitud.fecha)}
-                                {solicitud.hora_desde &&
-                                  ` · ${solicitud.hora_desde} - ${solicitud.hora_hasta}`}
+                                {solicitud.hora_desde && ` · ${solicitud.hora_desde} - ${solicitud.hora_hasta}`}
                               </p>
                               {solicitud.cancha?.nombre && (
                                 <p className="mt-0.5 text-xs text-slate-400">
@@ -811,9 +790,7 @@ function MisPartidosView({ seccion = 'resultados' }) {
                             disabled={procesandoSolicitud === solicitud.id}
                             className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-700/50 bg-slate-800/70 py-2 text-xs font-semibold text-slate-300 transition-colors hover:border-red-500/50 hover:text-red-300 disabled:opacity-60"
                           >
-                            <XCircle className="h-3.5 w-3.5" />
-                            Cancelar solicitud
-                          </button>
+                            <XCircle className="h-3.5 w-3.5" />{t("Cancelar solicitud")}</button>
                         </li>
                       );
                     })}
@@ -831,8 +808,7 @@ function MisPartidosView({ seccion = 'resultados' }) {
         {porConfirmar.length > 0 && (
           <section className="mt-8">
             <h2 className={tituloSeccion}>
-              <Hourglass className="h-4 w-4 text-amber-300" />
-              Resultados por confirmar ({porConfirmar.length})
+              <Hourglass className="h-4 w-4 text-amber-300" />{t("Resultados por confirmar (")}{t(porConfirmar.length)})
             </h2>
             <ul className="grid gap-3">
               {porConfirmar.map((partido) => (
@@ -847,13 +823,9 @@ function MisPartidosView({ seccion = 'resultados' }) {
                       <p className="text-sm text-slate-300">
                         <span className="font-semibold text-slate-100">
                           {nombreCompleto(partido.rival)}
-                        </span>{' '}
-                        registró este partido:
-                      </p>
-                      {detallePartido(partido)}
-                      <p className="mt-1 text-xs text-slate-500">
-                        Si lo confirmas: {formatPuntos(partido.puntos)} para ti.
-                      </p>
+                        </span>{' '}{t("registró este partido:")}</p>
+                      {t(detallePartido(partido))}
+                      <p className="mt-1 text-xs text-slate-500">{t("Si lo confirmas: ")}{formatPuntos(partido.puntos)}{t(" para ti.")}</p>
                     </div>
                   </div>
                   <CanchaPartido cancha={partido.cancha} />
@@ -864,18 +836,14 @@ function MisPartidosView({ seccion = 'resultados' }) {
                       disabled={procesando === partido.id}
                       className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-slate-100 transition-colors hover:bg-emerald-700 disabled:opacity-60"
                     >
-                      <Check className="h-4 w-4" />
-                      Confirmar
-                    </button>
+                      <Check className="h-4 w-4" />{t("Confirmar")}</button>
                     <button
                       type="button"
                       onClick={() => actualizarPartido(partido.id, 'rechazar')}
                       disabled={procesando === partido.id}
                       className="flex items-center justify-center gap-2 rounded-xl border border-red-500/40 bg-red-500/10 py-2.5 text-sm font-semibold text-red-300 transition-colors hover:bg-red-500/20 disabled:opacity-60"
                     >
-                      <X className="h-4 w-4" />
-                      No es correcto
-                    </button>
+                      <X className="h-4 w-4" />{t("No es correcto")}</button>
                   </div>
                 </li>
               ))}
@@ -888,22 +856,16 @@ function MisPartidosView({ seccion = 'resultados' }) {
         {/* Registrar resultado */}
         <form
           id="registrar-resultado"
+          tabIndex={-1}
           onSubmit={handleSubmit}
           noValidate
           className="mt-8 scroll-mt-6 rounded-2xl border border-slate-700/50 bg-slate-900/60 p-6 shadow-2xl backdrop-blur-md"
         >
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">
-            Registrar resultado
-          </h2>
-          <p className="mt-1 text-xs text-slate-500">
-            Tu rival debe confirmarlo para que sume puntos a ambos. Así nadie
-            puede inflar su ranking.
-          </p>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">{t("Registrar resultado")}</h2>
+          <p className="mt-1 text-xs text-slate-500">{t("Tu rival debe confirmarlo para que sume puntos a ambos. Así nadie puede inflar su ranking.")}</p>
 
           <div className="mt-4">
-            <label className={labelClass} htmlFor="rival">
-              Rival
-            </label>
+            <label className={labelClass} htmlFor="rival">{t("Rival")}</label>
             <div className="relative">
               <User className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
               <select
@@ -914,20 +876,20 @@ function MisPartidosView({ seccion = 'resultados' }) {
                 className={`${inputBase} appearance-none pl-11 disabled:opacity-60`}
               >
                 <option value="" className="bg-slate-800">
-                  {cargando ? 'Cargando jugadores...' : 'Selecciona a tu rival'}
+                  {cargando ? t('Cargando jugadores...') : t('Selecciona a tu rival')}
                 </option>
                 {jugadores.map((jugador) => (
                   <option key={jugador.id} value={jugador.id} className="bg-slate-800">
-                    {nombreCompleto(jugador)} · {jugador.nivel}
+                    {nombreCompleto(jugador)} · {t(jugador.nivel)}
                   </option>
                 ))}
               </select>
             </div>
-            {renderError('rival')}
+            {t(renderError('rival'))}
           </div>
 
           <div className="mt-5">
-            <span className={labelClass}>Resultado</span>
+            <span className={labelClass}>{t("Resultado")}</span>
             <div className="grid grid-cols-2 gap-2 rounded-xl border border-slate-700/50 bg-slate-800/50 p-1">
               {['Ganado', 'Perdido'].map((opcion) => {
                 const activo = resultado === opcion;
@@ -950,7 +912,7 @@ function MisPartidosView({ seccion = 'resultados' }) {
                     ) : (
                       <TrendingDown className="h-4 w-4" />
                     )}
-                    {opcion === 'Ganado' ? 'Gané' : 'Perdí'}
+                    {opcion === 'Ganado' ? t('Gané') : t('Perdí')}
                   </button>
                 );
               })}
@@ -959,9 +921,7 @@ function MisPartidosView({ seccion = 'resultados' }) {
 
           <div className="mt-5 grid grid-cols-2 gap-4">
             <div>
-              <label className={labelClass} htmlFor="marcador">
-                Marcador (opcional)
-              </label>
+              <label className={labelClass} htmlFor="marcador">{t("Marcador (opcional)")}</label>
               <input
                 id="marcador"
                 type="text"
@@ -970,13 +930,11 @@ function MisPartidosView({ seccion = 'resultados' }) {
                 placeholder={resultado === 'Ganado' ? '6-4 6-3' : '4-6 3-6'}
                 className={inputBase}
               />
-              {renderError('marcador')}
+              {t(renderError('marcador'))}
             </div>
 
             <div>
-              <label className={labelClass} htmlFor="fecha">
-                Fecha
-              </label>
+              <label className={labelClass} htmlFor="fecha">{t("Fecha")}</label>
               <div className="relative">
                 <Calendar className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
                 <input
@@ -988,14 +946,12 @@ function MisPartidosView({ seccion = 'resultados' }) {
                   className={`${inputBase} pl-11`}
                 />
               </div>
-              {renderError('fecha')}
+              {t(renderError('fecha'))}
             </div>
           </div>
 
           <div className="mt-5">
-            <label className={labelClass} htmlFor="cancha">
-              Cancha (opcional)
-            </label>
+            <label className={labelClass} htmlFor="cancha">{t("Cancha (opcional)")}</label>
             <div className="relative">
               <MapPin className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
               <select
@@ -1004,9 +960,7 @@ function MisPartidosView({ seccion = 'resultados' }) {
                 onChange={(event) => setCanchaId(event.target.value)}
                 className={`${inputBase} appearance-none pl-11`}
               >
-                <option value="" className="bg-slate-800">
-                  Sin especificar
-                </option>
+                <option value="" className="bg-slate-800">{t("Sin especificar")}</option>
                 {canchas.map((cancha) => (
                   <option key={cancha.id} value={cancha.id} className="bg-slate-800">
                     {cancha.nombre}
@@ -1029,8 +983,7 @@ function MisPartidosView({ seccion = 'resultados' }) {
               ) : (
                 <TrendingDown className="mt-0.5 h-4 w-4 shrink-0" />
               )}
-              <span>
-                Al confirmarse: {formatPuntos(preview.puntos)} en {miCategoria}.
+              <span>{t("Al confirmarse: ")}{formatPuntos(preview.puntos)}{t(" en ")}{t(miCategoria)}.
               </span>
             </div>
           )}
@@ -1043,7 +996,7 @@ function MisPartidosView({ seccion = 'resultados' }) {
             className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 font-semibold text-slate-100 transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {enviando ? <Loader2 className="h-5 w-5 animate-spin" /> : <Plus className="h-5 w-5" />}
-            {enviando ? 'Registrando...' : 'Registrar partido'}
+            {enviando ? t('Registrando...') : t('Registrar partido')}
           </button>
         </form>
 
@@ -1051,8 +1004,7 @@ function MisPartidosView({ seccion = 'resultados' }) {
         {esperando.length > 0 && (
           <section className="mt-8">
             <h2 className={tituloSeccion}>
-              <Hourglass className="h-4 w-4" />
-              Resultados esperando confirmación ({esperando.length})
+              <Hourglass className="h-4 w-4" />{t("Resultados esperando confirmación (")}{t(esperando.length)})
             </h2>
             <ul className="grid gap-3">
               {esperando.map((partido) => (
@@ -1060,16 +1012,15 @@ function MisPartidosView({ seccion = 'resultados' }) {
                   <div className="flex items-start gap-3">
                     <ResultadoIcono partido={partido} />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-slate-100">
-                        vs {nombreCompleto(partido.rival)}
+                      <p className="truncate text-sm font-semibold text-slate-100">{t("vs ")}{nombreCompleto(partido.rival)}
                       </p>
-                      {detallePartido(partido)}
+                      {t(detallePartido(partido))}
                     </div>
                     <button
                       type="button"
                       onClick={() => actualizarPartido(partido.id, 'eliminar')}
                       disabled={procesando === partido.id}
-                      aria-label="Eliminar partido"
+                      aria-label={t("Eliminar partido")}
                       className="rounded-xl border border-slate-700/50 bg-slate-900/60 p-2 text-slate-400 transition-colors hover:border-red-500/50 hover:bg-red-500/10 hover:text-red-400 disabled:opacity-60"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -1085,19 +1036,13 @@ function MisPartidosView({ seccion = 'resultados' }) {
         {/* Historial */}
         <section className="mt-8">
           <h2 className={tituloSeccion}>
-            <History className="h-4 w-4" />
-            Historial de resultados
-          </h2>
+            <History className="h-4 w-4" />{t("Historial de resultados")}</h2>
 
           {cargando ? (
             <p className="flex items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-700/50 bg-slate-800/40 p-5 text-sm text-slate-500">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Cargando partidos...
-            </p>
+              <Loader2 className="h-4 w-4 animate-spin" />{t("Cargando partidos...")}</p>
           ) : historial.length === 0 ? (
-            <p className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-800/40 p-5 text-center text-sm text-slate-500">
-              Aún no tienes partidos confirmados.
-            </p>
+            <p className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-800/40 p-5 text-center text-sm text-slate-500">{t("Aún no tienes partidos confirmados.")}</p>
           ) : (
             <ul className="grid max-h-96 gap-3 overflow-y-auto overscroll-contain p-1">
               {historial.map((partido) => {
@@ -1112,14 +1057,11 @@ function MisPartidosView({ seccion = 'resultados' }) {
                     <div className="flex items-start gap-3">
                       <ResultadoIcono partido={partido} />
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-slate-100">
-                          vs {nombreCompleto(partido.rival)}
+                        <p className="truncate text-sm font-semibold text-slate-100">{t("vs ")}{nombreCompleto(partido.rival)}
                         </p>
-                        {detallePartido(partido)}
+                        {t(detallePartido(partido))}
                         {confirmado && !suma && (
-                          <p className="mt-1 text-[11px] text-slate-500">
-                            Jugado en {partido.miCategoria}: ya no suma en tu categoría actual.
-                          </p>
+                          <p className="mt-1 text-[11px] text-slate-500">{t("Jugado en ")}{t(partido.miCategoria)}{t(": ya no suma en tu categoría actual.")}</p>
                         )}
                       </div>
                       <span
@@ -1131,7 +1073,7 @@ function MisPartidosView({ seccion = 'resultados' }) {
                               : 'bg-red-500/10 text-red-300'
                         }`}
                       >
-                        {confirmado ? formatPuntos(partido.puntos) : 'Rechazado'}
+                        {confirmado ? formatPuntos(partido.puntos) : t('Rechazado')}
                       </span>
                     </div>
                     <CanchaPartido cancha={partido.cancha} />
@@ -1145,11 +1087,8 @@ function MisPartidosView({ seccion = 'resultados' }) {
         </>
         )}
 
-        <p className="mt-auto pt-10 text-center text-xs text-slate-500">
-          ¿Buscas rival?{' '}
-          <Link to="/buscar-partido" className="font-semibold text-emerald-400 hover:text-emerald-300">
-            Encuentra uno en Buscar Partido
-          </Link>
+        <p className="mt-auto pt-10 text-center text-xs text-slate-500">{t("¿Buscas rival?")}{' '}
+          <Link to="/buscar-partido" className="font-semibold text-emerald-400 hover:text-emerald-300">{t("Encuentra uno en Buscar Partido")}</Link>
         </p>
       </div>
 
@@ -1166,7 +1105,7 @@ function MisPartidosView({ seccion = 'resultados' }) {
             <button
               type="button"
               onClick={() => setPerfilAbierto(null)}
-              aria-label="Cerrar perfil"
+              aria-label={t("Cerrar perfil")}
               className="absolute right-3 top-3 rounded-xl border border-slate-700/50 bg-slate-800/60 p-2 text-slate-400 transition-colors hover:border-red-500/50 hover:text-red-400"
             >
               <XCircle className="h-4 w-4" />
@@ -1174,13 +1113,11 @@ function MisPartidosView({ seccion = 'resultados' }) {
 
             {perfilCargando ? (
               <p className="flex items-center justify-center gap-2 py-8 text-sm text-slate-400">
-                <Loader2 className="h-5 w-5 animate-spin" />
-                Cargando perfil...
-              </p>
+                <Loader2 className="h-5 w-5 animate-spin" />{t("Cargando perfil...")}</p>
             ) : perfilError ? (
               <p className="flex items-start gap-2 rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-300">
                 <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                {perfilError}
+                {t(perfilError)}
               </p>
             ) : perfilDatos ? (
               <>
@@ -1189,7 +1126,7 @@ function MisPartidosView({ seccion = 'resultados' }) {
                     {perfilDatos.avatar_url ? (
                       <img
                         src={perfilDatos.avatar_url}
-                        alt={`Foto de ${nombreCompleto(perfilDatos)}`}
+                        alt={t("Foto de {0}", { 0: nombreCompleto(perfilDatos) })}
                         className="h-24 w-24 rounded-full border-2 border-slate-900 object-cover"
                       />
                     ) : (
@@ -1202,35 +1139,29 @@ function MisPartidosView({ seccion = 'resultados' }) {
                     {nombreCompleto(perfilDatos)}
                   </h2>
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300">
-                    {perfilDatos.nivel || 'Sin nivel'}
+                    {perfilDatos.nivel || t('Sin nivel')}
                   </span>
                 </div>
 
                 <dl className="mt-5 grid gap-3">
                   <div>
-                    <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                      Comuna
-                    </dt>
+                    <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">{t("Comuna")}</dt>
                     <dd className="mt-0.5 flex items-center gap-2 text-sm text-slate-100">
                       <MapPin className="h-4 w-4 shrink-0 text-slate-500" />
-                      {perfilDatos.comuna || 'No especificada'}
+                      {perfilDatos.comuna || t('No especificada')}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                      Sobre mí
-                    </dt>
+                    <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">{t("Sobre mí")}</dt>
                     <dd className="mt-0.5 text-sm text-slate-300">
-                      {perfilDatos.bio || 'Sin descripción.'}
+                      {perfilDatos.bio || t('Sin descripción.')}
                     </dd>
                   </div>
                 </dl>
 
                 {perfilResenas && (
                   <div className="mt-5 rounded-xl border border-amber-400/30 bg-amber-400/5 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Calificación de otros jugadores
-                    </p>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("Calificación de otros jugadores")}</p>
                     <div className="mt-2 flex items-center gap-2">
                       <div className="flex items-center gap-0.5">
                         {[1, 2, 3, 4, 5].map((n) => (
@@ -1245,9 +1176,7 @@ function MisPartidosView({ seccion = 'resultados' }) {
                         ))}
                       </div>
                       <span className="text-sm font-semibold text-slate-100">
-                        {perfilResenas.promedio
-                          ? `${perfilResenas.promedio} de 5`
-                          : 'Sin reseñas'}
+                        {perfilResenas.promedio ? t("{0} de 5", { 0: t(perfilResenas.promedio) }) : t('Sin reseñas')}
                       </span>
                     </div>
                   </div>

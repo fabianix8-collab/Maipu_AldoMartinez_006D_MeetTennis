@@ -1,3 +1,4 @@
+import { useLanguage } from '../lib/i18n.js';
 // MapEmbed.jsx
 // Muestra un mapa de Google embebido dentro de la app, sin abrir pestañas
 // externas. Usa el endpoint público de embed de Google Maps, que no
@@ -13,13 +14,16 @@
 import { crearUrlMapa } from '../lib/mapas.js';
 
 function MapEmbed({ latitud, longitud, direccion, titulo, className }) {
+  const { t, language } = useLanguage();
   const src = crearUrlMapa({ latitud, longitud, direccion });
-  if (!src) return <p className="mt-3 text-xs text-slate-400">Ubicación no disponible.</p>;
+  if (!src) return <p className="mt-3 text-xs text-slate-400">{t("Ubicación no disponible.")}</p>;
+  const localizedSrc = new URL(src);
+  localizedSrc.searchParams.set('hl', language);
 
   return (
     <iframe
-      src={src}
-      title={titulo || 'Mapa'}
+      src={localizedSrc.toString()}
+      title={titulo || t('Mapa')}
       loading="lazy"
       allowFullScreen
       referrerPolicy="no-referrer-when-downgrade"

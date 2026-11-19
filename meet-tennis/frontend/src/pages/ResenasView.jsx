@@ -1,3 +1,5 @@
+import LanguageSelector from '../components/LanguageSelector.jsx';
+import { useLanguage } from '../lib/i18n.js';
 import { useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
@@ -29,11 +31,12 @@ const tituloSeccion =
   'mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-400';
 
 function Avatar({ jugador, size = 'h-10 w-10' }) {
+  const { t } = useLanguage();
   if (jugador?.avatar_url) {
     return (
       <img
         src={jugador.avatar_url}
-        alt={`Foto de ${nombreCompleto(jugador)}`}
+        alt={t("Foto de {0}", { 0: nombreCompleto(jugador) })}
         className={`${size} shrink-0 rounded-full border-2 border-slate-900 object-cover`}
       />
     );
@@ -60,6 +63,7 @@ function Avatar({ jugador, size = 'h-10 w-10' }) {
 // Estrellas: si recibe onChange son interactivas (selector), si no,
 // solo muestran la calificación.
 function Estrellas({ valor, onChange, size = 'h-5 w-5' }) {
+  const { t } = useLanguage();
   const [hover, setHover] = useState(0);
   const activo = onChange ? hover || valor : valor;
 
@@ -73,7 +77,7 @@ function Estrellas({ valor, onChange, size = 'h-5 w-5' }) {
           onMouseEnter={() => onChange && setHover(n)}
           onMouseLeave={() => onChange && setHover(0)}
           onClick={() => onChange && onChange(n)}
-          aria-label={`${n} estrella${n > 1 ? 's' : ''}`}
+          aria-label={t("{0} estrella{1}", { 0: t(n), 1: n > 1 ? t('s') : '' })}
           className={onChange ? 'transition-transform hover:scale-110' : 'cursor-default'}
         >
           <Star
@@ -90,6 +94,7 @@ function Estrellas({ valor, onChange, size = 'h-5 w-5' }) {
 }
 
 function Aviso({ status }) {
+  const { t } = useLanguage();
   if (status.type === 'idle') return null;
   const exito = status.type === 'success';
   return (
@@ -105,12 +110,13 @@ function Aviso({ status }) {
       ) : (
         <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
       )}
-      {status.message}
+      {t(status.message)}
     </div>
   );
 }
 
 function ResenasView() {
+  const { t } = useLanguage();
   const miId = getStoredAuth()?.user?.id;
 
   const [jugadores, setJugadores] = useState([]);
@@ -194,7 +200,7 @@ function ResenasView() {
     return (
       <p className="mt-1.5 flex items-center gap-1 text-xs text-red-400">
         <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-        {errors[name]}
+        {t(errors[name])}
       </p>
     );
   };
@@ -266,10 +272,10 @@ function ResenasView() {
   const enviadas = jugadores.filter((j) => j.miResena);
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-slate-900 px-4 py-8">
+    <div className="relative min-h-dvh overflow-hidden bg-slate-900 px-4 py-8">
       <TennisBackground />
 
-      <div className="relative mx-auto flex min-h-[calc(100vh-4rem)] max-w-md flex-col">
+      <div className="relative mx-auto flex min-h-[calc(100dvh-4rem)] max-w-md flex-col">
         <header className="flex items-start justify-between gap-4">
           <div>
             <BrandLogo className="mb-4 h-16 sm:h-20" />
@@ -278,29 +284,28 @@ function ResenasView() {
                 <MessageSquare className="h-5 w-5" />
               </span>
               <div>
-                <h1 className="text-2xl font-bold leading-tight text-slate-100">
-                  Reseñas de Jugadores
-                </h1>
-                <p className="mt-1 text-sm text-slate-400">
-                  Califica la confiabilidad de tus rivales
-                </p>
+                <h1 className="text-2xl font-bold leading-tight text-slate-100">{t("Reseñas de Jugadores")}</h1>
+                <p className="mt-1 text-sm text-slate-400">{t("Califica la confiabilidad de tus rivales")}</p>
               </div>
             </div>
           </div>
 
-          <Link
-            to="/"
-            aria-label="Volver al inicio"
-            className="rounded-xl border border-slate-700/50 bg-slate-800/60 p-2.5 text-slate-400 shadow-2xl backdrop-blur-md transition-colors hover:border-emerald-500/50 hover:text-emerald-300"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
+          <div className="flex shrink-0 flex-col items-end gap-2">
+            <Link
+              to="/"
+              aria-label={t("Volver al inicio")}
+              className="rounded-xl border border-slate-700/50 bg-slate-800/60 p-2.5 text-slate-400 shadow-2xl backdrop-blur-md transition-colors hover:border-emerald-500/50 hover:text-emerald-300"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
+            <LanguageSelector />
+          </div>
         </header>
 
         {errorCarga && (
           <p className="mt-6 flex items-start gap-2 rounded-2xl border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-300">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-            {errorCarga}
+            {t(errorCarga)}
           </p>
         )}
 
@@ -310,29 +315,17 @@ function ResenasView() {
           noValidate
           className="mt-8 rounded-2xl border border-slate-700/50 bg-slate-900/60 p-6 shadow-2xl backdrop-blur-md"
         >
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">
-            Dejar una reseña
-          </h2>
-          <p className="mt-1 text-xs text-slate-500">
-            Solo puedes reseñar a rivales con los que ya jugaste un partido
-            confirmado y hayan pasado al menos 24 horas desde que jugaron.
-            Cuenta cómo fue tu experiencia: si asistió, llegó a tiempo, su
-            actitud en la cancha, etc. Las reseñas son anónimas.
-          </p>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">{t("Dejar una reseña")}</h2>
+          <p className="mt-1 text-xs text-slate-500">{t("Solo puedes reseñar a rivales con los que ya jugaste un partido confirmado y hayan pasado al menos 24 horas desde que jugaron. Cuenta cómo fue tu experiencia: si asistió, llegó a tiempo, su actitud en la cancha, etc. Las reseñas son anónimas.")}</p>
 
           <div className="mt-4">
-            <span className={labelClass}>Jugador</span>
+            <span className={labelClass}>{t("Jugador")}</span>
             <div className="mt-1.5 max-h-56 space-y-1.5 overflow-y-auto overscroll-contain rounded-xl border border-slate-700/50 bg-slate-800/50 p-2">
               {cargando ? (
                 <p className="flex items-center justify-center gap-2 p-4 text-sm text-slate-500">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Cargando jugadores...
-                </p>
+                  <Loader2 className="h-4 w-4 animate-spin" />{t("Cargando jugadores...")}</p>
               ) : jugadores.length === 0 ? (
-                <p className="p-4 text-center text-sm text-slate-500">
-                  Aún no puedes dejar reseñas. Juega un partido confirmado y
-                  espera al menos 24 horas para poder calificar a tu rival.
-                </p>
+                <p className="p-4 text-center text-sm text-slate-500">{t("Aún no puedes dejar reseñas. Juega un partido confirmado y espera al menos 24 horas para poder calificar a tu rival.")}</p>
               ) : (
                 jugadores.map((jugador) => {
                   const seleccionado = jugador.id === jugadorId;
@@ -353,11 +346,9 @@ function ResenasView() {
                           {nombreCompleto(jugador)}
                         </p>
                         <p className="text-xs text-slate-400">
-                          {jugador.promedio
-                            ? `${jugador.promedio}★ · ${jugador.totalResenas} ${
-                                jugador.totalResenas === 1 ? 'reseña' : 'reseñas'
-                              }`
-                            : 'Sin reseñas aún'}
+                          {jugador.promedio ? `${jugador.promedio}★ · ${jugador.totalResenas} ${
+                                t(jugador.totalResenas === 1 ? 'reseña' : 'reseñas')
+                              }` : t('Sin reseñas aún')}
                         </p>
                       </div>
                       {seleccionado && (
@@ -368,24 +359,22 @@ function ResenasView() {
                 })
               )}
             </div>
-            {renderError('jugador')}
+            {t(renderError('jugador'))}
           </div>
 
           <div className="mt-5">
-            <span className={labelClass}>Calificación</span>
+            <span className={labelClass}>{t("Calificación")}</span>
             <div className="mt-2 flex items-center gap-3">
               <Estrellas valor={calificacion} onChange={setCalificacion} />
               <span className="text-sm text-slate-400">
-                {calificacion ? `${calificacion}/5` : 'Toca las estrellas'}
+                {calificacion ? `${calificacion}/5` : t('Toca las estrellas')}
               </span>
             </div>
-            {renderError('calificacion')}
+            {t(renderError('calificacion'))}
           </div>
 
           <div className="mt-5">
-            <label className={labelClass} htmlFor="comentario">
-              Comentario (opcional)
-            </label>
+            <label className={labelClass} htmlFor="comentario">{t("Comentario (opcional)")}</label>
             <textarea
               id="comentario"
               rows={3}
@@ -395,21 +384,19 @@ function ResenasView() {
                 setComentario(event.target.value);
                 setStatusForm({ type: 'idle', message: '' });
               }}
-              placeholder="Ej: Llegó puntual y jugamos un gran partido..."
+              placeholder={t("Ej: Llegó puntual y jugamos un gran partido...")}
               className="mt-1 w-full resize-none rounded-xl border border-slate-700/50 bg-slate-800/70 px-4 py-3 text-sm text-slate-100 placeholder-slate-500 outline-none transition-colors focus:border-emerald-500"
             />
             <div className="mt-2 flex items-center justify-between">
               <span className="text-xs text-slate-500">
-                {comentario.length}/{COMENTARIO_MAX}
+                {t(comentario.length)}/{t(COMENTARIO_MAX)}
               </span>
             </div>
           </div>
 
           {editando && (
             <p className="mt-3 flex items-center gap-1.5 text-xs text-amber-300">
-              <Star className="h-3.5 w-3.5 shrink-0 fill-amber-400 text-amber-400" />
-              Ya dejaste una reseña para este jugador: al guardar la actualizarás.
-            </p>
+              <Star className="h-3.5 w-3.5 shrink-0 fill-amber-400 text-amber-400" />{t("Ya dejaste una reseña para este jugador: al guardar la actualizarás.")}</p>
           )}
 
           <Aviso status={statusForm} />
@@ -426,42 +413,30 @@ function ResenasView() {
             ) : (
               <Star className="h-5 w-5" />
             )}
-            {enviando
-              ? 'Guardando...'
-              : editando
-                ? 'Actualizar reseña'
-                : 'Publicar reseña'}
+            {enviando ? t('Guardando...') : editando ? t('Actualizar reseña') : t('Publicar reseña')}
           </button>
         </form>
 
         {/* Reseñas que recibí */}
         <section className="mt-8">
           <h2 className={tituloSeccion}>
-            <Star className="h-4 w-4 text-amber-300" />
-            Reseñas que recibí
-          </h2>
+            <Star className="h-4 w-4 text-amber-300" />{t("Reseñas que recibí")}</h2>
 
           {cargando ? (
             <p className="flex items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-700/50 bg-slate-800/40 p-5 text-sm text-slate-500">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Cargando reseñas...
-            </p>
+              <Loader2 className="h-4 w-4 animate-spin" />{t("Cargando reseñas...")}</p>
           ) : recibidas.length === 0 ? (
-            <p className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-800/40 p-5 text-center text-sm text-slate-500">
-              Aún no recibes reseñas. Juega con otros jugadores para que te
-              califiquen.
-            </p>
+            <p className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-800/40 p-5 text-center text-sm text-slate-500">{t("Aún no recibes reseñas. Juega con otros jugadores para que te califiquen.")}</p>
           ) : (
             <>
               <div className="mb-3 flex items-center gap-3 rounded-2xl border border-amber-400/30 bg-amber-400/5 p-4">
                 <Estrellas valor={Math.round(miPromedio)} size="h-6 w-6" />
                 <div>
                   <p className="text-sm font-semibold text-slate-100">
-                    {miPromedio} de 5
-                  </p>
+                    {t(miPromedio)}{t(" de 5")}</p>
                   <p className="text-xs text-slate-400">
-                    {recibidas.length}{' '}
-                    {recibidas.length === 1 ? 'reseña' : 'reseñas'}
+                    {t(recibidas.length)}{' '}
+                    {recibidas.length === 1 ? t('reseña') : t('reseñas')}
                   </p>
                 </div>
               </div>
@@ -473,7 +448,7 @@ function ResenasView() {
                       <Avatar jugador={resena.autor} />
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold text-slate-100">
-                          {resena.autor ? nombreCompleto(resena.autor) : 'Jugador anónimo'}
+                          {resena.autor ? nombreCompleto(resena.autor) : t('Jugador anónimo')}
                         </p>
                         <div className="mt-1">
                           <Estrellas valor={resena.calificacion} size="h-4 w-4" />
@@ -484,7 +459,7 @@ function ResenasView() {
                           </p>
                         )}
                         <p className="mt-1.5 text-xs text-slate-500">
-                          {haceCuanto(resena.created_at)}
+                          {t(haceCuanto(resena.created_at))}
                         </p>
                       </div>
                     </div>
@@ -498,21 +473,15 @@ function ResenasView() {
         {/* Reseñas que dejé */}
         <section className="mt-8">
           <h2 className={tituloSeccion}>
-            <MessageSquare className="h-4 w-4" />
-            Reseñas que dejé
-          </h2>
+            <MessageSquare className="h-4 w-4" />{t("Reseñas que dejé")}</h2>
 
           <Aviso status={statusLista} />
 
           {cargando ? (
             <p className="flex items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-700/50 bg-slate-800/40 p-5 text-sm text-slate-500">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Cargando reseñas...
-            </p>
+              <Loader2 className="h-4 w-4 animate-spin" />{t("Cargando reseñas...")}</p>
           ) : enviadas.length === 0 ? (
-            <p className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-800/40 p-5 text-center text-sm text-slate-500">
-              Aún no has dejado reseñas.
-            </p>
+            <p className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-800/40 p-5 text-center text-sm text-slate-500">{t("Aún no has dejado reseñas.")}</p>
           ) : (
             <ul className="grid max-h-96 gap-3 overflow-y-auto overscroll-contain pr-1">
               {enviadas.map((jugador) => (
@@ -534,14 +503,14 @@ function ResenasView() {
                       </p>
                     )}
                     <p className="mt-1.5 text-xs text-slate-500">
-                      {haceCuanto(jugador.miResena.created_at)}
+                      {t(haceCuanto(jugador.miResena.created_at))}
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={() => eliminarResena(jugador.miResena.id)}
                     disabled={procesando === jugador.miResena.id}
-                    aria-label="Eliminar reseña"
+                    aria-label={t("Eliminar reseña")}
                     className="rounded-xl border border-slate-700/50 bg-slate-900/60 p-2 text-slate-400 transition-colors hover:border-red-500/50 hover:bg-red-500/10 hover:text-red-400 disabled:opacity-60"
                   >
                     {procesando === jugador.miResena.id ? (
@@ -556,10 +525,7 @@ function ResenasView() {
           )}
         </section>
 
-        <p className="mt-auto pt-10 text-center text-xs text-slate-500">
-          Las reseñas son anónimas y ayudan a que la comunidad sea más
-          confiable.
-        </p>
+        <p className="mt-auto pt-10 text-center text-xs text-slate-500">{t("Las reseñas son anónimas y ayudan a que la comunidad sea más confiable.")}</p>
       </div>
     </div>
   );

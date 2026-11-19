@@ -1,23 +1,28 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
-import LoginView from './pages/LoginView.jsx';
-import RegisterView from './pages/RegisterView.jsx';
-import DashboardView from './pages/DashboardView.jsx';
-import AvailabilityView from './pages/AvailabilityView.jsx';
-import CourtsView from './pages/CourtsView.jsx';
-import MatchmakingView from './pages/MatchmakingView.jsx';
-import MisPartidosView from './pages/MisPartidosView.jsx';
-import ProfileView from './pages/ProfileView.jsx';
-import RankingView from './pages/RankingView.jsx';
-import ResenasView from './pages/ResenasView.jsx';
-import ChatView from './pages/ChatView.jsx';
-import ProductosView from './pages/ProductosView.jsx';
-import MonitoreoView from './pages/MonitoreoView.jsx';
-import AdminUsuariosView from './pages/AdminUsuariosView.jsx';
+import { useLanguage } from './lib/i18n.js';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 
+const LoginView = lazy(() => import('./pages/LoginView.jsx'));
+const RegisterView = lazy(() => import('./pages/RegisterView.jsx'));
+const DashboardView = lazy(() => import('./pages/DashboardView.jsx'));
+const AvailabilityView = lazy(() => import('./pages/AvailabilityView.jsx'));
+const CourtsView = lazy(() => import('./pages/CourtsView.jsx'));
+const MatchmakingView = lazy(() => import('./pages/MatchmakingView.jsx'));
+const MisPartidosView = lazy(() => import('./pages/MisPartidosView.jsx'));
+const ProfileView = lazy(() => import('./pages/ProfileView.jsx'));
+const RankingView = lazy(() => import('./pages/RankingView.jsx'));
+const ResenasView = lazy(() => import('./pages/ResenasView.jsx'));
+const ChatView = lazy(() => import('./pages/ChatView.jsx'));
+const ProductosView = lazy(() => import('./pages/ProductosView.jsx'));
+const MonitoreoView = lazy(() => import('./pages/MonitoreoView.jsx'));
+const AdminUsuariosView = lazy(() => import('./pages/AdminUsuariosView.jsx'));
+
 function App() {
+  const { t } = useLanguage();
   return (
     <BrowserRouter>
+      <Suspense fallback={<p role="status" className="min-h-dvh bg-slate-900 p-8 text-center text-slate-300">{t('Cargando...')}</p>}>
       <Routes>
         <Route
           path="/"
@@ -135,6 +140,7 @@ function App() {
         <Route path="/register" element={<RegisterView />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }

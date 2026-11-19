@@ -1,3 +1,5 @@
+import LanguageSelector from '../components/LanguageSelector.jsx';
+import { useLanguage } from '../lib/i18n.js';
 import { useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
@@ -64,6 +66,7 @@ function formatZona(slot) {
 }
 
 function MatchmakingView() {
+  const { t } = useLanguage();
   const [miDisponibilidad, setMiDisponibilidad] = useState([]);
   const [rivales, setRivales] = useState([]);
   const [loadingRivales, setLoadingRivales] = useState(true);
@@ -331,7 +334,7 @@ function MatchmakingView() {
       return (
         <img
           src={rival.avatar_url}
-          alt={`Foto de ${rival.nombre} ${rival.apellido}`}
+          alt={t("Foto de {0} {1}", { 0: rival.nombre, 1: rival.apellido })}
           className="h-11 w-11 rounded-full border-2 border-slate-900 object-cover"
         />
       );
@@ -377,10 +380,10 @@ function MatchmakingView() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-slate-900 px-4 py-8">
+    <div className="relative min-h-dvh overflow-hidden bg-slate-900 px-4 py-8">
       <TennisBackground />
 
-      <div className="relative mx-auto flex min-h-[calc(100vh-4rem)] max-w-md flex-col">
+      <div className="relative mx-auto flex min-h-[calc(100dvh-4rem)] max-w-md flex-col">
         <header className="flex items-start justify-between gap-4">
           <div>
             <BrandLogo className="mb-4 h-16 sm:h-20" />
@@ -389,23 +392,22 @@ function MatchmakingView() {
                 <Swords className="h-5 w-5" />
               </span>
               <div>
-                <h1 className="text-2xl font-bold leading-tight text-slate-100">
-                  Buscar Partido
-                </h1>
-                <p className="mt-1 text-sm text-slate-400">
-                  Encuentra un rival y coordina la cancha
-                </p>
+                <h1 className="text-2xl font-bold leading-tight text-slate-100">{t("Buscar Partido")}</h1>
+                <p className="mt-1 text-sm text-slate-400">{t("Encuentra un rival y coordina la cancha")}</p>
               </div>
             </div>
           </div>
 
-          <Link
-            to="/"
-            aria-label="Volver al inicio"
-            className="rounded-xl border border-slate-700/50 bg-slate-800/60 p-2.5 text-slate-400 shadow-2xl backdrop-blur-md transition-colors hover:border-emerald-500/50 hover:text-emerald-300"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
+          <div className="flex shrink-0 flex-col items-end gap-2">
+            <Link
+              to="/"
+              aria-label={t("Volver al inicio")}
+              className="rounded-xl border border-slate-700/50 bg-slate-800/60 p-2.5 text-slate-400 shadow-2xl backdrop-blur-md transition-colors hover:border-emerald-500/50 hover:text-emerald-300"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
+            <LanguageSelector />
+          </div>
         </header>
 
         {/* Mi disponibilidad */}
@@ -416,14 +418,10 @@ function MatchmakingView() {
                 <CalendarClock className="h-5 w-5" />
               </span>
               <div>
-                <h2 className="text-sm font-semibold text-slate-100">
-                  Mi disponibilidad
-                </h2>
+                <h2 className="text-sm font-semibold text-slate-100">{t("Mi disponibilidad")}</h2>
                 <p className="mt-0.5 text-xs text-slate-400">
-                  {sinDisponibilidad
-                    ? 'Aún no has publicado bloques'
-                    : `${miDisponibilidad.length} ${
-                        miDisponibilidad.length === 1 ? 'bloque publicado' : 'bloques publicados'
+                  {sinDisponibilidad ? t('Aún no has publicado bloques') : `${miDisponibilidad.length} ${
+                        t(miDisponibilidad.length === 1 ? 'bloque publicado' : 'bloques publicados')
                       }`}
                 </p>
               </div>
@@ -433,32 +431,23 @@ function MatchmakingView() {
               to="/disponibilidad"
               className="flex items-center gap-1.5 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-300 transition-colors hover:bg-emerald-500/20"
             >
-              <Plus className="h-3.5 w-3.5" />
-              Publicar
-            </Link>
+              <Plus className="h-3.5 w-3.5" />{t("Publicar")}</Link>
           </div>
 
           {sinDisponibilidad && (
             <p className="mt-4 flex items-start gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-300">
-              <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              Publica tu disponibilidad para que el sistema pueda encontrar
-              rivales con horarios compatibles.
-            </p>
+              <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />{t("Publica tu disponibilidad para que el sistema pueda encontrar rivales con horarios compatibles.")}</p>
           )}
         </section>
 
         {/* Filtros */}
         <section className="mt-6 rounded-2xl border border-slate-700/50 bg-slate-900/60 p-5 shadow-2xl backdrop-blur-md">
           <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-400">
-            <Users className="h-4 w-4" />
-            Filtros de búsqueda
-          </h2>
+            <Users className="h-4 w-4" />{t("Filtros de búsqueda")}</h2>
 
           <div className="mt-4 grid gap-4">
             <div>
-              <label className={labelClass} htmlFor="filtro-nivel">
-                Categoría
-              </label>
+              <label className={labelClass} htmlFor="filtro-nivel">{t("Categoría")}</label>
               <select
                 id="filtro-nivel"
                 name="filtro-nivel"
@@ -469,16 +458,14 @@ function MatchmakingView() {
                 }}
                 className={`${inputBase} appearance-none`}
               >
-                <option value="" className="bg-slate-800 text-slate-100">
-                  Todas
-                </option>
+                <option value="" className="bg-slate-800 text-slate-100">{t("Todas")}</option>
                 {CATEGORIAS.map((categoria) => (
                   <option
                     key={categoria}
                     value={categoria}
                     className="bg-slate-800 text-slate-100"
                   >
-                    {categoria}
+                    {t(categoria)}
                   </option>
                 ))}
               </select>
@@ -487,33 +474,27 @@ function MatchmakingView() {
 
           {geoStatus === 'success' && (
             <p className="mt-3 flex items-center gap-1.5 text-xs text-emerald-300">
-              <Navigation className="h-3.5 w-3.5" />
-              Usando tu ubicación para recomendar la cancha más cercana.
-            </p>
+              <Navigation className="h-3.5 w-3.5" />{t("Usando tu ubicación para recomendar la cancha más cercana.")}</p>
           )}
         </section>
 
         {/* Rivales */}
         <section className="mt-8">
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">
-            {resumenRivales}
+            {t(resumenRivales)}
           </h2>
 
           {loadingRivales ? (
             <p className="flex items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-700/50 bg-slate-800/40 p-5 text-center text-sm text-slate-500">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Buscando rivales compatibles...
-            </p>
+              <Loader2 className="h-4 w-4 animate-spin" />{t("Buscando rivales compatibles...")}</p>
           ) : errorRivales ? (
             <p className="flex items-start gap-2 rounded-2xl border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-300">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-              {errorRivales}
+              {t(errorRivales)}
             </p>
           ) : rivales.length === 0 ? (
             <p className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-800/40 p-5 text-center text-sm text-slate-500">
-              {sinDisponibilidad
-                ? 'Publica tu disponibilidad para encontrar rivales.'
-                : 'No hay rivales con disponibilidad publicada. Prueba ampliar los filtros.'}
+              {sinDisponibilidad ? t('Publica tu disponibilidad para encontrar rivales.') : t('No hay rivales con disponibilidad publicada. Prueba ampliar los filtros.')}
             </p>
           ) : (
             <ul className="grid gap-4">
@@ -531,11 +512,11 @@ function MatchmakingView() {
                       <button
                         type="button"
                         onClick={() => verPerfil(rival)}
-                        aria-label={`Ver perfil de ${rival.nombre} ${rival.apellido}`}
-                        title="Ver perfil"
+                        aria-label={t("Ver perfil de {0} {1}", { 0: rival.nombre, 1: rival.apellido })}
+                        title={t("Ver perfil")}
                         className="relative inline-flex shrink-0 cursor-pointer rounded-full bg-gradient-to-tr from-emerald-500 via-emerald-400 to-lime-300 p-[2px] transition-transform hover:scale-105"
                       >
-                        {renderAvatar(rival)}
+                        {t(renderAvatar(rival))}
                       </button>
 
                       <div className="min-w-0 flex-1">
@@ -544,32 +525,25 @@ function MatchmakingView() {
                         </h3>
                         <span className="mt-1 inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-300">
                           <Trophy className="h-3 w-3" />
-                          {rival.nivel}
+                          {t(rival.nivel)}
                         </span>
                       </div>
 
                       <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-slate-600/50 bg-slate-900/60 px-2.5 py-1 text-xs font-semibold text-slate-300">
                         <Clock className="h-3 w-3" />
-                        {rival.coincidencias.length === 0
-                          ? 'Sin coincidencias'
-                          : `${rival.coincidencias.length} ${
-                              rival.coincidencias.length === 1
+                        {rival.coincidencias.length === 0 ? t('Sin coincidencias') : `${rival.coincidencias.length} ${
+                              t(rival.coincidencias.length === 1
                                 ? 'coincidencia'
-                                : 'coincidencias'
+                                : 'coincidencias')
                             }`}
                       </span>
                     </div>
 
                     {/* Coincidencias de horario */}
                     <div className="mt-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-emerald-400">
-                        Horarios compatibles
-                      </p>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-emerald-400">{t("Horarios compatibles")}</p>
                       {rival.coincidencias.length === 0 ? (
-                        <p className="mt-2 text-xs text-slate-400">
-                          Sin horarios compatibles por ahora. Puedes proponerle un
-                          partido igualmente.
-                        </p>
+                        <p className="mt-2 text-xs text-slate-400">{t("Sin horarios compatibles por ahora. Puedes proponerle un partido igualmente.")}</p>
                       ) : (
                         <ul className="mt-2 grid gap-1.5">
                           {rival.coincidencias.slice(0, 3).map((coincidencia, index) => (
@@ -578,15 +552,15 @@ function MatchmakingView() {
                               className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-slate-300"
                             >
                               <span className="font-semibold text-slate-100">
-                                {nombresDias(coincidencia.rivalSlot.dias).join(', ')}
+                                {t(nombresDias(coincidencia.rivalSlot.dias).join(', '))}
                               </span>
                               <span className="text-emerald-300">
-                                {coincidencia.rivalSlot.desde} -{' '}
-                                {coincidencia.rivalSlot.hasta}
+                                {t(coincidencia.rivalSlot.desde)} -{' '}
+                                {t(coincidencia.rivalSlot.hasta)}
                               </span>
                               {formatZona(coincidencia.rivalSlot) && (
                                 <span className="text-slate-500">
-                                  · {formatZona(coincidencia.rivalSlot)}
+                                  · {t(formatZona(coincidencia.rivalSlot))}
                                 </span>
                               )}
                             </li>
@@ -599,9 +573,7 @@ function MatchmakingView() {
                     {recomendada ? (
                       <div className="mt-3 rounded-xl border border-slate-600/50 bg-slate-900/60 p-3">
                         <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-emerald-400">
-                          <MapPin className="h-3.5 w-3.5" />
-                          Cancha recomendada
-                        </p>
+                          <MapPin className="h-3.5 w-3.5" />{t("Cancha recomendada")}</p>
 
                         {recomendada.recomendada ? (
                           <>
@@ -615,18 +587,12 @@ function MatchmakingView() {
                             {recomendada.modo === 'coordenadas' && (
                               <div className="mt-2 flex flex-wrap gap-2">
                                 <span className="inline-flex items-center gap-1 rounded-full border border-slate-600/50 bg-slate-800/70 px-2.5 py-0.5 text-xs font-semibold text-slate-300">
-                                  <Navigation className="h-3 w-3" />
-                                  Tú: a{' '}
-                                  {recomendada.recomendada.distanciaYo.toFixed(1)} km
-                                </span>
+                                  <Navigation className="h-3 w-3" />{t("Tú: a")}{' '}
+                                  {t(recomendada.recomendada.distanciaYo.toFixed(1))}{t(" km")}</span>
                                 <span className="inline-flex items-center gap-1 rounded-full border border-slate-600/50 bg-slate-800/70 px-2.5 py-0.5 text-xs font-semibold text-slate-300">
-                                  <Navigation className="h-3 w-3" />
-                                  Rival: a{' '}
-                                  {recomendada.recomendada.distanciaRival.toFixed(1)} km
-                                </span>
-                                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-300">
-                                  Viaje total: {recomendada.recomendada.distanciaTotal.toFixed(1)} km
-                                </span>
+                                  <Navigation className="h-3 w-3" />{t("Rival: a")}{' '}
+                                  {t(recomendada.recomendada.distanciaRival.toFixed(1))}{t(" km")}</span>
+                                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-300">{t("Viaje total: ")}{t(recomendada.recomendada.distanciaTotal.toFixed(1))}{t(" km")}</span>
                               </div>
                             )}
 
@@ -642,7 +608,7 @@ function MatchmakingView() {
                               className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-700/50 bg-slate-800/70 py-2 text-xs font-semibold text-slate-300 transition-colors hover:border-emerald-500/50 hover:text-emerald-300"
                             >
                               <Navigation className="h-3.5 w-3.5" />
-                              {mapaAbierto[rival.id] ? 'Ocultar mapa' : 'Ver en el mapa'}
+                              {mapaAbierto[rival.id] ? t('Ocultar mapa') : t('Ver en el mapa')}
                             </button>
 
                             {mapaAbierto[rival.id] && (
@@ -650,16 +616,14 @@ function MatchmakingView() {
                                 latitud={recomendada.recomendada.latitud}
                                 longitud={recomendada.recomendada.longitud}
                                 direccion={recomendada.recomendada.direccion}
-                                titulo={`Mapa de ${recomendada.recomendada.nombre}`}
+                                titulo={t("Mapa de {0}", { 0: recomendada.recomendada.nombre })}
                                 className="mt-3 h-64 w-full rounded-xl border border-slate-700/50"
                               />
                             )}
                           </>
                         ) : (
                           <p className="mt-2 text-xs text-slate-400">
-                            {recomendada.modo === 'sin-ubicacion'
-                              ? 'No hay suficiente información de ubicación. Publica tu zona o cancha preferida en tu disponibilidad.'
-                              : 'No se encontró una cancha recomendada.'}
+                            {recomendada.modo === 'sin-ubicacion' ? t('No hay suficiente información de ubicación. Publica tu zona o cancha preferida en tu disponibilidad.') : t('No se encontró una cancha recomendada.')}
                           </p>
                         )}
                       </div>
@@ -668,21 +632,17 @@ function MatchmakingView() {
                     {errorCancha && cargandoCancha === rival.id && (
                       <p className="mt-2 flex items-center gap-1.5 text-xs text-red-400">
                         <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-                        {errorCancha}
+                        {t(errorCancha)}
                       </p>
                     )}
 
                     {/* Solicitud */}
                     {solicitudAbiertaRival && (
                       <div className="mt-3 rounded-xl border border-slate-600/50 bg-slate-900/60 p-3">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                          Proponer partido
-                        </p>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{t("Proponer partido")}</p>
 
                         <div className="mt-3">
-                          <label className={labelClass} htmlFor={`fecha-${rival.id}`}>
-                            Fecha sugerida
-                          </label>
+                          <label className={labelClass} htmlFor={`fecha-${rival.id}`}>{t("Fecha sugerida")}</label>
                           <div className="relative">
                             <Calendar className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
                             <input
@@ -704,9 +664,7 @@ function MatchmakingView() {
 
                         <div className="mt-3 grid grid-cols-2 gap-3">
                           <div>
-                            <label className={labelClass} htmlFor={`desde-${rival.id}`}>
-                              Desde
-                            </label>
+                            <label className={labelClass} htmlFor={`desde-${rival.id}`}>{t("Desde")}</label>
                             <select
                               id={`desde-${rival.id}`}
                               name="desde"
@@ -728,16 +686,14 @@ function MatchmakingView() {
                                   value={hora}
                                   className="bg-slate-800 text-slate-100"
                                 >
-                                  {hora}
+                                  {t(hora)}
                                 </option>
                               ))}
                             </select>
                           </div>
 
                           <div>
-                            <label className={labelClass} htmlFor={`hasta-${rival.id}`}>
-                              Hasta
-                            </label>
+                            <label className={labelClass} htmlFor={`hasta-${rival.id}`}>{t("Hasta")}</label>
                             <select
                               id={`hasta-${rival.id}`}
                               name="hasta"
@@ -759,7 +715,7 @@ function MatchmakingView() {
                                   value={hora}
                                   className="bg-slate-800 text-slate-100"
                                 >
-                                  {hora}
+                                  {t(hora)}
                                 </option>
                               ))}
                             </select>
@@ -767,9 +723,7 @@ function MatchmakingView() {
                         </div>
 
                         <div className="mt-3">
-                          <label className={labelClass} htmlFor={`cancha-${rival.id}`}>
-                            Cancha sugerida
-                          </label>
+                          <label className={labelClass} htmlFor={`cancha-${rival.id}`}>{t("Cancha sugerida")}</label>
                           <div className="relative">
                             <MapPin className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
                             <select
@@ -784,9 +738,7 @@ function MatchmakingView() {
                               }
                               className={`${inputBase} appearance-none pl-11`}
                             >
-                              <option value="" className="bg-slate-800 text-slate-100">
-                                Por definir
-                              </option>
+                              <option value="" className="bg-slate-800 text-slate-100">{t("Por definir")}</option>
                               {canchas.map((cancha) => (
                                 <option
                                   key={cancha.id}
@@ -801,9 +753,7 @@ function MatchmakingView() {
                         </div>
 
                         <div className="mt-3">
-                          <label className={labelClass} htmlFor={`mensaje-${rival.id}`}>
-                            Mensaje (opcional)
-                          </label>
+                          <label className={labelClass} htmlFor={`mensaje-${rival.id}`}>{t("Mensaje (opcional)")}</label>
                           <div className="relative">
                             <MessageSquare className="pointer-events-none absolute left-3.5 top-3.5 h-4 w-4 text-slate-500" />
                             <textarea
@@ -818,7 +768,7 @@ function MatchmakingView() {
                                   mensaje: event.target.value,
                                 }))
                               }
-                              placeholder="Ej: ¿Te acomoda jugar dos sets?"
+                              placeholder={t("Ej: ¿Te acomoda jugar dos sets?")}
                               className={`${inputBase} resize-none pl-11`}
                             />
                           </div>
@@ -827,13 +777,13 @@ function MatchmakingView() {
                         {statusSolicitud.type === 'success' && (
                           <p className="mt-3 flex items-center gap-1.5 text-xs text-emerald-300">
                             <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
-                            {statusSolicitud.message}
+                            {t(statusSolicitud.message)}
                           </p>
                         )}
                         {statusSolicitud.type === 'error' && (
                           <p className="mt-3 flex items-center gap-1.5 text-xs text-red-400">
                             <AlertCircle className="h-3.5 w-3.5 shrink-0" />
-                            {statusSolicitud.message}
+                            {t(statusSolicitud.message)}
                           </p>
                         )}
 
@@ -845,14 +795,10 @@ function MatchmakingView() {
                         >
                           {enviandoSolicitud ? (
                             <>
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                              Enviando...
-                            </>
+                              <Loader2 className="h-4 w-4 animate-spin" />{t("Enviando...")}</>
                           ) : (
                             <>
-                              <Send className="h-4 w-4" />
-                              Enviar solicitud
-                            </>
+                              <Send className="h-4 w-4" />{t("Enviar solicitud")}</>
                           )}
                         </button>
                       </div>
@@ -871,7 +817,7 @@ function MatchmakingView() {
                         ) : (
                           <MapPin className="h-4 w-4" />
                         )}
-                        {recomendada ? 'Ver cancha' : 'Cancha recomendada'}
+                        {recomendada ? t('Ver cancha') : t('Cancha recomendada')}
                       </button>
 
                       <button
@@ -880,7 +826,7 @@ function MatchmakingView() {
                         className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-slate-100 transition-colors hover:bg-emerald-700"
                       >
                         <Send className="h-4 w-4" />
-                        {solicitudAbiertaRival ? 'Cerrar' : 'Proponer partido'}
+                        {solicitudAbiertaRival ? t('Cerrar') : t('Proponer partido')}
                       </button>
                     </div>
                   </li>
@@ -891,9 +837,7 @@ function MatchmakingView() {
         </section>
 
         <p className="mt-auto pt-10 text-center text-xs text-slate-500">
-          <User className="mr-1 inline h-3.5 w-3.5" />
-          Los rivales se ordenan por la cantidad de horarios compatibles.
-        </p>
+          <User className="mr-1 inline h-3.5 w-3.5" />{t("Los rivales se ordenan por la cantidad de horarios compatibles.")}</p>
       </div>
 
       {/* Modal con el perfil público del rival (se abre al tocar su foto) */}
@@ -909,7 +853,7 @@ function MatchmakingView() {
             <button
               type="button"
               onClick={() => setPerfilAbierto(null)}
-              aria-label="Cerrar perfil"
+              aria-label={t("Cerrar perfil")}
               className="absolute right-3 top-3 rounded-xl border border-slate-700/50 bg-slate-800/60 p-2 text-slate-400 transition-colors hover:border-red-500/50 hover:text-red-400"
             >
               <XCircle className="h-4 w-4" />
@@ -917,13 +861,11 @@ function MatchmakingView() {
 
             {perfilCargando ? (
               <p className="flex items-center justify-center gap-2 py-8 text-sm text-slate-400">
-                <Loader2 className="h-5 w-5 animate-spin" />
-                Cargando perfil...
-              </p>
+                <Loader2 className="h-5 w-5 animate-spin" />{t("Cargando perfil...")}</p>
             ) : perfilError ? (
               <p className="flex items-start gap-2 rounded-xl border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-300">
                 <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                {perfilError}
+                {t(perfilError)}
               </p>
             ) : perfilDatos ? (
               <>
@@ -932,7 +874,7 @@ function MatchmakingView() {
                     {perfilDatos.avatar_url ? (
                       <img
                         src={perfilDatos.avatar_url}
-                        alt={`Foto de ${perfilDatos.nombre} ${perfilDatos.apellido}`}
+                        alt={t("Foto de {0} {1}", { 0: perfilDatos.nombre, 1: perfilDatos.apellido })}
                         className="h-24 w-24 rounded-full border-2 border-slate-900 object-cover"
                       />
                     ) : (
@@ -946,35 +888,29 @@ function MatchmakingView() {
                   </h2>
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300">
                     <Trophy className="h-3.5 w-3.5" />
-                    {perfilDatos.nivel || 'Sin nivel'}
+                    {perfilDatos.nivel || t('Sin nivel')}
                   </span>
                 </div>
 
                 <dl className="mt-5 grid gap-3">
                   <div>
-                    <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                      Comuna
-                    </dt>
+                    <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">{t("Comuna")}</dt>
                     <dd className="mt-0.5 flex items-center gap-2 text-sm text-slate-100">
                       <MapPin className="h-4 w-4 shrink-0 text-slate-500" />
-                      {perfilDatos.comuna || 'No especificada'}
+                      {perfilDatos.comuna || t('No especificada')}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                      Sobre mí
-                    </dt>
+                    <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">{t("Sobre mí")}</dt>
                     <dd className="mt-0.5 text-sm text-slate-300">
-                      {perfilDatos.bio || 'Sin descripción.'}
+                      {perfilDatos.bio || t('Sin descripción.')}
                     </dd>
                   </div>
                 </dl>
 
                 {perfilResenas && (
                   <div className="mt-5 rounded-xl border border-amber-400/30 bg-amber-400/5 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Calificación de otros jugadores
-                    </p>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("Calificación de otros jugadores")}</p>
                     <div className="mt-2 flex items-center gap-2">
                       <div className="flex items-center gap-0.5">
                         {[1, 2, 3, 4, 5].map((n) => (
@@ -989,22 +925,12 @@ function MatchmakingView() {
                         ))}
                       </div>
                       <span className="text-sm font-semibold text-slate-100">
-                        {perfilResenas.promedio
-                          ? `${perfilResenas.promedio} de 5`
-                          : 'Sin reseñas'}
+                        {perfilResenas.promedio ? t("{0} de 5", { 0: t(perfilResenas.promedio) }) : t('Sin reseñas')}
                       </span>
                     </div>
                     {perfilResenas.promedio && (
                       <p className="mt-1.5 text-xs text-slate-400">
-                        {perfilResenas.promedio >= 4.5
-                          ? 'Excelente jugador, muy confiable.'
-                          : perfilResenas.promedio >= 3.5
-                            ? 'Buen jugador, confiable.'
-                            : perfilResenas.promedio >= 2.5
-                              ? 'Jugador regular, con opiniones mixtas.'
-                              : perfilResenas.promedio >= 1.5
-                                ? 'Jugador poco confiable según otros.'
-                                : 'Jugador no recomendado según otros.'}
+                        {perfilResenas.promedio >= 4.5 ? t('Excelente jugador, muy confiable.') : perfilResenas.promedio >= 3.5 ? t('Buen jugador, confiable.') : perfilResenas.promedio >= 2.5 ? t('Jugador regular, con opiniones mixtas.') : perfilResenas.promedio >= 1.5 ? t('Jugador poco confiable según otros.') : t('Jugador no recomendado según otros.')}
                       </p>
                     )}
                   </div>
@@ -1012,13 +938,9 @@ function MatchmakingView() {
 
                 {perfilResenas && (
                   <div className="mt-4">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Reseñas
-                    </p>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t("Reseñas")}</p>
                     {perfilResenas.recibidas.length === 0 ? (
-                      <p className="mt-2 text-xs text-slate-500">
-                        Aún no tiene reseñas. Juega con él para conocerlo mejor.
-                      </p>
+                      <p className="mt-2 text-xs text-slate-500">{t("Aún no tiene reseñas. Juega con él para conocerlo mejor.")}</p>
                     ) : (
                       <ul className="mt-2 grid max-h-44 gap-2 overflow-y-auto overscroll-contain pr-1">
                         {perfilResenas.recibidas.map((r) => (
@@ -1027,12 +949,10 @@ function MatchmakingView() {
                             className="rounded-xl border border-slate-700/50 bg-slate-800/50 p-3"
                           >
                             <div className="flex items-center gap-1.5">
-                              <span className="text-xs font-semibold text-slate-400">
-                                Jugador anónimo
-                              </span>
+                              <span className="text-xs font-semibold text-slate-400">{t("Jugador anónimo")}</span>
                               <span className="text-xs text-slate-600">·</span>
                               <span className="text-xs text-slate-500">
-                                {haceCuanto(r.created_at)}
+                                {t(haceCuanto(r.created_at))}
                               </span>
                             </div>
                             <div className="mt-1 flex items-center gap-0.5">

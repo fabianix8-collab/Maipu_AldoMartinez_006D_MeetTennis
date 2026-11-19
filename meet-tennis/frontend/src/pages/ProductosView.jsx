@@ -1,3 +1,5 @@
+import LanguageSelector from '../components/LanguageSelector.jsx';
+import { getLocale, useLanguage } from '../lib/i18n.js';
 import { useEffect, useState } from 'react';
 import {
   ArrowLeft,
@@ -18,17 +20,18 @@ const CATEGORIAS = ['Raquetas', 'Zapatillas', 'Cuerdas', 'Accesorios', 'Ropa'];
 // Precio en CLP → "$189.990".
 function formatPrecio(precio) {
   if (precio == null) return null;
-  return `$${Number(precio).toLocaleString('es-CL')}`;
+  return new Intl.NumberFormat(getLocale(), { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(Number(precio));
 }
 
 function ProductoCard({ producto }) {
+  const { t } = useLanguage();
   return (
     <article className="flex flex-col overflow-hidden rounded-2xl border border-slate-700/50 bg-slate-800/60 shadow-2xl backdrop-blur-md">
       <div className="relative flex h-40 items-center justify-center bg-slate-900/60">
         {producto.imagen_url ? (
           <img
             src={producto.imagen_url}
-            alt={producto.nombre}
+            alt={t(producto.nombre)}
             className="h-full w-full object-cover"
           />
         ) : (
@@ -37,20 +40,18 @@ function ProductoCard({ producto }) {
           </span>
         )}
         {producto.destacado && (
-          <span className="absolute left-3 top-3 rounded-full bg-amber-400 px-2 py-0.5 text-[11px] font-bold text-slate-900 shadow-lg">
-            Destacado
-          </span>
+          <span className="absolute left-3 top-3 rounded-full bg-amber-400 px-2 py-0.5 text-[11px] font-bold text-slate-900 shadow-lg">{t("Destacado")}</span>
         )}
       </div>
 
       <div className="flex flex-1 flex-col gap-2 p-4">
         <div className="flex items-center gap-1.5 text-xs text-slate-400">
           <Tag className="h-3.5 w-3.5" />
-          {producto.categoria}
+          {t(producto.categoria)}
         </div>
-        <h3 className="font-semibold leading-tight text-slate-100">{producto.nombre}</h3>
+        <h3 className="font-semibold leading-tight text-slate-100">{t(producto.nombre)}</h3>
         {producto.descripcion && (
-          <p className="text-sm text-slate-400">{producto.descripcion}</p>
+          <p className="text-sm text-slate-400">{t(producto.descripcion)}</p>
         )}
 
         <div className="mt-auto flex items-end justify-between gap-2 pt-2">
@@ -70,9 +71,7 @@ function ProductoCard({ producto }) {
             target="_blank"
             rel="noopener noreferrer"
             className="flex shrink-0 items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white shadow-lg transition-colors hover:bg-emerald-500"
-          >
-            Comprar
-            <ExternalLink className="h-4 w-4" />
+          >{t("Comprar")}<ExternalLink className="h-4 w-4" />
           </a>
         </div>
       </div>
@@ -81,6 +80,7 @@ function ProductoCard({ producto }) {
 }
 
 function ProductosView() {
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [productos, setProductos] = useState([]);
   const [categoria, setCategoria] = useState('Todas');
@@ -114,20 +114,21 @@ function ProductosView() {
   }, [categoria]);
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-slate-900 px-4 py-5">
+    <div className="relative min-h-dvh overflow-x-hidden bg-slate-900 px-4 py-5">
       <TennisBackground />
 
-      <div className="relative mx-auto flex min-h-[calc(100vh-2.5rem)] max-w-md flex-col">
+      <div className="relative mx-auto flex min-h-[calc(100dvh-2.5rem)] max-w-md flex-col">
         <header className="flex items-center gap-3">
           <button
             type="button"
             onClick={() => navigate('/')}
-            aria-label="Volver"
+            aria-label={t("Volver")}
             className="rounded-xl border border-slate-700/50 bg-slate-800/60 p-2.5 text-slate-400 shadow-2xl backdrop-blur-md transition-colors hover:border-emerald-500/50 hover:text-emerald-400"
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
           <BrandLogo className="h-10" />
+        <LanguageSelector className="ml-auto" />
         </header>
 
         <div className="mt-4 flex items-center gap-2">
@@ -135,10 +136,8 @@ function ProductosView() {
             <ShoppingBag className="h-5 w-5" />
           </span>
           <div>
-            <h1 className="text-lg font-bold text-slate-100">Recomendaciones</h1>
-            <p className="text-xs text-slate-400">
-              Equipo de tenis para mejorar tu juego.
-            </p>
+            <h1 className="text-lg font-bold text-slate-100">{t("Recomendaciones")}</h1>
+            <p className="text-xs text-slate-400">{t("Equipo de tenis para mejorar tu juego.")}</p>
           </div>
         </div>
 
@@ -150,19 +149,15 @@ function ProductosView() {
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-600/20 text-emerald-300">
               <Store className="h-5 w-5" aria-hidden="true" />
             </span>
-            <h2 id="anuncio-tiendas" className="text-sm font-semibold text-slate-100">
-              Tu tienda en MeetTennis
-            </h2>
+            <h2 id="anuncio-tiendas" className="text-sm font-semibold text-slate-100">{t("Tu tienda en MeetTennis")}</h2>
           </div>
-          <p className="mt-3 text-sm leading-relaxed text-slate-300">
-            Si tienes una tienda y te gustaría aparecer acá, ¡contáctanos!
-          </p>
+          <p className="mt-3 text-sm leading-relaxed text-slate-300">{t("Si tienes una tienda y te gustaría aparecer acá, ¡contáctanos!")}</p>
           <a
             href="mailto:meettennischile@gmail.com"
             className="mt-3 inline-flex max-w-full items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-600/15 px-3 py-2 text-xs font-semibold text-emerald-300 transition-colors hover:border-emerald-400/60 hover:bg-emerald-600/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
           >
             <Mail className="h-4 w-4 shrink-0" aria-hidden="true" />
-            <span className="min-w-0 break-all">meettennischile@gmail.com</span>
+            <span className="min-w-0 break-all">{t("meettennischile@gmail.com")}</span>
           </a>
         </section>
 
@@ -179,14 +174,14 @@ function ProductosView() {
                   : 'border border-slate-700/50 bg-slate-800/60 text-slate-300 hover:bg-slate-800'
               }`}
             >
-              {c}
+              {t(c)}
             </button>
           ))}
         </div>
 
         {error && (
           <div className="mt-4 rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-300">
-            {error}
+            {t(error)}
           </div>
         )}
 
@@ -200,10 +195,8 @@ function ProductosView() {
               <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-600/15 text-emerald-400">
                 <ShoppingBag className="h-8 w-8" />
               </span>
-              <p className="font-semibold text-slate-200">Sin productos en esta categoría</p>
-              <p className="text-sm text-slate-400">
-                Pronto agregaremos más recomendaciones de equipo.
-              </p>
+              <p className="font-semibold text-slate-200">{t("Sin productos en esta categoría")}</p>
+              <p className="text-sm text-slate-400">{t("Pronto agregaremos más recomendaciones de equipo.")}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
