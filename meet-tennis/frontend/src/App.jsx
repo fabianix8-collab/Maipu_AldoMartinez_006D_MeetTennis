@@ -36,10 +36,26 @@ function App() {
           }
         />
         <Route
+          path="/solicitudes"
+          element={
+            <ProtectedRoute>
+              <MisPartidosView key="solicitudes" seccion="solicitudes" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/proximos-partidos"
+          element={
+            <ProtectedRoute>
+              <MisPartidosView key="proximos" seccion="proximos" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/mis-partidos"
           element={
             <ProtectedRoute>
-              <MisPartidosView />
+              <MisPartidosView key="resultados" seccion="resultados" />
             </ProtectedRoute>
           }
         />

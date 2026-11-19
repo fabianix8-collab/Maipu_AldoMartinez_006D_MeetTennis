@@ -3,6 +3,7 @@ import {
   AlertCircle,
   ArrowLeft,
   Calendar,
+  CalendarClock,
   Check,
   CheckCircle2,
   ClipboardCheck,
@@ -12,6 +13,7 @@ import {
   Hourglass,
   Loader2,
   MapPin,
+  Mail,
   MessageCircle,
   Plus,
   Star,
@@ -22,12 +24,12 @@ import {
   X,
   XCircle,
 } from 'lucide-react';
-import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import BrandLogo from '../components/BrandLogo.jsx';
 import CanchaPartido from '../components/CanchaPartido.jsx';
 import TennisBackground from '../components/TennisBackground.jsx';
 import { apiFetch } from '../lib/api.js';
-import { referenciaPartido } from '../lib/partidos.js';
+import { referenciaPartido, rutaSolicitud, SECCIONES_PARTIDOS } from '../lib/partidos.js';
 import {
   formatFecha,
   formatPuntos,
@@ -104,11 +106,14 @@ function ResultadoIcono({ partido }) {
   );
 }
 
-function MisPartidosView() {
+function MisPartidosView({ seccion = 'resultados' }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { hash } = useLocation();
+  const { hash, pathname } = useLocation();
   const referencia = referenciaPartido(hash);
+  const enlaceSolicitud = referencia?.tipo === 'solicitud';
+  const vista = SECCIONES_PARTIDOS[seccion];
+  const IconoVista = seccion === 'solicitudes' ? Mail : seccion === 'proximos' ? CalendarClock : ClipboardCheck;
   const miId = getStoredAuth()?.user?.id;
 
   const [partidos, setPartidos] = useState([]);
@@ -123,6 +128,7 @@ function MisPartidosView() {
   const [solicitudes, setSolicitudes] = useState({ recibidas: [], enviadas: [] });
   const [errorSolicitudes, setErrorSolicitudes] = useState('');
   const [procesandoSolicitud, setProcesandoSolicitud] = useState(null);
+  const [statusSolicitud, setStatusSolicitud] = useState({ type: 'idle', message: '' });
 
   // Perfil del contrincante abierto en modal.
   const [perfilAbierto, setPerfilAbierto] = useState(null);
@@ -151,19 +157,31 @@ function MisPartidosView() {
     let activo = true;
 
     const cargar = async () => {
+      setCargando(true);
       try {
-        const [partidosRes, rankingRes, canchasRes, solicitudesRes] = await Promise.all([
+        // Cada pantalla carga sus datos. Los enlaces antiguos a solicitudes
+        // también se resuelven aquí antes de enviarlos a su nueva sección.
+        if (seccion !== 'resultados' || enlaceSolicitud) {
+          const solicitudesRes = await apiFetch('/api/matchmaking/requests');
+          const solicitudesData = await solicitudesRes.json();
+          if (!activo) return;
+          if (!solicitudesRes.ok || !solicitudesData.success) {
+            throw new Error(solicitudesData.error || 'No se pudieron cargar las solicitudes.');
+          }
+          setSolicitudes(solicitudesData.data || { recibidas: [], enviadas: [] });
+        }
+
+        if (seccion === 'resultados' && !enlaceSolicitud) {
+        const [partidosRes, rankingRes, canchasRes] = await Promise.all([
           apiFetch('/api/matches'),
           apiFetch('/api/ranking'),
           apiFetch('/api/courts'),
-          apiFetch('/api/matchmaking/requests'),
         ]);
-        const [partidosData, rankingData, canchasData, solicitudesData] =
+        const [partidosData, rankingData, canchasData] =
           await Promise.all([
             partidosRes.json(),
             rankingRes.json(),
             canchasRes.json(),
-            solicitudesRes.json(),
           ]);
 
         if (!activo) return;
@@ -188,13 +206,6 @@ function MisPartidosView() {
           setCanchas(canchasData.data?.canchas || []);
         }
 
-        if (solicitudesRes.ok && solicitudesData.success) {
-          setSolicitudes(solicitudesData.data || { recibidas: [], enviadas: [] });
-          setErrorSolicitudes('');
-        } else {
-          setErrorSolicitudes(
-            solicitudesData.error || 'No se pudieron cargar las solicitudes.',
-          );
         }
 
         setErrorCarga('');
@@ -210,13 +221,13 @@ function MisPartidosView() {
     return () => {
       activo = false;
     };
-  }, [miId, recargar]);
+  }, [miId, recargar, seccion, enlaceSolicitud]);
 
   // Espera los datos: la tarjeta puede estar en pendientes o en el historial.
   // También funciona al cambiar el enlace sin desmontar esta página.
   useEffect(() => {
     if (cargando) return undefined;
-    const ancla = hash === '#partidos-pendientes' ? 'partidos-pendientes' : referenciaPartido(hash)?.ancla;
+    const ancla = hash === '#registrar-resultado' ? 'registrar-resultado' : referenciaPartido(hash)?.ancla;
     if (!ancla) return undefined;
     const frame = requestAnimationFrame(() => {
       const destino = document.getElementById(ancla);
@@ -226,7 +237,7 @@ function MisPartidosView() {
       destino.scrollIntoView({ behavior: reducirMovimiento ? 'instant' : 'smooth', block: 'start' });
     });
     return () => cancelAnimationFrame(frame);
-  }, [hash, cargando, partidos, solicitudes]);
+  }, [hash, cargando, partidos, solicitudes, seccion]);
 
   const porConfirmar = partidos.filter((p) => p.puedoConfirmar);
   const esperando = partidos.filter((p) => p.registradoPorMi && p.estado === 'pendiente');
@@ -248,6 +259,9 @@ function MisPartidosView() {
     : null;
   const solicitudCerradaDelAviso = solicitudDelAviso && !['pendiente', 'aceptada'].includes(solicitudDelAviso.estado)
     ? solicitudDelAviso : null;
+  const bandeja = solicitudDelAviso?.estado === 'pendiente'
+    ? (solicitudDelAviso.solicitante_id === miId ? 'enviadas' : 'recibidas')
+    : (searchParams.get('bandeja') === 'enviadas' ? 'enviadas' : 'recibidas');
   const existeDestino = referencia?.tipo === 'solicitud'
     ? Boolean(solicitudDelAviso) : partidos.some((p) => String(p.id) === referencia?.id);
   const claseAviso = (tipo, id) => referencia?.tipo === tipo && referencia.id === String(id)
@@ -258,6 +272,7 @@ function MisPartidosView() {
   const responderSolicitud = async (id, accion) => {
     setProcesandoSolicitud(id);
     setErrorSolicitudes('');
+    setStatusSolicitud({ type: 'idle', message: '' });
 
     try {
       const response = await apiFetch(`/api/matchmaking/requests/${id}`, {
@@ -268,11 +283,19 @@ function MisPartidosView() {
       const result = await response.json();
 
       if (!response.ok || !result.success) {
-        setErrorSolicitudes(result.error || 'No se pudo actualizar la solicitud.');
+        throw new Error(result.error || 'No se pudo actualizar la solicitud.');
       }
+      const mensajes = {
+        aceptar: 'Solicitud aceptada. Puedes ver el encuentro en Próximos partidos.',
+        rechazar: 'Solicitud rechazada.',
+        cancelar: 'Solicitud cancelada.',
+      };
+      setStatusSolicitud({ type: 'success', message: mensajes[accion] });
+      // Quita el ancla ya atendida para mantener al usuario en su bandeja.
+      if (hash) navigate(`/solicitudes?bandeja=${bandeja}`, { replace: true });
       setRecargar((n) => n + 1);
-    } catch {
-      setErrorSolicitudes('No se pudo conectar con el servidor.');
+    } catch (err) {
+      setErrorSolicitudes(err.message || 'No se pudo conectar con el servidor.');
     } finally {
       setProcesandoSolicitud(null);
     }
@@ -311,20 +334,15 @@ function MisPartidosView() {
     }
   };
 
-  // Prellena el formulario de registrar resultado y hace scroll suave.
+  // Abre Resultados conservando el rival, la fecha y la cancha del encuentro.
   const prellenarResultado = (solicitud) => {
     const contrincante = contrincanteDe(solicitud);
-    setRivalId(contrincante?.id || '');
-    setFecha(solicitud.fecha <= hoyISO() ? solicitud.fecha : hoyISO());
-    setCanchaId(solicitud.cancha?.id ? String(solicitud.cancha.id) : '');
-    setTocado(false);
-    setStatusForm({ type: 'idle', message: '' });
-
-    requestAnimationFrame(() => {
-      document
-        .getElementById('registrar-resultado')
-        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const parametros = new URLSearchParams({
+      rival: contrincante?.id || '',
+      fecha: solicitud.fecha,
+      cancha: solicitud.cancha?.id ? String(solicitud.cancha.id) : '',
     });
+    navigate(`/mis-partidos?${parametros}#registrar-resultado`);
   };
 
   // Vista previa de los puntos con las reglas que entrega el servidor.
@@ -452,6 +470,17 @@ function MisPartidosView() {
     </p>
   );
 
+  // Mantiene los avisos guardados y los enlaces de versiones anteriores.
+  if (hash === '#partidos-pendientes' && seccion === 'resultados') {
+    return <Navigate to="/proximos-partidos" replace />;
+  }
+  if (referencia?.tipo === 'partido' && seccion !== 'resultados') {
+    return <Navigate to={`/mis-partidos${hash}`} replace />;
+  }
+  if (solicitudDelAviso && pathname !== rutaSolicitud(solicitudDelAviso)) {
+    return <Navigate to={`${rutaSolicitud(solicitudDelAviso)}${hash}`} replace />;
+  }
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-slate-900 px-4 py-8">
       <TennisBackground />
@@ -462,14 +491,14 @@ function MisPartidosView() {
             <BrandLogo className="mb-4 h-16 sm:h-20" />
             <div className="flex items-center gap-3">
               <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-600/15 text-emerald-400">
-                <ClipboardCheck className="h-5 w-5" />
+                <IconoVista className="h-5 w-5" />
               </span>
               <div>
                 <h1 className="text-2xl font-bold leading-tight text-slate-100">
-                  Mis Partidos
+                  {vista.titulo}
                 </h1>
                 <p className="mt-1 text-sm text-slate-400">
-                  Registra y confirma resultados
+                  {vista.descripcion}
                 </p>
               </div>
             </div>
@@ -483,6 +512,21 @@ function MisPartidosView() {
             <ArrowLeft className="h-5 w-5" />
           </Link>
         </header>
+
+        <nav aria-label="Secciones de partidos" className="mt-6 grid grid-cols-3 gap-1 rounded-xl border border-slate-700/50 bg-slate-800/60 p-1">
+          {Object.entries(SECCIONES_PARTIDOS).map(([clave, item]) => (
+            <Link
+              key={clave}
+              to={item.ruta}
+              aria-current={seccion === clave ? 'page' : undefined}
+              className={`flex items-center justify-center rounded-lg px-2 py-3 text-center text-sm font-semibold transition-colors ${seccion === clave ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:bg-slate-700/50 hover:text-slate-100'}`}
+            >
+              {clave === 'proximos' ? 'Próximos' : item.titulo}
+            </Link>
+          ))}
+        </nav>
+
+        {seccion !== 'resultados' && <Aviso status={statusSolicitud} />}
 
         {errorCarga && (
           <p className="mt-6 flex items-start gap-2 rounded-2xl border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-300">
@@ -504,7 +548,7 @@ function MisPartidosView() {
           </p>
         )}
 
-        {solicitudCerradaDelAviso && (
+        {seccion === 'solicitudes' && solicitudCerradaDelAviso && (
           <section className="mt-8">
             <h2 className={tituloSeccion}>Detalle de la solicitud</h2>
             <article id={`solicitud-${solicitudCerradaDelAviso.id}`} tabIndex={-1} className={`${tarjeta} ${claseAviso('solicitud', solicitudCerradaDelAviso.id)}`}>
@@ -528,16 +572,21 @@ function MisPartidosView() {
           </section>
         )}
 
-        {/* Sección 1: Partidos Pendientes */}
-        <section id="partidos-pendientes" className="mt-8 scroll-mt-6">
+        {/* Encuentros aceptados: pantalla independiente de solicitudes y resultados. */}
+        {seccion === 'proximos' && (
+        <section className="mt-8 scroll-mt-6">
           <h2 className={tituloSeccion}>
             <ClipboardCheck className="h-4 w-4 text-emerald-300" />
-            Partidos Pendientes ({solicitudesAceptadas.length})
+            Encuentros aceptados{!cargando && ` (${solicitudesAceptadas.length})`}
           </h2>
 
-          {solicitudesAceptadas.length === 0 ? (
+          {cargando ? (
+            <p role="status" className={`${tarjeta} flex items-center justify-center gap-2 text-sm text-slate-400`}>
+              <Loader2 className="h-4 w-4 animate-spin" /> Cargando encuentros...
+            </p>
+          ) : errorCarga ? null : solicitudesAceptadas.length === 0 ? (
             <p className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-800/40 p-5 text-center text-sm text-slate-500">
-              No tienes partidos pendientes por jugar.
+              Aún no tienes encuentros aceptados. Revisa tus solicitudes o busca un rival.
             </p>
           ) : (
             <ul className="grid gap-3">
@@ -607,33 +656,58 @@ function MisPartidosView() {
                       <button
                         type="button"
                         onClick={() => prellenarResultado(solicitud)}
-                        className="flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 py-2.5 text-xs font-semibold text-slate-100 transition-colors hover:bg-emerald-700"
+                        disabled={solicitud.fecha > hoyISO()}
+                        title={solicitud.fecha > hoyISO() ? 'Podrás registrar el resultado desde el día del encuentro' : 'Registrar resultado'}
+                        className="flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 py-2.5 text-xs font-semibold text-slate-100 transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         <ClipboardCheck className="h-4 w-4" />
                         Registrar
                       </button>
                     </div>
+                    {solicitud.fecha > hoyISO() && (
+                      <p className="mt-2 text-sm text-slate-400">Podrás registrar el resultado desde el día del encuentro.</p>
+                    )}
                   </li>
                 );
               })}
             </ul>
           )}
         </section>
+        )}
 
-        {/* Sección 2: Solicitudes Recibidas y Enviadas */}
+        {/* Invitaciones pendientes, con bandejas separadas. */}
+        {seccion === 'solicitudes' && (
         <section className="mt-8">
           <h2 className={tituloSeccion}>
             <Hourglass className="h-4 w-4 text-amber-300" />
-            Solicitudes Recibidas y Enviadas
+            Invitaciones pendientes
           </h2>
 
-          {recibidasPendientes.length === 0 && enviadasPendientes.length === 0 ? (
+          <nav aria-label="Bandejas de solicitudes" className="mb-4 grid grid-cols-2 gap-2">
+            {['recibidas', 'enviadas'].map((tipo) => (
+              <Link
+                key={tipo}
+                to={`/solicitudes?bandeja=${tipo}`}
+                aria-current={bandeja === tipo ? 'page' : undefined}
+                className={`rounded-xl border px-3 py-3 text-center text-sm font-semibold transition-colors ${bandeja === tipo ? 'border-emerald-500/50 bg-emerald-500/15 text-emerald-300' : 'border-slate-700/50 bg-slate-800/60 text-slate-400 hover:text-slate-100'}`}
+              >
+                {tipo === 'recibidas' ? 'Recibidas' : 'Enviadas'}
+                {!cargando && ` (${tipo === 'recibidas' ? recibidasPendientes.length : enviadasPendientes.length})`}
+              </Link>
+            ))}
+          </nav>
+
+          {cargando ? (
+            <p role="status" className={`${tarjeta} flex items-center justify-center gap-2 text-sm text-slate-400`}>
+              <Loader2 className="h-4 w-4 animate-spin" /> Cargando solicitudes...
+            </p>
+          ) : errorCarga ? null : (bandeja === 'recibidas' ? recibidasPendientes : enviadasPendientes).length === 0 ? (
             <p className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-800/40 p-5 text-center text-sm text-slate-500">
-              No tienes solicitudes pendientes.
+              {bandeja === 'recibidas' ? 'No tienes invitaciones recibidas pendientes de respuesta.' : 'No tienes invitaciones enviadas pendientes de respuesta.'}
             </p>
           ) : (
             <div className="grid gap-6">
-              {recibidasPendientes.length > 0 && (
+              {bandeja === 'recibidas' && recibidasPendientes.length > 0 && (
                 <div>
                   <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-amber-300">
                     Recibidas pendientes ({recibidasPendientes.length})
@@ -698,7 +772,7 @@ function MisPartidosView() {
                 </div>
               )}
 
-              {enviadasPendientes.length > 0 && (
+              {bandeja === 'enviadas' && enviadasPendientes.length > 0 && (
                 <div>
                   <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
                     Enviadas pendientes ({enviadasPendientes.length})
@@ -749,13 +823,16 @@ function MisPartidosView() {
             </div>
           )}
         </section>
+        )}
 
+        {seccion === 'resultados' && (
+        <>
         {/* Partidos que el rival registró y debo confirmar */}
         {porConfirmar.length > 0 && (
           <section className="mt-8">
             <h2 className={tituloSeccion}>
               <Hourglass className="h-4 w-4 text-amber-300" />
-              Por confirmar ({porConfirmar.length})
+              Resultados por confirmar ({porConfirmar.length})
             </h2>
             <ul className="grid gap-3">
               {porConfirmar.map((partido) => (
@@ -975,7 +1052,7 @@ function MisPartidosView() {
           <section className="mt-8">
             <h2 className={tituloSeccion}>
               <Hourglass className="h-4 w-4" />
-              Esperando confirmación ({esperando.length})
+              Resultados esperando confirmación ({esperando.length})
             </h2>
             <ul className="grid gap-3">
               {esperando.map((partido) => (
@@ -1009,7 +1086,7 @@ function MisPartidosView() {
         <section className="mt-8">
           <h2 className={tituloSeccion}>
             <History className="h-4 w-4" />
-            Historial
+            Historial de resultados
           </h2>
 
           {cargando ? (
@@ -1064,6 +1141,9 @@ function MisPartidosView() {
             </ul>
           )}
         </section>
+
+        </>
+        )}
 
         <p className="mt-auto pt-10 text-center text-xs text-slate-500">
           ¿Buscas rival?{' '}

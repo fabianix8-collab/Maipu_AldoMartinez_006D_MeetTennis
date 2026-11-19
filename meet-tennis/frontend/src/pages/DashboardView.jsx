@@ -5,6 +5,7 @@ import {
   ClipboardCheck,
   LogOut,
   MapPin,
+  Mail,
   MessageCircle,
   MessageSquare,
   ShoppingBag,
@@ -22,7 +23,9 @@ import { apiFetch } from '../lib/api.js';
 
 // "ancho": ocupa las dos columnas. "aviso": clave del contador de pendientes.
 const NAV_ITEMS = [
-  { title: 'Buscar Partido', Icon: Swords, to: '/buscar-partido', ancho: true, aviso: 'solicitudes' },
+  { title: 'Buscar Partido', Icon: Swords, to: '/buscar-partido', ancho: true },
+  { title: 'Solicitudes', Icon: Mail, to: '/solicitudes', aviso: 'solicitudes' },
+  { title: 'Próximos partidos', Icon: CalendarClock, to: '/proximos-partidos', aviso: 'proximos' },
   { title: 'Mis Partidos', Icon: ClipboardCheck, to: '/mis-partidos', aviso: 'partidos' },
   { title: 'Mi Ranking', Icon: Trophy, to: '/ranking' },
   { title: 'Mi Disponibilidad', Icon: CalendarClock, to: '/disponibilidad' },
@@ -30,11 +33,6 @@ const NAV_ITEMS = [
   { title: 'Recomendaciones', Icon: ShoppingBag, to: '/productos' },
   { title: 'Reseñas', Icon: MessageSquare, to: '/resenas', estrella: true },
 ];
-
-const TEXTO_AVISO = {
-  solicitudes: (n) => `${n} ${n === 1 ? 'solicitud pendiente' : 'solicitudes pendientes'}`,
-  partidos: (n) => `${n} por confirmar`,
-};
 
 function getStoredUser() {
   try {
@@ -58,7 +56,7 @@ function DashboardView() {
     pendientes: { solicitudes: 0, partidos: 0, chat: 0 },
   });
   const [recargarAvisos, setRecargarAvisos] = useState(0);
-  const [partidosPendientes, setPartidosPendientes] = useState(0);
+  const [partidosAceptados, setPartidosAceptados] = useState(0);
   const [totalNoLeidos, setTotalNoLeidos] = useState(0);
   const [esAdmin, setEsAdmin] = useState(false);
 
@@ -109,7 +107,7 @@ function DashboardView() {
             ...(solicitudes.data?.recibidas || []),
             ...(solicitudes.data?.enviadas || []),
           ];
-          setPartidosPendientes(todas.filter((s) => s.estado === 'aceptada').length);
+          setPartidosAceptados(todas.filter((s) => s.estado === 'aceptada').length);
         }
 
         if (conversacionesRes.ok && conversaciones.success) {
@@ -133,7 +131,7 @@ function DashboardView() {
       activo = false;
       clearInterval(intervalo);
     };
-  }, []);
+  }, [recargarAvisos]);
 
   // Confirma (o no) la asistencia desde la campana. Devuelve un mensaje
   // de error para mostrarlo en el aviso, o null si salió bien.
@@ -257,34 +255,9 @@ function DashboardView() {
           </div>
         </header>
 
-        {partidosPendientes > 0 && (
-          <button
-            type="button"
-            onClick={() => navigate('/mis-partidos#partidos-pendientes')}
-            className="mt-4 flex items-center gap-3 rounded-2xl border border-emerald-500/40 bg-emerald-600/15 p-4 text-left shadow-2xl backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-400/60 hover:bg-emerald-600/25"
-          >
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-600/25 text-emerald-300">
-              <CalendarClock className="h-6 w-6" />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-semibold text-slate-100">
-                Tienes {partidosPendientes}{' '}
-                {partidosPendientes === 1 ? 'partido pendiente' : 'partidos pendientes'} por jugar.
-              </span>
-              <span className="mt-0.5 block text-xs text-emerald-300">
-                Toca para ver los detalles.
-              </span>
-            </span>
-            <span className="shrink-0 rounded-full bg-amber-400 px-2.5 py-1 text-xs font-bold text-slate-900 shadow-lg">
-              {partidosPendientes}
-            </span>
-          </button>
-        )}
-
         <nav className="mt-4 flex flex-col gap-3">
           {/* Buscar Partido: tarjeta ancha pero compacta */}
-          {NAV_ITEMS.filter((item) => item.ancho).map(({ title, Icon, to, aviso }) => {
-            const pendientes = aviso ? notificaciones.pendientes[aviso] : 0;
+          {NAV_ITEMS.filter((item) => item.ancho).map(({ title, Icon, to }) => {
             return (
               <button
                 type="button"
@@ -292,11 +265,6 @@ function DashboardView() {
                 onClick={() => to && navigate(to)}
                 className="group relative flex items-center justify-center gap-3 rounded-2xl border border-slate-700/50 bg-slate-800/60 p-4 text-slate-100 shadow-2xl backdrop-blur-md transition-all duration-200 hover:-translate-y-1 hover:border-emerald-500/50 hover:bg-slate-800/80"
               >
-                {pendientes > 0 && (
-                  <span className="absolute right-2.5 top-2.5 rounded-full bg-amber-400 px-2 py-0.5 text-[11px] font-bold text-slate-900 shadow-lg">
-                    {TEXTO_AVISO[aviso](pendientes)}
-                  </span>
-                )}
                 <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-600/15 text-emerald-400 transition-colors group-hover:bg-emerald-600/25 group-hover:text-emerald-300">
                   <Icon className="h-6 w-6" />
                 </span>
@@ -305,10 +273,10 @@ function DashboardView() {
             );
           })}
 
-          {/* Las 6 secciones: llenan el resto de la pantalla en 2 columnas */}
+          {/* Accesos independientes para invitaciones, encuentros y resultados. */}
           <div className="grid flex-1 auto-rows-fr grid-cols-2 gap-3">
             {NAV_ITEMS.filter((item) => !item.ancho).map(({ title, Icon, to, aviso, estrella }) => {
-              const pendientes = aviso ? notificaciones.pendientes[aviso] : 0;
+              const pendientes = aviso === 'proximos' ? partidosAceptados : aviso ? notificaciones.pendientes[aviso] : 0;
               return (
                 <button
                   type="button"
@@ -317,7 +285,10 @@ function DashboardView() {
                   className="group relative flex flex-col items-center justify-center gap-3 rounded-2xl border border-slate-700/50 bg-slate-800/60 p-5 text-slate-100 shadow-2xl backdrop-blur-md transition-all duration-200 hover:-translate-y-1 hover:border-emerald-500/50 hover:bg-slate-800/80"
                 >
                   {pendientes > 0 && (
-                    <span className="absolute right-2.5 top-2.5 rounded-full bg-amber-400 px-2 py-0.5 text-[11px] font-bold text-slate-900 shadow-lg">
+                    <span
+                      aria-label={`${pendientes} ${aviso === 'solicitudes' ? 'solicitudes por responder' : aviso === 'proximos' ? 'encuentros aceptados' : 'resultados por confirmar'}`}
+                      className="absolute right-2.5 top-2.5 rounded-full bg-amber-400 px-2 py-0.5 text-[11px] font-bold text-slate-900 shadow-lg"
+                    >
                       {pendientes}
                     </span>
                   )}

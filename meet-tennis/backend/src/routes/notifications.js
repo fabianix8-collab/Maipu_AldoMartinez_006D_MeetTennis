@@ -105,6 +105,7 @@ router.get('/', async (req, res) => {
     const hoy = hoyChile();
 
     for (const s of solicitudesRes.data || []) {
+      const destinoSolicitud = `${s.estado === 'aceptada' ? '/proximos-partidos' : '/solicitudes'}#solicitud-${s.id}`;
       const soyReceptor = s.receptor_id === userId;
       const rival = soyReceptor ? s.solicitante : s.receptor;
       const miAsistencia = soyReceptor ? s.asiste_receptor : s.asiste_solicitante;
@@ -124,11 +125,11 @@ router.get('/', async (req, res) => {
         avisos.push({
           id: `asistencia-${s.id}`,
           tipo: 'accion',
-          categoria: 'solicitudes',
+          categoria: 'proximos',
           jugador: rival,
           texto: `¿Confirmas tu partido de ${cuando} con ${nombre(rival)} a las ${s.hora_desde?.slice(0, 5)}?`,
           fecha: s.respondida_at || s.created_at,
-          destino: `/mis-partidos#solicitud-${s.id}`,
+          destino: destinoSolicitud,
           asistencia: s.id,
         });
       }
@@ -143,7 +144,7 @@ router.get('/', async (req, res) => {
             : `${nombre(rival)} no puede asistir al partido del ${diaMes(s.fecha)}. Se canceló.`,
           positivo: suAsistencia,
           fecha: suAsistenciaAt,
-          destino: `/mis-partidos#solicitud-${s.id}`,
+          destino: destinoSolicitud,
         });
       }
 
@@ -157,7 +158,7 @@ router.get('/', async (req, res) => {
           jugador: s.solicitante,
           texto: `${nombre(s.solicitante)} te propone jugar el ${diaMes(s.fecha)}.`,
           fecha: s.created_at,
-          destino: `/mis-partidos#solicitud-${s.id}`,
+          destino: destinoSolicitud,
         });
       } else if (reciente(s.respondida_at) && !soyReceptor && s.estado !== 'cancelada') {
         // Respuesta a una solicitud que envié.
@@ -171,7 +172,7 @@ router.get('/', async (req, res) => {
             : `${nombre(s.receptor)} no puede jugar el ${diaMes(s.fecha)}.`,
           positivo: acepto,
           fecha: s.respondida_at,
-          destino: `/mis-partidos#solicitud-${s.id}`,
+          destino: destinoSolicitud,
         });
       } else if (reciente(s.respondida_at) && soyReceptor && s.estado === 'cancelada') {
         avisos.push({
@@ -181,7 +182,7 @@ router.get('/', async (req, res) => {
           texto: `${nombre(s.solicitante)} canceló su propuesta para el ${diaMes(s.fecha)}.`,
           positivo: false,
           fecha: s.respondida_at,
-          destino: `/mis-partidos#solicitud-${s.id}`,
+          destino: destinoSolicitud,
         });
       }
     }
@@ -253,6 +254,7 @@ router.get('/', async (req, res) => {
         pendientes: {
           solicitudes: accion.filter((a) => a.categoria === 'solicitudes').length,
           partidos: accion.filter((a) => a.categoria === 'partidos').length,
+          proximos: accion.filter((a) => a.categoria === 'proximos').length,
           chat: chatNoLeidos,
         },
       },
