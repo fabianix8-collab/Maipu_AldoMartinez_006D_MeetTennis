@@ -1,6 +1,6 @@
 import LanguageSelector from '../components/LanguageSelector.jsx';
 import { useLanguage } from '../lib/i18n.js';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
   ArrowLeft,
@@ -31,7 +31,8 @@ import BrandLogo from '../components/BrandLogo.jsx';
 import CanchaPartido from '../components/CanchaPartido.jsx';
 import TennisBackground from '../components/TennisBackground.jsx';
 import { apiFetch } from '../lib/api.js';
-import { referenciaPartido, rutaSolicitud, SECCIONES_PARTIDOS } from '../lib/partidos.js';
+import { anclaAviso, aplicarLecturas, esAvisoSinLeer, marcarAvisosLeidos } from '../lib/avisos.js';
+import { referenciaPartido, rutaPartidos, SECCIONES_PARTIDOS } from '../lib/partidos.js';
 import {
   formatFecha,
   formatPuntos,
@@ -114,21 +115,28 @@ function MisPartidosView({ seccion = 'resultados' }) {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { hash, pathname } = useLocation();
+  const { hash } = useLocation();
   const referencia = referenciaPartido(hash);
   const enlaceSolicitud = referencia?.tipo === 'solicitud';
-  const vista = SECCIONES_PARTIDOS[seccion];
-  const IconoVista = seccion === 'solicitudes' ? Mail : seccion === 'proximos' ? CalendarClock : ClipboardCheck;
   const miId = getStoredAuth()?.user?.id;
+  const destinoEnfocado = useRef(null);
 
   const [partidos, setPartidos] = useState([]);
   const [miCategoria, setMiCategoria] = useState(CATEGORIA_BASE);
   const [jugadores, setJugadores] = useState([]);
   const [reglas, setReglas] = useState(null);
   const [canchas, setCanchas] = useState([]);
-  const [cargando, setCargando] = useState(true);
-  const [errorCarga, setErrorCarga] = useState('');
+  const [cargandoSolicitudes, setCargandoSolicitudes] = useState(true);
+  const [cargandoResultados, setCargandoResultados] = useState(true);
+  const [errorCargaSolicitudes, setErrorCargaSolicitudes] = useState('');
+  const [errorCargaResultados, setErrorCargaResultados] = useState('');
+  const cargarComoSolicitud = seccion !== 'resultados' || enlaceSolicitud;
+  const cargando = cargarComoSolicitud ? cargandoSolicitudes : cargandoResultados;
+  const errorCarga = cargarComoSolicitud ? errorCargaSolicitudes : errorCargaResultados;
   const [recargar, setRecargar] = useState(0);
+  const [notificacionesPartidos, setNotificacionesPartidos] = useState({ avisos: [], sinLeer: {} });
+  const avisosPartidos = notificacionesPartidos.avisos;
+  const sinLeerSecciones = notificacionesPartidos.sinLeer;
 
   const [solicitudes, setSolicitudes] = useState({ recibidas: [], enviadas: [] });
   const [errorSolicitudes, setErrorSolicitudes] = useState('');
@@ -158,81 +166,134 @@ function MisPartidosView({ seccion = 'resultados' }) {
   const [statusLista, setStatusLista] = useState({ type: 'idle', message: '' });
   const [procesando, setProcesando] = useState(null);
 
+  // Una propuesta puede abrir Resultados sin desmontar la página. Conserva
+  // el borrador al cambiar de pestaña y aplica los datos de una nueva propuesta.
+  const rivalPropuesto = searchParams.get('rival');
+  const fechaPropuesta = searchParams.get('fecha');
+  const canchaPropuesta = searchParams.get('cancha');
+  useEffect(() => {
+    if (seccion !== 'resultados' || !rivalPropuesto) return;
+    setRivalId(rivalPropuesto);
+    setFecha(fechaPropuesta && fechaPropuesta <= hoyISO() ? fechaPropuesta : hoyISO());
+    setCanchaId(canchaPropuesta || '');
+    setResultado('Ganado');
+    setMarcador('');
+    setTocado(false);
+    setStatusForm({ type: 'idle', message: '' });
+  }, [seccion, rivalPropuesto, fechaPropuesta, canchaPropuesta]);
+
+  // Inicio y pestañas cuentan las mismas tarjetas sin ver. Leer una tarjeta
+  // quita su contador sin aceptar, cancelar ni confirmar el partido.
+  useEffect(() => {
+    let activo = true;
+    const cargarPendientes = async () => {
+      try {
+        const response = await apiFetch('/api/notifications');
+        const result = await response.json();
+        if (activo && response.ok && result.success) {
+          setNotificacionesPartidos(aplicarLecturas(result.data, miId));
+        }
+      } catch { /* Conserva los últimos conteos si falla la actualización. */ }
+    };
+    cargarPendientes();
+    const intervalo = setInterval(cargarPendientes, 12000);
+    window.addEventListener('focus', cargarPendientes);
+    return () => {
+      activo = false;
+      clearInterval(intervalo);
+      window.removeEventListener('focus', cargarPendientes);
+    };
+  }, [miId, recargar]);
+
   useEffect(() => {
     let activo = true;
 
-    const cargar = async () => {
-      setCargando(true);
+    // Los datos se comparten entre las tres pestañas. Cada grupo se carga
+    // una vez al entrar y se actualiza al responder o registrar un resultado.
+    const cargarSolicitudes = async () => {
       try {
-        // Cada pantalla carga sus datos. Los enlaces antiguos a solicitudes
-        // también se resuelven aquí antes de enviarlos a su nueva sección.
-        if (seccion !== 'resultados' || enlaceSolicitud) {
-          const solicitudesRes = await apiFetch('/api/matchmaking/requests');
-          const solicitudesData = await solicitudesRes.json();
-          if (!activo) return;
-          if (!solicitudesRes.ok || !solicitudesData.success) {
-            throw new Error(solicitudesData.error || 'No se pudieron cargar las solicitudes.');
-          }
-          setSolicitudes(solicitudesData.data || { recibidas: [], enviadas: [] });
+        const response = await apiFetch('/api/matchmaking/requests');
+        const result = await response.json();
+        if (!activo) return;
+        if (!response.ok || !result.success) {
+          throw new Error(result.error || 'No se pudieron cargar las solicitudes.');
         }
-
-        if (seccion === 'resultados' && !enlaceSolicitud) {
-          const [partidosRes, rankingRes, canchasRes] = await Promise.all([
-            apiFetch('/api/matches'),
-            apiFetch('/api/ranking'),
-            apiFetch('/api/courts'),
-          ]);
-          const [partidosData, rankingData, canchasData] = await Promise.all([
-            partidosRes.json(), rankingRes.json(), canchasRes.json(),
-          ]);
-
-          if (!activo) return;
-
-          if (!partidosRes.ok || !partidosData.success) {
-            throw new Error(partidosData.error || 'No se pudieron cargar tus partidos.');
-          }
-
-          setPartidos(partidosData.data.partidos || []);
-          setMiCategoria(partidosData.data.miCategoria || CATEGORIA_BASE);
-
-          if (rankingRes.ok && rankingData.success) {
-            const todos = Object.values(rankingData.data.ranking || {})
-              .flat()
-              .filter((jugador) => jugador.id !== miId)
-              .sort((a, b) => nombreCompleto(a).localeCompare(nombreCompleto(b), 'es'));
-            setJugadores(todos);
-            setReglas(rankingData.data.reglas);
-          }
-
-          if (canchasRes.ok && canchasData.success) {
-            setCanchas(canchasData.data?.canchas || []);
-          }
-        }
-
-        setErrorCarga('');
+        setSolicitudes(result.data || { recibidas: [], enviadas: [] });
+        setErrorCargaSolicitudes('');
       } catch (err) {
-        if (activo) setErrorCarga(err.message || 'No se pudo conectar con el servidor.');
+        if (activo) setErrorCargaSolicitudes(err.message || 'No se pudo conectar con el servidor.');
       } finally {
-        if (activo) setCargando(false);
+        if (activo) setCargandoSolicitudes(false);
       }
     };
 
-    cargar();
+    const cargarResultados = async () => {
+      try {
+        const [partidosRes, rankingRes, canchasRes] = await Promise.all([
+          apiFetch('/api/matches'),
+          apiFetch('/api/ranking'),
+          apiFetch('/api/courts'),
+        ]);
+        const [partidosData, rankingData, canchasData] = await Promise.all([
+          partidosRes.json(), rankingRes.json(), canchasRes.json(),
+        ]);
+
+        if (!activo) return;
+
+        if (!partidosRes.ok || !partidosData.success) {
+          throw new Error(partidosData.error || 'No se pudieron cargar tus partidos.');
+        }
+
+        setPartidos(partidosData.data.partidos || []);
+        setMiCategoria(partidosData.data.miCategoria || CATEGORIA_BASE);
+
+        if (rankingRes.ok && rankingData.success) {
+          const todos = Object.values(rankingData.data.ranking || {})
+            .flat()
+            .filter((jugador) => jugador.id !== miId)
+            .sort((a, b) => nombreCompleto(a).localeCompare(nombreCompleto(b), 'es'));
+          setJugadores(todos);
+          setReglas(rankingData.data.reglas);
+        }
+
+        if (canchasRes.ok && canchasData.success) {
+          setCanchas(canchasData.data?.canchas || []);
+        }
+
+        setErrorCargaResultados('');
+      } catch (err) {
+        if (activo) setErrorCargaResultados(err.message || 'No se pudo conectar con el servidor.');
+      } finally {
+        if (activo) setCargandoResultados(false);
+      }
+    };
+
+    const actualizar = () => Promise.all([cargarSolicitudes(), cargarResultados()]);
+    actualizar();
+    const intervalo = setInterval(actualizar, 30000);
+    window.addEventListener('focus', actualizar);
 
     return () => {
       activo = false;
+      clearInterval(intervalo);
+      window.removeEventListener('focus', actualizar);
     };
-  }, [miId, recargar, seccion, enlaceSolicitud]);
+  }, [miId, recargar]);
 
   // Espera los datos: la tarjeta puede estar en pendientes o en el historial.
   // También funciona al cambiar el enlace sin desmontar esta página.
   useEffect(() => {
-    if (cargando) return undefined;
     const ancla = hash === '#registrar-resultado' ? 'registrar-resultado' : referenciaPartido(hash)?.ancla;
-    if (!ancla) return undefined;
+    if (!ancla) {
+      destinoEnfocado.current = null;
+      return undefined;
+    }
+    const clave = `${seccion}:${hash}`;
+    if (cargando || destinoEnfocado.current === clave) return undefined;
     const frame = requestAnimationFrame(() => {
       const destino = document.getElementById(ancla);
       if (!destino) return;
+      destinoEnfocado.current = clave;
       destino.focus({ preventScroll: true });
       const reducirMovimiento = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       destino.scrollIntoView({ behavior: reducirMovimiento ? 'instant' : 'smooth', block: 'start' });
@@ -265,9 +326,91 @@ function MisPartidosView({ seccion = 'resultados' }) {
     : (searchParams.get('bandeja') === 'enviadas' ? 'enviadas' : 'recibidas');
   const existeDestino = referencia?.tipo === 'solicitud'
     ? Boolean(solicitudDelAviso) : partidos.some((p) => String(p.id) === referencia?.id);
-  const claseAviso = (tipo, id) => referencia?.tipo === tipo && referencia.id === String(id)
-    ? 'scroll-mt-6 outline-none ring-2 ring-emerald-400 ring-offset-2 ring-offset-slate-900'
+  const avisosPorElemento = useMemo(() => {
+    const elementos = new Map();
+    for (const aviso of avisosPartidos) {
+      if (aviso.tipo !== 'accion' && !aviso.nuevo) continue;
+      const ancla = anclaAviso(aviso);
+      if (!ancla) continue;
+      // Una solicitud y un resultado pueden compartir ID sin ser el mismo aviso.
+      // Una acción sin ver tiene prioridad. Una acción vista no oculta novedades posteriores.
+      const estado = aviso.tipo === 'accion' ? (aviso.visto ? 'pendiente-visto' : 'pendiente') : 'nuevo';
+      const anterior = elementos.get(ancla);
+      if (!anterior || estado === 'pendiente' || (anterior === 'pendiente-visto' && estado === 'nuevo')) {
+        elementos.set(ancla, estado);
+      }
+    }
+    return elementos;
+  }, [avisosPartidos]);
+  const tieneAviso = (tipo, id) => {
+    const estado = avisosPorElemento.get(`${tipo}-${id}`);
+    return Boolean(estado && estado !== 'pendiente-visto');
+  };
+  const claseAviso = (tipo, id) => tieneAviso(tipo, id)
+    ? 'scroll-mt-6 outline-none ring-2 ring-amber-300 ring-offset-2 ring-offset-slate-900'
     : 'scroll-mt-6';
+  const marcaAviso = (tipo, id) => {
+    const estado = avisosPorElemento.get(`${tipo}-${id}`);
+    if (!estado || (seccion === 'proximos' && estado === 'pendiente-visto')) return null;
+    return (
+      <p className={`mb-3 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${estado === 'pendiente-visto' ? 'bg-slate-800 text-slate-400' : 'bg-amber-300 text-slate-900'}`}>
+        <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-current" />
+        {estado === 'nuevo' || seccion === 'proximos' ? t('Nuevo') : t('Pendiente')}
+      </p>
+    );
+  };
+
+  // Un aviso se considera visto tras 1,2 s con al menos la mitad de su tarjeta
+  // visible. Una acción vista mantiene su estado pendiente, pero deja de sumar alertas.
+  useEffect(() => {
+    if (cargando || !miId || !('IntersectionObserver' in window)) return;
+    const novedades = new Map();
+    for (const aviso of avisosPartidos) {
+      if (!esAvisoSinLeer(aviso)) continue;
+      const ancla = anclaAviso(aviso);
+      const tarjeta = ancla && document.getElementById(ancla);
+      if (tarjeta) novedades.set(tarjeta, [...(novedades.get(tarjeta) || []), aviso]);
+    }
+    if (!novedades.size) return;
+    const temporizadores = new Map();
+    const detenerLectura = () => {
+      temporizadores.forEach(clearTimeout);
+      temporizadores.clear();
+    };
+    const observer = new IntersectionObserver((entradas) => {
+      for (const entrada of entradas) {
+        const tarjeta = entrada.target;
+        if (!entrada.isIntersecting || entrada.intersectionRatio < 0.5 || document.visibilityState !== 'visible') {
+          clearTimeout(temporizadores.get(tarjeta));
+          temporizadores.delete(tarjeta);
+          continue;
+        }
+        if (temporizadores.has(tarjeta)) continue;
+        temporizadores.set(tarjeta, setTimeout(() => {
+          if (document.visibilityState !== 'visible') return;
+          marcarAvisosLeidos(miId, novedades.get(tarjeta));
+          setNotificacionesPartidos((actuales) => aplicarLecturas(actuales, miId));
+          observer.unobserve(tarjeta);
+          temporizadores.delete(tarjeta);
+        }, 1200));
+      }
+    }, {
+      threshold: 0.5,
+      rootMargin: window.matchMedia('(max-width: 639px)').matches ? '0px 0px -80px 0px' : '0px',
+    });
+    const observar = () => {
+      detenerLectura();
+      observer.disconnect();
+      if (document.visibilityState === 'visible') novedades.forEach((_avisos, tarjeta) => observer.observe(tarjeta));
+    };
+    observar();
+    document.addEventListener('visibilitychange', observar);
+    return () => {
+      detenerLectura();
+      observer.disconnect();
+      document.removeEventListener('visibilitychange', observar);
+    };
+  }, [miId, avisosPartidos, cargando, partidos, solicitudes, seccion, bandeja]);
 
   // accion: "aceptar" | "rechazar" (recibidas) o "cancelar" (enviadas).
   const responderSolicitud = async (id, accion) => {
@@ -293,7 +436,7 @@ function MisPartidosView({ seccion = 'resultados' }) {
       };
       setStatusSolicitud({ type: 'success', message: mensajes[accion] });
       // Quita el ancla ya atendida para mantener al usuario en su bandeja.
-      if (hash) navigate(`/solicitudes?bandeja=${bandeja}`, { replace: true });
+      if (hash) navigate(rutaPartidos('solicitudes', { bandeja }), { replace: true });
       setRecargar((n) => n + 1);
     } catch (err) {
       setErrorSolicitudes(err.message || 'No se pudo conectar con el servidor.');
@@ -343,7 +486,7 @@ function MisPartidosView({ seccion = 'resultados' }) {
       fecha: solicitud.fecha,
       cancha: solicitud.cancha?.id ? String(solicitud.cancha.id) : '',
     });
-    navigate(`/mis-partidos?${parametros}#registrar-resultado`);
+    navigate(rutaPartidos('resultados', parametros, '#registrar-resultado'));
   };
 
   // Vista previa de los puntos con las reglas que entrega el servidor.
@@ -473,18 +616,21 @@ function MisPartidosView({ seccion = 'resultados' }) {
 
   // Mantiene los avisos guardados y los enlaces de versiones anteriores.
   if (hash === '#partidos-pendientes' && seccion === 'resultados') {
-    return <Navigate to="/proximos-partidos" replace />;
+    return <Navigate to={rutaPartidos('proximos')} replace />;
   }
   if (referencia?.tipo === 'partido' && seccion !== 'resultados') {
-    return <Navigate to={`/mis-partidos${hash}`} replace />;
+    return <Navigate to={rutaPartidos('resultados', '', hash)} replace />;
   }
-  if (solicitudDelAviso && pathname !== rutaSolicitud(solicitudDelAviso)) {
-    return <Navigate to={`${rutaSolicitud(solicitudDelAviso)}${hash}`} replace />;
+  const seccionDelAviso = solicitudDelAviso?.estado === 'aceptada' ? 'proximos' : 'solicitudes';
+  if (solicitudDelAviso && seccion !== seccionDelAviso) {
+    return <Navigate to={rutaPartidos(seccionDelAviso, '', hash)} replace />;
   }
 
   return (
     <div className="relative min-h-dvh overflow-hidden bg-slate-900 px-4 py-8">
-      <TennisBackground />
+      <div className="pointer-events-none fixed inset-0">
+        <TennisBackground />
+      </div>
 
       <div className="relative mx-auto flex min-h-[calc(100dvh-4rem)] max-w-md flex-col">
         <header className="flex items-start justify-between gap-4">
@@ -492,14 +638,14 @@ function MisPartidosView({ seccion = 'resultados' }) {
             <BrandLogo className="mb-4 h-16 sm:h-20" />
             <div className="flex items-center gap-3">
               <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-600/15 text-emerald-400">
-                <IconoVista className="h-5 w-5" />
+                <CalendarClock className="h-5 w-5" />
               </span>
               <div>
                 <h1 className="text-2xl font-bold leading-tight text-slate-100">
-                  {t(vista.titulo)}
+                  {t('Partidos')}
                 </h1>
                 <p className="mt-1 text-sm text-slate-400">
-                  {t(vista.descripcion)}
+                  {t('Solicitudes, encuentros y resultados en un solo lugar')}
                 </p>
               </div>
             </div>
@@ -518,16 +664,27 @@ function MisPartidosView({ seccion = 'resultados' }) {
         </header>
 
         <nav aria-label={t("Secciones de partidos")} className="mt-6 grid grid-cols-3 gap-1 rounded-xl border border-slate-700/50 bg-slate-800/60 p-1">
-          {Object.entries(SECCIONES_PARTIDOS).map(([clave, item]) => (
-            <Link
-              key={clave}
-              to={item.ruta}
-              aria-current={seccion === clave ? 'page' : undefined}
-              className={`flex items-center justify-center rounded-lg px-2 py-3 text-center text-sm font-semibold transition-colors ${seccion === clave ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:bg-slate-700/50 hover:text-slate-100'}`}
-            >
-              {clave === 'proximos' ? t('Próximos') : t(item.titulo)}
-            </Link>
-          ))}
+          {Object.entries(SECCIONES_PARTIDOS).map(([clave, item]) => {
+            const pendientes = sinLeerSecciones[item.aviso] || 0;
+            return (
+              <Link
+                key={clave}
+                to={rutaPartidos(clave)}
+                aria-current={seccion === clave ? 'page' : undefined}
+                className={`flex min-w-0 flex-col items-center justify-center gap-1 rounded-lg px-1 py-2 text-center text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 sm:flex-row sm:gap-2 sm:py-3 ${seccion === clave ? 'bg-emerald-600 text-white' : pendientes > 0 ? 'text-amber-100 hover:bg-slate-700/50' : 'text-slate-400 hover:bg-slate-700/50 hover:text-slate-100'}`}
+              >
+                <span>{clave === 'proximos' ? t('Próximos') : t(item.titulo)}</span>
+                {pendientes > 0 ? (
+                  <span
+                    aria-label={t('Alertas en {0}: {1}', { 0: t(item.titulo), 1: pendientes })}
+                    className="inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-amber-300 px-1 text-[10px] font-bold leading-none text-slate-900"
+                  >
+                    {pendientes}
+                  </span>
+                ) : <span aria-hidden="true" className="h-4 sm:hidden" />}
+              </Link>
+            );
+          })}
         </nav>
 
         {seccion !== 'resultados' && <Aviso status={statusSolicitud} />}
@@ -554,6 +711,7 @@ function MisPartidosView({ seccion = 'resultados' }) {
           <section className="mt-8">
             <h2 className={tituloSeccion}>{t("Detalle de la solicitud")}</h2>
             <article id={`solicitud-${solicitudCerradaDelAviso.id}`} tabIndex={-1} className={`${tarjeta} ${claseAviso('solicitud', solicitudCerradaDelAviso.id)}`}>
+              {marcaAviso('solicitud', solicitudCerradaDelAviso.id)}
               <p className="text-sm font-semibold text-slate-100">
                 {nombreCompleto(contrincanteDe(solicitudCerradaDelAviso))}
               </p>
@@ -596,6 +754,7 @@ function MisPartidosView({ seccion = 'resultados' }) {
                     id={`solicitud-${solicitud.id}`} tabIndex={-1}
                     className={`rounded-2xl border border-emerald-500/40 bg-emerald-500/5 p-4 shadow-2xl backdrop-blur-md ${claseAviso('solicitud', solicitud.id)}`}
                   >
+                    {marcaAviso('solicitud', solicitud.id)}
                     <div className="flex items-start gap-3">
                       <Avatar jugador={contrincante} />
                       <div className="min-w-0 flex-1">
@@ -675,7 +834,7 @@ function MisPartidosView({ seccion = 'resultados' }) {
             {['recibidas', 'enviadas'].map((tipo) => (
               <Link
                 key={tipo}
-                to={`/solicitudes?bandeja=${tipo}`}
+                to={rutaPartidos('solicitudes', { bandeja: tipo })}
                 aria-current={bandeja === tipo ? 'page' : undefined}
                 className={`rounded-xl border px-3 py-3 text-center text-sm font-semibold transition-colors ${bandeja === tipo ? 'border-emerald-500/50 bg-emerald-500/15 text-emerald-300' : 'border-slate-700/50 bg-slate-800/60 text-slate-400 hover:text-slate-100'}`}
               >
@@ -707,6 +866,7 @@ function MisPartidosView({ seccion = 'resultados' }) {
                           id={`solicitud-${solicitud.id}`} tabIndex={-1}
                           className={`rounded-2xl border border-amber-500/40 bg-amber-500/5 p-4 shadow-2xl backdrop-blur-md ${claseAviso('solicitud', solicitud.id)}`}
                         >
+                          {marcaAviso('solicitud', solicitud.id)}
                           <div className="flex items-start gap-3">
                             <Avatar jugador={contrincante} />
                             <div className="min-w-0 flex-1">
@@ -766,6 +926,7 @@ function MisPartidosView({ seccion = 'resultados' }) {
                           id={`solicitud-${solicitud.id}`} tabIndex={-1}
                           className={`rounded-2xl border border-slate-700/50 bg-slate-800/60 p-4 shadow-2xl backdrop-blur-md ${claseAviso('solicitud', solicitud.id)}`}
                         >
+                          {marcaAviso('solicitud', solicitud.id)}
                           <div className="flex items-start gap-3">
                             <Avatar jugador={contrincante} />
                             <div className="min-w-0 flex-1">
@@ -817,6 +978,7 @@ function MisPartidosView({ seccion = 'resultados' }) {
                   id={`partido-${partido.id}`} tabIndex={-1}
                   className={`rounded-2xl border border-amber-500/40 bg-amber-500/5 p-4 shadow-2xl backdrop-blur-md ${claseAviso('partido', partido.id)}`}
                 >
+                  {marcaAviso('partido', partido.id)}
                   <div className="flex items-start gap-3">
                     <Avatar jugador={partido.rival} />
                     <div className="min-w-0 flex-1">
@@ -1009,6 +1171,7 @@ function MisPartidosView({ seccion = 'resultados' }) {
             <ul className="grid gap-3">
               {esperando.map((partido) => (
                 <li key={partido.id} id={`partido-${partido.id}`} tabIndex={-1} className={`${tarjeta} ${claseAviso('partido', partido.id)}`}>
+                  {marcaAviso('partido', partido.id)}
                   <div className="flex items-start gap-3">
                     <ResultadoIcono partido={partido} />
                     <div className="min-w-0 flex-1">
@@ -1052,8 +1215,9 @@ function MisPartidosView({ seccion = 'resultados' }) {
                   <li
                     key={partido.id}
                     id={`partido-${partido.id}`} tabIndex={-1}
-                    className={`${tarjeta} ${claseAviso('partido', partido.id)} ${confirmado ? '' : 'opacity-60'}`}
+                    className={`${tarjeta} ${claseAviso('partido', partido.id)} ${confirmado || tieneAviso('partido', partido.id) ? '' : 'opacity-60'}`}
                   >
+                    {marcaAviso('partido', partido.id)}
                     <div className="flex items-start gap-3">
                       <ResultadoIcono partido={partido} />
                       <div className="min-w-0 flex-1">

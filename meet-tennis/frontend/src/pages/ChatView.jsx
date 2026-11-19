@@ -294,10 +294,10 @@ function ChatView() {
   );
 
   return (
-    <div className="relative min-h-dvh overflow-x-hidden bg-slate-900 px-4 py-5">
+    <div className="relative min-h-[calc(100dvh-var(--mobile-nav-height,0px))] overflow-x-hidden bg-slate-900 px-4 py-5">
       <TennisBackground />
 
-      <div className="relative mx-auto flex min-h-[calc(100dvh-2.5rem)] max-w-5xl flex-col">
+      <div className="relative mx-auto flex min-h-[calc(100dvh-2.5rem-var(--mobile-nav-height,0px))] max-w-5xl flex-col">
         <header className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <button

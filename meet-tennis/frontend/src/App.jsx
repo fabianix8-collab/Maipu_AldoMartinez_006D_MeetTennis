@@ -1,7 +1,8 @@
 import { lazy, Suspense } from 'react';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useLocation, useSearchParams } from 'react-router-dom';
 import { useLanguage } from './lib/i18n.js';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
+import { rutaPartidos, SECCIONES_PARTIDOS } from './lib/partidos.js';
 
 const LoginView = lazy(() => import('./pages/LoginView.jsx'));
 const RegisterView = lazy(() => import('./pages/RegisterView.jsx'));
@@ -17,6 +18,19 @@ const ChatView = lazy(() => import('./pages/ChatView.jsx'));
 const ProductosView = lazy(() => import('./pages/ProductosView.jsx'));
 const MonitoreoView = lazy(() => import('./pages/MonitoreoView.jsx'));
 const AdminUsuariosView = lazy(() => import('./pages/AdminUsuariosView.jsx'));
+
+function PartidosPage() {
+  const [searchParams] = useSearchParams();
+  const elegida = searchParams.get('seccion');
+  const seccion = Object.hasOwn(SECCIONES_PARTIDOS, elegida) ? elegida : 'proximos';
+  return <MisPartidosView seccion={seccion} />;
+}
+
+// Conserva los enlaces de avisos y los formularios precargados anteriores.
+function PartidosRedirect({ seccion }) {
+  const { search, hash } = useLocation();
+  return <Navigate to={rutaPartidos(seccion, search, hash)} replace />;
+}
 
 function App() {
   const { t } = useLanguage();
@@ -41,28 +55,20 @@ function App() {
           }
         />
         <Route
+          path="/partidos"
+          element={<ProtectedRoute><PartidosPage /></ProtectedRoute>}
+        />
+        <Route
           path="/solicitudes"
-          element={
-            <ProtectedRoute>
-              <MisPartidosView key="solicitudes" seccion="solicitudes" />
-            </ProtectedRoute>
-          }
+          element={<PartidosRedirect seccion="solicitudes" />}
         />
         <Route
           path="/proximos-partidos"
-          element={
-            <ProtectedRoute>
-              <MisPartidosView key="proximos" seccion="proximos" />
-            </ProtectedRoute>
-          }
+          element={<PartidosRedirect seccion="proximos" />}
         />
         <Route
           path="/mis-partidos"
-          element={
-            <ProtectedRoute>
-              <MisPartidosView key="resultados" seccion="resultados" />
-            </ProtectedRoute>
-          }
+          element={<PartidosRedirect seccion="resultados" />}
         />
         <Route
           path="/disponibilidad"

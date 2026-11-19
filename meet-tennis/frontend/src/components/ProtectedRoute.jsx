@@ -1,4 +1,5 @@
 import { Navigate } from 'react-router-dom';
+import MobileNavigation from './MobileNavigation.jsx';
 
 function getStoredAuth() {
   try {
@@ -19,7 +20,12 @@ function ProtectedRoute({ children }) {
     return <Navigate to="/login" replace />;
   }
 
-  return children;
+  return (
+    <div className="authenticated-layout bg-slate-900">
+      {children}
+      <MobileNavigation />
+    </div>
+  );
 }
 
 export default ProtectedRoute;

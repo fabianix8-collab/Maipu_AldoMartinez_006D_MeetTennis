@@ -7,7 +7,6 @@ import {
   ClipboardCheck,
   LogOut,
   MapPin,
-  Mail,
   MessageCircle,
   MessageSquare,
   ShoppingBag,
@@ -22,13 +21,13 @@ import BrandLogo from '../components/BrandLogo.jsx';
 import NotificationBell from '../components/NotificationBell.jsx';
 import TennisBackground from '../components/TennisBackground.jsx';
 import { apiFetch } from '../lib/api.js';
+import { aplicarLecturas, marcarAvisosLeidos } from '../lib/avisos.js';
+import { SECCIONES_PARTIDOS } from '../lib/partidos.js';
 
 // "ancho": ocupa las dos columnas. "aviso": clave del contador de pendientes.
 const NAV_ITEMS = [
   { title: 'Buscar Partido', Icon: Swords, to: '/buscar-partido', ancho: true },
-  { title: 'Solicitudes', Icon: Mail, to: '/solicitudes', aviso: 'solicitudes' },
-  { title: 'Próximos partidos', Icon: CalendarClock, to: '/proximos-partidos', aviso: 'proximos' },
-  { title: 'Mis Partidos', Icon: ClipboardCheck, to: '/mis-partidos', aviso: 'partidos' },
+  { title: 'Partidos', Icon: ClipboardCheck, to: '/partidos', aviso: 'partidos' },
   { title: 'Mi Ranking', Icon: Trophy, to: '/ranking' },
   { title: 'Mi Disponibilidad', Icon: CalendarClock, to: '/disponibilidad' },
   { title: 'Canchas Cercanas', Icon: MapPin, to: '/canchas' },
@@ -48,21 +47,24 @@ function DashboardView() {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const storedUser = getStoredUser();
+  const miId = storedUser?.user?.id;
 
   const firstName = storedUser?.profile?.nombre || t('Deportista');
   const avatarUrl = storedUser?.profile?.avatar_url || null;
 
-  // Avisos de la campana y contadores de pendientes de cada sección.
+  // Los contadores indican elementos sin ver; las acciones siguen disponibles al leerlas.
   const [notificaciones, setNotificaciones] = useState({
     avisos: [],
     noLeidos: 0,
-    pendientes: { solicitudes: 0, partidos: 0, chat: 0 },
+    pendientes: { solicitudes: 0, proximos: 0, partidos: 0, chat: 0 },
+    sinLeer: { solicitudes: 0, proximos: 0, partidos: 0 },
   });
   const [recargarAvisos, setRecargarAvisos] = useState(0);
-  const [partidosAceptados, setPartidosAceptados] = useState(0);
-  const [solicitudesPendientes, setSolicitudesPendientes] = useState(0);
   const [totalNoLeidos, setTotalNoLeidos] = useState(0);
   const [esAdmin, setEsAdmin] = useState(false);
+  const partidosSinLeer = Object.values(SECCIONES_PARTIDOS).reduce(
+    (total, item) => total + (notificaciones.sinLeer?.[item.aviso] || 0), 0,
+  );
 
   useEffect(() => {
     let activo = true;
@@ -72,7 +74,7 @@ function DashboardView() {
         const response = await apiFetch('/api/notifications');
         const result = await response.json();
         if (activo && response.ok && result.success) {
-          setNotificaciones(result.data);
+          setNotificaciones(aplicarLecturas(result.data, miId));
         }
       } catch {
         // Silencioso: el menú funciona igual sin avisos.
@@ -80,40 +82,33 @@ function DashboardView() {
     };
 
     cargar();
+    const intervalo = setInterval(cargar, 12000);
+    window.addEventListener('focus', cargar);
 
     return () => {
       activo = false;
+      clearInterval(intervalo);
+      window.removeEventListener('focus', cargar);
     };
-  }, [recargarAvisos]);
+  }, [recargarAvisos, miId]);
 
-  // Partidos pendientes, mensajes sin leer y acceso al monitoreo: se
+  // Mensajes sin leer y acceso al monitoreo: se
   // consultan al montar y se refrescan con polling ligero.
   useEffect(() => {
     let activo = true;
 
     const cargar = async () => {
       try {
-        const [solicitudesRes, conversacionesRes, accesoRes] = await Promise.all([
-          apiFetch('/api/matchmaking/requests'),
+        const [conversacionesRes, accesoRes] = await Promise.all([
           apiFetch('/api/chat/conversations'),
           apiFetch('/api/monitoring/acceso'),
         ]);
-        const [solicitudes, conversaciones, acceso] = await Promise.all([
-          solicitudesRes.json(),
+        const [conversaciones, acceso] = await Promise.all([
           conversacionesRes.json(),
           accesoRes.json(),
         ]);
 
         if (!activo) return;
-
-        if (solicitudesRes.ok && solicitudes.success) {
-          const todas = [
-            ...(solicitudes.data?.recibidas || []),
-            ...(solicitudes.data?.enviadas || []),
-          ];
-          setPartidosAceptados(todas.filter((s) => s.estado === 'aceptada').length);
-          setSolicitudesPendientes((solicitudes.data?.recibidas || []).filter((s) => s.estado === 'pendiente').length);
-        }
 
         if (conversacionesRes.ok && conversaciones.success) {
           const lista = conversaciones.data || [];
@@ -157,16 +152,15 @@ function DashboardView() {
     }
   };
 
-  // Al abrir la campana, las novedades pasan a leídas. Los avisos que
-  // requieren respuesta siguen contando hasta que se respondan.
+  // Abrir la campana lee sus novedades. Las acciones se leen al ver su tarjeta.
   const marcarVistos = () => {
     if (!notificaciones.avisos.some((a) => a.nuevo)) return;
+    marcarAvisosLeidos(miId, notificaciones.avisos.filter((aviso) => aviso.tipo === 'info'));
 
-    setNotificaciones((prev) => ({
+    setNotificaciones((prev) => aplicarLecturas({
       ...prev,
-      avisos: prev.avisos.map((a) => ({ ...a, nuevo: false })),
-      noLeidos: prev.avisos.filter((a) => a.tipo === 'accion').length,
-    }));
+      avisos: prev.avisos.map((a) => a.tipo === 'info' ? { ...a, nuevo: false } : a),
+    }, miId));
     apiFetch('/api/notifications/vistos', { method: 'POST' }).catch(() => {});
   };
 
@@ -278,11 +272,10 @@ function DashboardView() {
             );
           })}
 
-          {/* Accesos independientes para invitaciones, encuentros y resultados. */}
+          {/* Partidos reúne invitaciones, encuentros y resultados. */}
           <div className="grid flex-1 auto-rows-fr grid-cols-2 gap-3">
             {NAV_ITEMS.filter((item) => !item.ancho).map(({ title, Icon, to, aviso, estrella }) => {
-              const pendientes = aviso === 'proximos' ? partidosAceptados
-                : aviso === 'solicitudes' ? solicitudesPendientes
+              const pendientes = aviso === 'partidos' ? partidosSinLeer
                 : aviso ? notificaciones.pendientes[aviso] : 0;
               return (
                 <button
@@ -293,7 +286,7 @@ function DashboardView() {
                 >
                   {pendientes > 0 && (
                     <span
-                      aria-label={`${pendientes} ${t(aviso === 'solicitudes' ? 'solicitudes por responder' : aviso === 'proximos' ? 'encuentros aceptados' : 'resultados por confirmar')}`}
+                      aria-label={t('{0} novedades sin ver en partidos', { 0: pendientes })}
                       className="absolute right-2.5 top-2.5 rounded-full bg-amber-400 px-2 py-0.5 text-[11px] font-bold text-slate-900 shadow-lg"
                     >
                       {t(pendientes)}
@@ -316,12 +309,12 @@ function DashboardView() {
         </nav>
       </div>
 
-      {/* Burbuja flotante de chat con contador de no leídos */}
+      {/* En celular, el chat y su contador están en la barra inferior. */}
       <button
         type="button"
         onClick={() => navigate('/chat')}
         aria-label={t("Abrir chat")}
-        className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-2xl transition-transform hover:scale-105 hover:bg-emerald-500"
+        className="fixed bottom-6 right-6 z-50 hidden h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-2xl transition-transform hover:scale-105 hover:bg-emerald-500 sm:flex"
       >
         <MessageCircle className="h-6 w-6" />
         {totalNoLeidos > 0 && (

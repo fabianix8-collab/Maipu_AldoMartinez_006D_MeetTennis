@@ -1,5 +1,15 @@
 // Spanish source keys keep API values and translations separate.
 export const english = {
+  "{0} novedades sin ver en partidos": "{0} unread match updates",
+  "Solicitudes, encuentros y resultados en un solo lugar": "Invitations, upcoming matches and results in one place",
+  "Alertas en {0}: {1}": "Alerts in {0}: {1}",
+  "Inicio": "Home",
+  "Buscar": "Find",
+  "Chat": "Chat",
+  "Perfil": "Profile",
+  "Navegación principal": "Main navigation",
+  "{0} mensajes sin leer": "{0} unread messages",
+  "{0} acciones pendientes en partidos": "{0} pending match actions",
   "Cargando...": "Loading...",
   "MeetTennis: ir al inicio": "MeetTennis: go to home",
   "Ir al inicio": "Go to home",

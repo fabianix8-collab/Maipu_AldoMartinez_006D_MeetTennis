@@ -14,6 +14,18 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+/* Reserva el espacio de la navegación móvil, incluido el área segura del dispositivo. */
+.authenticated-layout {
+  --mobile-nav-height: 0px;
+}
+
+@media (max-width: 639px) {
+  .authenticated-layout {
+    --mobile-nav-height: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+    padding-bottom: var(--mobile-nav-height);
+  }
+}
+
 ::selection {
   background: rgba(16, 185, 129, 0.35);
   color: #f1f5f9;

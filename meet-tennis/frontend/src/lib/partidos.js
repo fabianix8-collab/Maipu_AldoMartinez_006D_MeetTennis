@@ -10,20 +10,29 @@ export function referenciaPartido(hash) {
 export const SECCIONES_PARTIDOS = {
   solicitudes: {
     ruta: '/solicitudes',
+    aviso: 'solicitudes',
     titulo: 'Solicitudes',
     descripcion: 'Revisa tus invitaciones recibidas y enviadas',
   },
   proximos: {
     ruta: '/proximos-partidos',
+    aviso: 'proximos',
     titulo: 'Próximos partidos',
     descripcion: 'Consulta los encuentros que ya aceptaron',
   },
   resultados: {
     ruta: '/mis-partidos',
+    aviso: 'partidos',
     titulo: 'Mis partidos',
     descripcion: 'Registra resultados, confírmalos y revisa tu historial',
   },
 };
+
+export function rutaPartidos(seccion = 'proximos', search = '', hash = '') {
+  const parametros = new URLSearchParams(search);
+  parametros.set('seccion', Object.hasOwn(SECCIONES_PARTIDOS, seccion) ? seccion : 'proximos');
+  return `/partidos?${parametros}${hash}`;
+}
 
 // Una invitación aceptada se consulta junto a los encuentros acordados.
 // Las pendientes, rechazadas y canceladas permanecen en Solicitudes.
