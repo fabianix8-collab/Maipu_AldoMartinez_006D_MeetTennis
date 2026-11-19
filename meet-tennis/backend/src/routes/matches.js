@@ -24,7 +24,7 @@ const COLUMNAS = `id, jugador1_id, jugador2_id, ganador_id, categoria_j1, catego
   marcador, fecha, estado, created_at, confirmado_at, cancha_id,
   jugador1:usuario!partidos_jugador1_id_fkey(${JUGADOR}),
   jugador2:usuario!partidos_jugador2_id_fkey(${JUGADOR}),
-  cancha:canchas(id, nombre)`;
+  cancha:canchas(id, nombre, direccion, latitud, longitud)`;
 
 // El marcador se guarda desde el punto de vista de quien lo registró
 // ("6-4" = ganó 6 games). Para el rival se invierte cada set ("4-6").

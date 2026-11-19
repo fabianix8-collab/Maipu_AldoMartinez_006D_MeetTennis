@@ -12,6 +12,7 @@ import BrandLogo from '../components/BrandLogo.jsx';
 import TennisBackground from '../components/TennisBackground.jsx';
 import MapEmbed from '../components/MapEmbed.jsx';
 import { apiFetch } from '../lib/api.js';
+import { coordenadasValidas } from '../lib/mapas.js';
 
 const inputBase =
   'w-full rounded-xl border border-slate-700/50 bg-slate-800/70 px-4 py-3 text-slate-100 placeholder-slate-500 outline-none transition-colors focus:border-emerald-500';
@@ -140,6 +141,7 @@ function CourtsView() {
     if (!ubicacion) return [];
 
     return canchas
+      .filter((cancha) => coordenadasValidas(cancha.latitud, cancha.longitud))
       .map((cancha) => ({
         ...cancha,
         distancia: distanciaKm(

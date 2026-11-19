@@ -128,7 +128,7 @@ router.get('/', async (req, res) => {
           jugador: rival,
           texto: `¿Confirmas tu partido de ${cuando} con ${nombre(rival)} a las ${s.hora_desde?.slice(0, 5)}?`,
           fecha: s.respondida_at || s.created_at,
-          destino: '/buscar-partido',
+          destino: `/mis-partidos#solicitud-${s.id}`,
           asistencia: s.id,
         });
       }
@@ -143,7 +143,7 @@ router.get('/', async (req, res) => {
             : `${nombre(rival)} no puede asistir al partido del ${diaMes(s.fecha)}. Se canceló.`,
           positivo: suAsistencia,
           fecha: suAsistenciaAt,
-          destino: '/buscar-partido',
+          destino: `/mis-partidos#solicitud-${s.id}`,
         });
       }
 
@@ -157,7 +157,7 @@ router.get('/', async (req, res) => {
           jugador: s.solicitante,
           texto: `${nombre(s.solicitante)} te propone jugar el ${diaMes(s.fecha)}.`,
           fecha: s.created_at,
-          destino: '/buscar-partido',
+          destino: `/mis-partidos#solicitud-${s.id}`,
         });
       } else if (reciente(s.respondida_at) && !soyReceptor && s.estado !== 'cancelada') {
         // Respuesta a una solicitud que envié.
@@ -171,7 +171,7 @@ router.get('/', async (req, res) => {
             : `${nombre(s.receptor)} no puede jugar el ${diaMes(s.fecha)}.`,
           positivo: acepto,
           fecha: s.respondida_at,
-          destino: '/buscar-partido',
+          destino: `/mis-partidos#solicitud-${s.id}`,
         });
       } else if (reciente(s.respondida_at) && soyReceptor && s.estado === 'cancelada') {
         avisos.push({
@@ -181,7 +181,7 @@ router.get('/', async (req, res) => {
           texto: `${nombre(s.solicitante)} canceló su propuesta para el ${diaMes(s.fecha)}.`,
           positivo: false,
           fecha: s.respondida_at,
-          destino: '/buscar-partido',
+          destino: `/mis-partidos#solicitud-${s.id}`,
         });
       }
     }
@@ -198,7 +198,7 @@ router.get('/', async (req, res) => {
           jugador: rival,
           texto: `${nombre(rival)} registró un partido contigo. Confírmalo.`,
           fecha: p.created_at,
-          destino: '/mis-partidos',
+          destino: `/mis-partidos#partido-${p.id}`,
         });
       } else if (reciente(p.respondido_at) && soyJ1 && p.estado !== 'pendiente') {
         // Respuesta a un resultado que registré.
@@ -213,7 +213,7 @@ router.get('/', async (req, res) => {
             : `${nombre(rival)} rechazó el resultado que registraste.`,
           positivo: confirmado,
           fecha: p.respondido_at,
-          destino: '/mis-partidos',
+          destino: `/mis-partidos#partido-${p.id}`,
         });
       }
     }

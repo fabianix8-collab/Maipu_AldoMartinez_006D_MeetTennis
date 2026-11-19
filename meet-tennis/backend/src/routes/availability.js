@@ -2,6 +2,7 @@ import { Router } from 'express';
 import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import { requireAuth } from '../middleware/auth.js';
+import { esCanchaVigente } from '../lib/catalogoCanchas.js';
 
 dotenv.config();
 
@@ -121,6 +122,10 @@ router.post('/', async (req, res) => {
         data: null,
         error: 'Elige una comuna o una cancha, no ambas.',
       });
+    }
+
+    if (canchaId !== null && !(await esCanchaVigente(supabaseAdmin, canchaId))) {
+      return res.status(400).json({ success: false, data: null, error: 'Esta cancha ya no está disponible. Elige otra del listado.' });
     }
 
     const { data, error } = await supabaseAdmin

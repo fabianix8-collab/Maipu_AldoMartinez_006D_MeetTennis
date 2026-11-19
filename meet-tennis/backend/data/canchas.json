@@ -1,0 +1,701 @@
+{
+  "revisadoEl": "2026-11-18",
+  "canchas": [
+    {
+      "clave": "maipu",
+      "nombre": "Club de Tenis Maipú",
+      "direccion": "Chacabuco 100, Maipú",
+      "latitud": -33.5088252,
+      "longitud": -70.7563751,
+      "alias": [
+        "Club de Tenis Maipú"
+      ],
+      "easycancha": null,
+      "fuentes": [
+        "https://pajaritosfm.cl/reinauguran-canchas-de-tenis-de-la-plaza-de-maipu/"
+      ],
+      "ubicacionFuente": "https://www.openstreetmap.org/way/175940917"
+    },
+    {
+      "clave": "lonquen",
+      "nombre": "Club Lonquén",
+      "direccion": "Camino Húsares de la Muerte 25, Maipú",
+      "latitud": -33.5509046,
+      "longitud": -70.7828158,
+      "alias": [],
+      "easycancha": null,
+      "fuentes": [
+        "https://tenischile.com/arriendos/686"
+      ],
+      "ubicacionFuente": "https://www.openstreetmap.org/way/238755053"
+    },
+    {
+      "clave": "anachena",
+      "nombre": "Club Anachena",
+      "direccion": "Jorge Andrés Guerra, Parcela 85, Santa Ana de Chena, Maipú",
+      "latitud": -33.5508705,
+      "longitud": -70.7759532,
+      "alias": [],
+      "easycancha": null,
+      "fuentes": [
+        "https://tenischile.com/clubes/42"
+      ],
+      "ubicacionFuente": "https://cl.near-place.com/club-anachena-jorge-andres-guerra-85-maipu-maipu/en"
+    },
+    {
+      "clave": "noviciado",
+      "nombre": "TFA Tenis Noviciado",
+      "direccion": "Vuelta del Cura, Parcela 9A, Lote 10, El Noviciado, Pudahuel",
+      "latitud": -33.3829258210291,
+      "longitud": -70.85562281365306,
+      "alias": [],
+      "easycancha": "tfa-tenis-noviciado",
+      "fuentes": [
+        "https://www.easycancha.com/es-CL/chile/club/tfa-tenis-noviciado"
+      ],
+      "ubicacionFuente": "https://www.easycancha.com/es-CL/chile/club/tfa-tenis-noviciado"
+    },
+    {
+      "clave": "futuros",
+      "nombre": "Fundación Futuros para el Tenis",
+      "direccion": "Av. Lo Ovalle 02420, Lo Espejo",
+      "latitud": -33.5084656,
+      "longitud": -70.6800536,
+      "alias": [],
+      "easycancha": "fundacion-futuros-para-el-tenis",
+      "fuentes": [
+        "https://www.easycancha.com/es-CL/chile/club/fundacion-futuros-para-el-tenis"
+      ],
+      "ubicacionFuente": "https://www.easycancha.com/es-CL/chile/club/fundacion-futuros-para-el-tenis"
+    },
+    {
+      "clave": "bonilla-cruz",
+      "nombre": "Cancha de Tenis Bonilla - Teniente Cruz",
+      "direccion": "Av. General Óscar Bonilla con Av. Teniente Cruz, Lo Prado",
+      "latitud": -33.45286111111111,
+      "longitud": -70.73838888888889,
+      "alias": [],
+      "easycancha": null,
+      "fuentes": [
+        "Confirmación del usuario: 33°27'10.3\"S 70°44'18.2\"W"
+      ],
+      "ubicacionFuente": "Coordenadas proporcionadas por el usuario el 2026-11-18"
+    },
+    {
+      "clave": "bonilla-oriente",
+      "nombre": "Cancha de Tenis Bonilla - Sector Oriente",
+      "direccion": "Av. General Óscar Bonilla, sector oriente de Teniente Cruz, Lo Prado",
+      "latitud": -33.453895,
+      "longitud": -70.732931,
+      "alias": [],
+      "easycancha": null,
+      "fuentes": [
+        "Confirmación del usuario: -33.453895, -70.732931"
+      ],
+      "ubicacionFuente": "Coordenadas proporcionadas por el usuario el 2026-11-18"
+    },
+    {
+      "clave": "victor-jara",
+      "nombre": "Cancha de Tenis Víctor Jara",
+      "direccion": "Calle Víctor Jara 8717, Pudahuel",
+      "latitud": -33.4572751,
+      "longitud": -70.7597539,
+      "alias": [],
+      "easycancha": null,
+      "fuentes": [
+        "Dirección confirmada por el usuario el 2026-11-18"
+      ],
+      "ubicacionFuente": "https://www.openstreetmap.org/way/109461913"
+    },
+    {
+      "clave": "modelo",
+      "nombre": "Estadio Modelo de Pudahuel - Juan Carlos Orellana",
+      "direccion": "Corona Sueca 8325, Pudahuel",
+      "latitud": -33.4482391,
+      "longitud": -70.7408188,
+      "alias": [
+        "Estadio Modelo Pudahuel"
+      ],
+      "easycancha": null,
+      "fuentes": [
+        "https://tenischile.com/clubes/104"
+      ],
+      "ubicacionFuente": "https://www.openstreetmap.org/way/1099717697"
+    },
+    {
+      "clave": "plaza-mexico",
+      "nombre": "Canchas de Tenis Plaza México",
+      "direccion": "Nueva Imperial 4497, Quinta Normal",
+      "latitud": -33.44525,
+      "longitud": -70.69639,
+      "alias": [],
+      "easycancha": null,
+      "fuentes": [
+        "https://www.quintanormaldeportes.cl/"
+      ],
+      "ubicacionFuente": "https://www.quintanormaldeportes.cl/"
+    },
+    {
+      "clave": "martin-zamora",
+      "nombre": "Club de Tenis Martín de Zamora",
+      "direccion": "Martín de Zamora 4571, Las Condes",
+      "latitud": -33.4196293,
+      "longitud": -70.5770202,
+      "alias": [],
+      "easycancha": null,
+      "fuentes": [
+        "https://www.lascondes.cl/municipalidad/informacion-comunal/infraestructura-comunal/"
+      ],
+      "ubicacionFuente": "https://www.openstreetmap.org/way/199907182"
+    },
+    {
+      "clave": "caja18",
+      "nombre": "Caja 18 Cerrillos",
+      "direccion": "Camino Lonquén 8380, Cerrillos",
+      "latitud": -33.510812,
+      "longitud": -70.7171178,
+      "alias": [],
+      "easycancha": "caja-18-cerrillos",
+      "fuentes": [
+        "https://www.easycancha.com/es-CL/chile/club/caja-18-cerrillos"
+      ],
+      "ubicacionFuente": "https://www.easycancha.com/es-CL/chile/club/caja-18-cerrillos"
+    },
+    {
+      "clave": "ossandon",
+      "nombre": "Club Ossandón",
+      "direccion": "Simón González 8515, La Reina",
+      "latitud": -33.4467467,
+      "longitud": -70.543632,
+      "alias": [],
+      "easycancha": "club-ossandon",
+      "fuentes": [
+        "https://www.easycancha.com/es-CL/chile/club/club-ossandon"
+      ],
+      "ubicacionFuente": "https://www.easycancha.com/es-CL/chile/club/club-ossandon"
+    },
+    {
+      "clave": "federacion",
+      "nombre": "Federación de Tenis de Chile - Cerro Colorado",
+      "direccion": "Cerro Colorado 4661, Las Condes",
+      "latitud": -33.40587,
+      "longitud": -70.5835463,
+      "alias": [
+        "Club de Tenis Parque Araucano"
+      ],
+      "easycancha": "federacion-de-tenis-de-chile-cerro-colorado",
+      "fuentes": [
+        "https://www.easycancha.com/es-CL/chile/club/federacion-de-tenis-de-chile-cerro-colorado"
+      ],
+      "ubicacionFuente": "https://www.easycancha.com/es-CL/chile/club/federacion-de-tenis-de-chile-cerro-colorado"
+    },
+    {
+      "clave": "dragones",
+      "nombre": "Centro Deportivo Dragones de La Reina",
+      "direccion": "Francisco de Villagra 6581, La Reina",
+      "latitud": -33.4598137,
+      "longitud": -70.5612224,
+      "alias": [],
+      "easycancha": "centro-deportivo-dragones-de-la-reina",
+      "fuentes": [
+        "https://www.easycancha.com/es-CL/chile/club/centro-deportivo-dragones-de-la-reina"
+      ],
+      "ubicacionFuente": "https://www.easycancha.com/es-CL/chile/club/centro-deportivo-dragones-de-la-reina"
+    },
+    {
+      "clave": "parque-reina",
+      "nombre": "Club Parque La Reina",
+      "direccion": "Poeta Ángel Cruchaga 1521, La Reina",
+      "latitud": -33.43697488747751,
+      "longitud": -70.55278647939662,
+      "alias": [],
+      "easycancha": "club-parque-la-reina",
+      "fuentes": [
+        "https://www.easycancha.com/es-CL/chile/club/club-parque-la-reina"
+      ],
+      "ubicacionFuente": "https://www.easycancha.com/es-CL/chile/club/club-parque-la-reina"
+    },
+    {
+      "clave": "mi-club",
+      "nombre": "Centro Deportivo MI CLUB La Reina",
+      "direccion": "Valenzuela Puelma 8551, La Reina",
+      "latitud": -33.433833,
+      "longitud": -70.541079,
+      "alias": [],
+      "easycancha": "centro-deportivo-mi-club-la-reina",
+      "fuentes": [
+        "https://www.easycancha.com/es-CL/chile/club/centro-deportivo-mi-club-la-reina"
+      ],
+      "ubicacionFuente": "https://www.easycancha.com/es-CL/chile/club/centro-deportivo-mi-club-la-reina"
+    },
+    {
+      "clave": "araucana",
+      "nombre": "Parque Deportivo La Araucana",
+      "direccion": "Walker Martínez 2295, La Florida",
+      "latitud": -33.5231972,
+      "longitud": -70.5691376,
+      "alias": [],
+      "easycancha": "parque-deportivo-la-araucana",
+      "fuentes": [
+        "https://www.easycancha.com/es-CL/chile/club/parque-deportivo-la-araucana"
+      ],
+      "ubicacionFuente": "https://www.easycancha.com/es-CL/chile/club/parque-deportivo-la-araucana"
+    },
+    {
+      "clave": "alto-macul",
+      "nombre": "Club Alto Macul",
+      "direccion": "Nueva María Angélica 6194, La Florida",
+      "latitud": -33.5108688,
+      "longitud": -70.5325782,
+      "alias": [],
+      "easycancha": null,
+      "fuentes": [
+        "https://www.clubaltomacul.cl/"
+      ],
+      "ubicacionFuente": "https://quieroentrenar.cl/listado/con-instalacion-propia/la-florida/club-alto-macul/"
+    },
+    {
+      "clave": "andes",
+      "nombre": "Estadio Andes",
+      "direccion": "Enrique Olivares 857, La Florida",
+      "latitud": -33.5424007,
+      "longitud": -70.5789223,
+      "alias": [
+        "Contraloría Caja Los Andes"
+      ],
+      "easycancha": "estadio-andes",
+      "fuentes": [
+        "https://www.easycancha.com/es-CL/chile/club/estadio-andes"
+      ],
+      "ubicacionFuente": "https://www.easycancha.com/es-CL/chile/club/estadio-andes"
+    },
+    {
+      "clave": "uss",
+      "nombre": "Club Deportivo USS",
+      "direccion": "Av. Padre Hurtado Sur 2650, Las Condes",
+      "latitud": -33.4299788,
+      "longitud": -70.5421355,
+      "alias": [
+        "Ciudad Deportiva USS (Ex Zamorano)"
+      ],
+      "easycancha": "club-deportivo-uss",
+      "fuentes": [
+        "https://www.easycancha.com/es-CL/chile/club/club-deportivo-uss"
+      ],
+      "ubicacionFuente": "https://www.easycancha.com/es-CL/chile/club/club-deportivo-uss"
+    },
+    {
+      "clave": "racket",
+      "nombre": "The Racket Club",
+      "direccion": "Av. Las Condes 11755, Las Condes",
+      "latitud": -33.37466013599197,
+      "longitud": -70.52147188540106,
+      "alias": [],
+      "easycancha": "the-racket-club",
+      "fuentes": [
+        "https://www.easycancha.com/es-CL/chile/club/the-racket-club"
+      ],
+      "ubicacionFuente": "https://www.easycancha.com/es-CL/chile/club/the-racket-club"
+    },
+    {
+      "clave": "brain",
+      "nombre": "Brain Sports - San Carlos de Apoquindo",
+      "direccion": "Av. La Plaza 580, Las Condes",
+      "latitud": -33.38990197408111,
+      "longitud": -70.49778184133423,
+      "alias": [],
+      "easycancha": "brain-sports-san-carlos-de-apoquindo",
+      "fuentes": [
+        "https://www.easycancha.com/es-CL/chile/club/brain-sports-san-carlos-de-apoquindo"
+      ],
+      "ubicacionFuente": "https://www.easycancha.com/es-CL/chile/club/brain-sports-san-carlos-de-apoquindo"
+    },
+    {
+      "clave": "uandes",
+      "nombre": "Universidad de los Andes - Tenis",
+      "direccion": "Monseñor Álvaro del Portillo 12455, Las Condes",
+      "latitud": -33.40128184290249,
+      "longitud": -70.50842909284985,
+      "alias": [],
+      "easycancha": "universidad-de-los-andes",
+      "fuentes": [
+        "https://www.easycancha.com/es-CL/chile/club/universidad-de-los-andes"
+      ],
+      "ubicacionFuente": "https://www.easycancha.com/es-CL/chile/club/universidad-de-los-andes"
+    },
+    {
+      "clave": "stade",
+      "nombre": "Stade Français",
+      "direccion": "Av. Mariano Sánchez Fontecilla 498, Las Condes",
+      "latitud": -33.4213366,
+      "longitud": -70.5966181,
+      "alias": [],
+      "easycancha": "stade-francais",
+      "fuentes": [
+        "https://www.easycancha.com/es-CL/chile/club/stade-francais"
+      ],
+      "ubicacionFuente": "https://www.easycancha.com/es-CL/chile/club/stade-francais"
+    },
+    {
+      "clave": "providencia",
+      "nombre": "Club de Tenis Providencia",
+      "direccion": "El Vergel 2855, Providencia",
+      "latitud": -33.4305659,
+      "longitud": -70.59267,
+      "alias": [
+        "Club de Tenis Providencia"
+      ],
+      "easycancha": "club-de-tenis-providencia",
+      "fuentes": [
+        "https://www.easycancha.com/es-CL/chile/club/club-de-tenis-providencia"
+      ],
+      "ubicacionFuente": "https://www.easycancha.com/es-CL/chile/club/club-de-tenis-providencia"
+    },
+    {
+      "clave": "suizo",
+      "nombre": "Club Suizo - SuizSports",
+      "direccion": "Dublé Almeyda 2191, Ñuñoa",
+      "latitud": -33.45560177077042,
+      "longitud": -70.60861035767144,
+      "alias": [],
+      "easycancha": "club-deportivo-suizsports-tenis",
+      "fuentes": [
+        "https://www.easycancha.com/es-CL/chile/club/club-deportivo-suizsports-tenis"
+      ],
+      "ubicacionFuente": "https://www.easycancha.com/es-CL/chile/club/club-deportivo-suizsports-tenis"
+    },
+    {
+      "clave": "fernando-gonzalez",
+      "nombre": "Escuela Fernando González - Vitacura",
+      "direccion": "Juan XXIII 6789, Vitacura",
+      "latitud": -33.3802934,
+      "longitud": -70.5689883,
+      "alias": [],
+      "easycancha": "fernando-gonzalez-casa-matriz-vitacura",
+      "fuentes": [
+        "https://www.easycancha.com/es-CL/chile/club/fernando-gonzalez-casa-matriz-vitacura"
+      ],
+      "ubicacionFuente": "https://www.easycancha.com/es-CL/chile/club/fernando-gonzalez-casa-matriz-vitacura"
+    },
+    {
+      "clave": "croata",
+      "nombre": "Estadio Croata",
+      "direccion": "Av. Vitacura 8049, Vitacura",
+      "latitud": -33.3854717,
+      "longitud": -70.5564708,
+      "alias": [],
+      "easycancha": "estadio-croata",
+      "fuentes": [
+        "https://www.easycancha.com/es-CL/chile/club/estadio-croata"
+      ],
+      "ubicacionFuente": "https://www.easycancha.com/es-CL/chile/club/estadio-croata"
+    },
+    {
+      "clave": "obat",
+      "nombre": "Academia Tenis Obat",
+      "direccion": "Teresa Vial 1171, San Miguel",
+      "latitud": -33.4931104,
+      "longitud": -70.6536904,
+      "alias": [],
+      "easycancha": "academia-tenis-obat",
+      "fuentes": [
+        "https://www.easycancha.com/es-CL/chile/club/academia-tenis-obat"
+      ],
+      "ubicacionFuente": "https://www.easycancha.com/es-CL/chile/club/academia-tenis-obat"
+    },
+    {
+      "clave": "mayor",
+      "nombre": "Estadio Mayor",
+      "direccion": "Av. Mariano Sánchez Fontecilla 13010, Peñalolén",
+      "latitud": -33.491262,
+      "longitud": -70.556249,
+      "alias": [],
+      "easycancha": "estadio-mayor",
+      "fuentes": [
+        "https://www.easycancha.com/es-CL/chile/club/estadio-mayor"
+      ],
+      "ubicacionFuente": "https://www.easycancha.com/es-CL/chile/club/estadio-mayor"
+    },
+    {
+      "clave": "sportpark",
+      "nombre": "SportPark Huechuraba",
+      "direccion": "Av. Pedro Fontova 9001, Huechuraba",
+      "latitud": -33.3370785228322,
+      "longitud": -70.66316744804439,
+      "alias": [],
+      "easycancha": "sportpark-huechuraba",
+      "fuentes": [
+        "https://www.easycancha.com/es-CL/chile/club/sportpark-huechuraba"
+      ],
+      "ubicacionFuente": "https://www.easycancha.com/es-CL/chile/club/sportpark-huechuraba"
+    },
+    {
+      "clave": "santuario",
+      "nombre": "Club de Tenis Santuario del Valle",
+      "direccion": "Av. Boulevard Jardín de los Pájaros Norte 4666, Lo Barnechea",
+      "latitud": -33.3253779,
+      "longitud": -70.5441179,
+      "alias": [],
+      "easycancha": null,
+      "fuentes": [
+        "https://www.tenissantuario.cl/"
+      ],
+      "ubicacionFuente": "https://padellog.com/es/clubs/chile/santiago/vitacura/club-de-tenis-santuario-del-valle"
+    },
+    {
+      "clave": "medico",
+      "nombre": "Club Médico",
+      "direccion": "Av. La Dehesa 2245, Lo Barnechea",
+      "latitud": -33.3484743,
+      "longitud": -70.5196344,
+      "alias": [],
+      "easycancha": "club-medico",
+      "fuentes": [
+        "https://www.easycancha.com/es-CL/chile/club/club-medico"
+      ],
+      "ubicacionFuente": "https://www.easycancha.com/es-CL/chile/club/club-medico"
+    },
+    {
+      "clave": "uc",
+      "nombre": "Deportes UC - Campus San Joaquín",
+      "direccion": "Av. Vicuña Mackenna 4860, Macul",
+      "latitud": -33.5009995,
+      "longitud": -70.6105423,
+      "alias": [],
+      "easycancha": "deportes-uc-arriendo-canchas-talleres-cursos",
+      "fuentes": [
+        "https://www.easycancha.com/es-CL/chile/club/deportes-uc-arriendo-canchas-talleres-cursos"
+      ],
+      "ubicacionFuente": "https://www.easycancha.com/es-CL/chile/club/deportes-uc-arriendo-canchas-talleres-cursos"
+    },
+    {
+      "clave": "san-bernardo",
+      "nombre": "Club de Tenis San Bernardo",
+      "direccion": "Baquedano 1200, San Bernardo",
+      "latitud": -33.60397,
+      "longitud": -70.69193,
+      "alias": [
+        "Canchas Tenis San Bernardo"
+      ],
+      "easycancha": null,
+      "fuentes": [
+        "https://tenischile.com/arriendos/130"
+      ],
+      "ubicacionFuente": "https://mapcarta.com/es/W476403199"
+    },
+    {
+      "clave": "alba",
+      "nombre": "Parque Tenis El Alba",
+      "direccion": "Camino El Alba 9231, Las Condes",
+      "latitud": -33.4041782,
+      "longitud": -70.5365227,
+      "alias": [
+        "Club de Tenis El Alba"
+      ],
+      "easycancha": "parque-tenis-el-alba",
+      "fuentes": [
+        "https://www.easycancha.com/es-CL/chile/club/parque-tenis-el-alba"
+      ],
+      "ubicacionFuente": "https://www.easycancha.com/es-CL/chile/club/parque-tenis-el-alba"
+    },
+    {
+      "clave": "san-joaquin",
+      "nombre": "Canchas Municipales de Tenis San Joaquín",
+      "direccion": "Sierra Bella 2836, San Joaquín",
+      "latitud": null,
+      "longitud": null,
+      "alias": [
+        "Canchas Tenis San Joaquín"
+      ],
+      "easycancha": null,
+      "fuentes": [
+        "https://deportesanjoaquin.cl/recintos/canchas-tenis"
+      ],
+      "mapaPorDireccion": true,
+      "ubicacionFuente": "https://deportesanjoaquin.cl/recintos/canchas-tenis"
+    },
+    {
+      "clave": "ex-federacion",
+      "nombre": "Canchas de Tenis Ex Federación - San Miguel",
+      "direccion": "José Joaquín Prieto 4040, San Miguel",
+      "latitud": -33.4889731,
+      "longitud": -70.6600588,
+      "alias": [],
+      "easycancha": null,
+      "fuentes": [
+        "https://sanmigueldeportes.cl/noticias/21943"
+      ],
+      "ubicacionFuente": "https://www.openstreetmap.org/way/332790520"
+    },
+    {
+      "clave": "soto-aguilar",
+      "nombre": "Canchas de Tenis Soto Aguilar",
+      "direccion": "Soto Aguilar 1520, San Miguel",
+      "latitud": -33.4861158,
+      "longitud": -70.6562382,
+      "alias": [],
+      "easycancha": null,
+      "fuentes": [
+        "https://sanmigueldeportes.cl/noticias/21943"
+      ],
+      "ubicacionFuente": "https://deportemunicipal.cl/deporte-en-san-miguel-santiago/"
+    },
+    {
+      "clave": "brasil",
+      "nombre": "Canchas de Tenis Parque Brasil",
+      "direccion": "Av. Punta Arenas 6711, La Granja",
+      "latitud": -33.518755,
+      "longitud": -70.613446,
+      "alias": [],
+      "easycancha": null,
+      "fuentes": [
+        "https://www.municipalidadlagranja.cl/wp-content/uploads/2025/11/MANULA-DE-PRESTACIONES-2025-1.pdf"
+      ],
+      "ubicacionFuente": "https://cl.near-place.com/cancha-de-tenis-parque-brasil-avenida-punta-arenas-6711-la-granja-la-granja"
+    },
+    {
+      "clave": "vitacura",
+      "nombre": "Club Vitacura",
+      "direccion": "Monseñor Escrivá de Balaguer 5000, Vitacura",
+      "latitud": -33.3878181,
+      "longitud": -70.5947824,
+      "alias": [],
+      "easycancha": null,
+      "fuentes": [
+        "https://vitacura.cl/noticias/como-reservar-tu-cancha-en-linea-con-deportes-vitacura/"
+      ],
+      "ubicacionFuente": "https://deportemunicipal.cl/deporte-en-vitacura-santiago/"
+    },
+    {
+      "clave": "nacional",
+      "nombre": "Parque Estadio Nacional - Centro de Tenis y Raquetas",
+      "direccion": "Av. Grecia 2001, Ñuñoa",
+      "latitud": -33.4634242,
+      "longitud": -70.6123923,
+      "alias": [],
+      "easycancha": null,
+      "fuentes": [
+        "https://parqueestadionacional.cl/disfruta-el-parque"
+      ],
+      "ubicacionFuente": "https://www.openstreetmap.org/way/1204042655"
+    },
+    {
+      "clave": "amador",
+      "nombre": "Complejo Deportivo Amador Donoso",
+      "direccion": "Camino Público 0113 (Camino al Matadero), Puente Alto",
+      "latitud": -33.6244265,
+      "longitud": -70.573043,
+      "alias": [],
+      "easycancha": null,
+      "fuentes": [
+        "https://www.mpuentealto.cl/vive-el-deporte/"
+      ],
+      "ubicacionFuente": "https://www.openstreetmap.org/way/224302067"
+    },
+    {
+      "clave": "gabriela",
+      "nombre": "Complejo Deportivo Gabriela",
+      "direccion": "Av. Ejército Libertador 4011, Puente Alto",
+      "latitud": -33.5713884,
+      "longitud": -70.5983493,
+      "alias": [],
+      "easycancha": null,
+      "fuentes": [
+        "https://www.mpuentealto.cl/vive-el-deporte/"
+      ],
+      "ubicacionFuente": "https://deportemunicipal.cl/deporte-en-puente-alto-cordillera/"
+    },
+    {
+      "clave": "laurita",
+      "nombre": "Centro Deportivo Laurita Vicuña",
+      "direccion": "Av. Ejército Libertador 2341, Puente Alto",
+      "latitud": -33.5914753,
+      "longitud": -70.5945552,
+      "alias": [],
+      "easycancha": null,
+      "fuentes": [
+        "https://tenischile.com/clubes/16"
+      ],
+      "ubicacionFuente": "https://www.openstreetmap.org/way/819899116"
+    },
+    {
+      "clave": "faustina",
+      "nombre": "Centro Deportivo Santa Faustina",
+      "direccion": "Valle Central 01037, Villa Nocedal, Puente Alto",
+      "latitud": -33.6279192,
+      "longitud": -70.5949584,
+      "alias": [],
+      "easycancha": null,
+      "fuentes": [
+        "https://www.mpuentealto.cl/nuestros-centros-de-extension-municipales/santa-faustina/"
+      ],
+      "ubicacionFuente": "https://cl.near-place.com/centro-de-extension-municipal-santa-faustina-puente-alto"
+    },
+    {
+      "clave": "tocornal",
+      "nombre": "Parque Municipal Domingo Tocornal",
+      "direccion": "Av. Domingo Tocornal con Cuatro Oriente, Puente Alto",
+      "latitud": -33.6088513,
+      "longitud": -70.6026495,
+      "alias": [],
+      "easycancha": null,
+      "fuentes": [
+        "https://www.mpuentealto.cl/vive-el-deporte/"
+      ],
+      "ubicacionFuente": "https://www.openstreetmap.org/way/636689819"
+    },
+    {
+      "clave": "san-francisco",
+      "nombre": "Canchas de Tenis Parque San Francisco",
+      "direccion": "Nonato Coo 2971, esquina Maestro Palomo, Puente Alto",
+      "latitud": -33.58289,
+      "longitud": -70.56776,
+      "alias": [],
+      "easycancha": null,
+      "fuentes": [
+        "https://www.mpuentealto.cl/vive-el-deporte/",
+        "https://comunapuentealto.cl/plazas-y-recintos-deportivos-en-puente-alto/"
+      ],
+      "ubicacionFuente": "https://mapcarta.com/W550738908"
+    },
+    {
+      "clave": "play-chicureo",
+      "nombre": "Play Tenis Chicureo",
+      "direccion": "San Vicente de Lo Arcaya 1, Parcela 21, Colina",
+      "latitud": -33.26138906919739,
+      "longitud": -70.69013483234839,
+      "alias": [],
+      "easycancha": "play-tenis-chicureo",
+      "fuentes": [
+        "https://www.easycancha.com/es-CL/chile/club/play-tenis-chicureo"
+      ],
+      "ubicacionFuente": "https://www.easycancha.com/es-CL/chile/club/play-tenis-chicureo"
+    },
+    {
+      "clave": "chicauma",
+      "nombre": "Alto Tenis - Pádel Chicauma",
+      "direccion": "Av. del Parque 640, Lampa",
+      "latitud": -33.29840155679339,
+      "longitud": -70.73424292342565,
+      "alias": [],
+      "easycancha": "alto-tenis-padel-chicauma",
+      "fuentes": [
+        "https://www.easycancha.com/es-CL/chile/club/alto-tenis-padel-chicauma"
+      ],
+      "ubicacionFuente": "https://www.easycancha.com/es-CL/chile/club/alto-tenis-padel-chicauma"
+    },
+    {
+      "clave": "euforia",
+      "nombre": "Canchas Euforia Norte",
+      "direccion": "El Otoño 135, Lampa",
+      "latitud": -33.28025691900808,
+      "longitud": -70.74442792570726,
+      "alias": [],
+      "easycancha": "canchas-euforia-norte",
+      "fuentes": [
+        "https://www.easycancha.com/es-CL/chile/club/canchas-euforia-norte"
+      ],
+      "ubicacionFuente": "https://www.easycancha.com/es-CL/chile/club/canchas-euforia-norte"
+    }
+  ]
+}

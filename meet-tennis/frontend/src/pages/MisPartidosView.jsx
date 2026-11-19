@@ -22,10 +22,12 @@ import {
   X,
   XCircle,
 } from 'lucide-react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import BrandLogo from '../components/BrandLogo.jsx';
+import CanchaPartido from '../components/CanchaPartido.jsx';
 import TennisBackground from '../components/TennisBackground.jsx';
 import { apiFetch } from '../lib/api.js';
+import { referenciaPartido } from '../lib/partidos.js';
 import {
   formatFecha,
   formatPuntos,
@@ -105,6 +107,8 @@ function ResultadoIcono({ partido }) {
 function MisPartidosView() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { hash } = useLocation();
+  const referencia = referenciaPartido(hash);
   const miId = getStoredAuth()?.user?.id;
 
   const [partidos, setPartidos] = useState([]);
@@ -208,17 +212,21 @@ function MisPartidosView() {
     };
   }, [miId, recargar]);
 
-  // Si se llega desde el banner del Dashboard con #partidos-pendientes,
-  // hace scroll suave hasta esa sección una vez montada la vista.
+  // Espera los datos: la tarjeta puede estar en pendientes o en el historial.
+  // También funciona al cambiar el enlace sin desmontar esta página.
   useEffect(() => {
-    if (window.location.hash === '#partidos-pendientes') {
-      requestAnimationFrame(() => {
-        document
-          .getElementById('partidos-pendientes')
-          ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      });
-    }
-  }, []);
+    if (cargando) return undefined;
+    const ancla = hash === '#partidos-pendientes' ? 'partidos-pendientes' : referenciaPartido(hash)?.ancla;
+    if (!ancla) return undefined;
+    const frame = requestAnimationFrame(() => {
+      const destino = document.getElementById(ancla);
+      if (!destino) return;
+      destino.focus({ preventScroll: true });
+      const reducirMovimiento = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      destino.scrollIntoView({ behavior: reducirMovimiento ? 'instant' : 'smooth', block: 'start' });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [hash, cargando, partidos, solicitudes]);
 
   const porConfirmar = partidos.filter((p) => p.puedoConfirmar);
   const esperando = partidos.filter((p) => p.registradoPorMi && p.estado === 'pendiente');
@@ -235,6 +243,16 @@ function MisPartidosView() {
   );
   const recibidasPendientes = solicitudes.recibidas.filter((s) => s.estado === 'pendiente');
   const enviadasPendientes = solicitudes.enviadas.filter((s) => s.estado === 'pendiente');
+  const solicitudDelAviso = referencia?.tipo === 'solicitud'
+    ? [...solicitudes.recibidas, ...solicitudes.enviadas].find((s) => String(s.id) === referencia.id)
+    : null;
+  const solicitudCerradaDelAviso = solicitudDelAviso && !['pendiente', 'aceptada'].includes(solicitudDelAviso.estado)
+    ? solicitudDelAviso : null;
+  const existeDestino = referencia?.tipo === 'solicitud'
+    ? Boolean(solicitudDelAviso) : partidos.some((p) => String(p.id) === referencia?.id);
+  const claseAviso = (tipo, id) => referencia?.tipo === tipo && referencia.id === String(id)
+    ? 'scroll-mt-6 outline-none ring-2 ring-emerald-400 ring-offset-2 ring-offset-slate-900'
+    : 'scroll-mt-6';
 
   // accion: "aceptar" | "rechazar" (recibidas) o "cancelar" (enviadas).
   const responderSolicitud = async (id, accion) => {
@@ -480,6 +498,36 @@ function MisPartidosView() {
           </p>
         )}
 
+        {referencia && !cargando && !errorCarga && !errorSolicitudes && !existeDestino && (
+          <p role="status" className="mt-6 rounded-xl border border-slate-700/50 bg-slate-800/60 p-4 text-sm text-slate-400">
+            El partido de esta notificación ya no está disponible.
+          </p>
+        )}
+
+        {solicitudCerradaDelAviso && (
+          <section className="mt-8">
+            <h2 className={tituloSeccion}>Detalle de la solicitud</h2>
+            <article id={`solicitud-${solicitudCerradaDelAviso.id}`} tabIndex={-1} className={`${tarjeta} ${claseAviso('solicitud', solicitudCerradaDelAviso.id)}`}>
+              <p className="text-sm font-semibold text-slate-100">
+                {nombreCompleto(contrincanteDe(solicitudCerradaDelAviso))}
+              </p>
+              <p className="mt-1 text-xs text-slate-400">
+                {formatFecha(solicitudCerradaDelAviso.fecha)} · {solicitudCerradaDelAviso.hora_desde} - {solicitudCerradaDelAviso.hora_hasta}
+              </p>
+              <p className="mt-2 text-sm text-amber-300">
+                {solicitudCerradaDelAviso.estado === 'cancelada' ? 'Solicitud cancelada' : 'Solicitud rechazada'}
+              </p>
+              {solicitudCerradaDelAviso.cancha && (
+                <p className="mt-2 text-xs text-slate-400">
+                  {solicitudCerradaDelAviso.cancha.nombre} · {solicitudCerradaDelAviso.cancha.direccion}
+                </p>
+              )}
+              {solicitudCerradaDelAviso.mensaje && <p className="mt-2 text-xs text-slate-400">“{solicitudCerradaDelAviso.mensaje}”</p>}
+              <CanchaPartido cancha={solicitudCerradaDelAviso.cancha} />
+            </article>
+          </section>
+        )}
+
         {/* Sección 1: Partidos Pendientes */}
         <section id="partidos-pendientes" className="mt-8 scroll-mt-6">
           <h2 className={tituloSeccion}>
@@ -498,7 +546,8 @@ function MisPartidosView() {
                 return (
                   <li
                     key={solicitud.id}
-                    className="rounded-2xl border border-emerald-500/40 bg-emerald-500/5 p-4 shadow-2xl backdrop-blur-md"
+                    id={`solicitud-${solicitud.id}`} tabIndex={-1}
+                    className={`rounded-2xl border border-emerald-500/40 bg-emerald-500/5 p-4 shadow-2xl backdrop-blur-md ${claseAviso('solicitud', solicitud.id)}`}
                   >
                     <div className="flex items-start gap-3">
                       <Avatar jugador={contrincante} />
@@ -535,6 +584,8 @@ function MisPartidosView() {
                         </p>
                       )}
                     </div>
+
+                    <CanchaPartido cancha={solicitud.cancha} />
 
                     <div className="mt-3 grid grid-cols-3 gap-2">
                       <button
@@ -593,7 +644,8 @@ function MisPartidosView() {
                       return (
                         <li
                           key={solicitud.id}
-                          className="rounded-2xl border border-amber-500/40 bg-amber-500/5 p-4 shadow-2xl backdrop-blur-md"
+                          id={`solicitud-${solicitud.id}`} tabIndex={-1}
+                          className={`rounded-2xl border border-amber-500/40 bg-amber-500/5 p-4 shadow-2xl backdrop-blur-md ${claseAviso('solicitud', solicitud.id)}`}
                         >
                           <div className="flex items-start gap-3">
                             <Avatar jugador={contrincante} />
@@ -618,6 +670,7 @@ function MisPartidosView() {
                               )}
                             </div>
                           </div>
+                          <CanchaPartido cancha={solicitud.cancha} />
                           <div className="mt-3 grid grid-cols-2 gap-2">
                             <button
                               type="button"
@@ -656,7 +709,8 @@ function MisPartidosView() {
                       return (
                         <li
                           key={solicitud.id}
-                          className="rounded-2xl border border-slate-700/50 bg-slate-800/60 p-4 shadow-2xl backdrop-blur-md"
+                          id={`solicitud-${solicitud.id}`} tabIndex={-1}
+                          className={`rounded-2xl border border-slate-700/50 bg-slate-800/60 p-4 shadow-2xl backdrop-blur-md ${claseAviso('solicitud', solicitud.id)}`}
                         >
                           <div className="flex items-start gap-3">
                             <Avatar jugador={contrincante} />
@@ -676,6 +730,7 @@ function MisPartidosView() {
                               )}
                             </div>
                           </div>
+                          <CanchaPartido cancha={solicitud.cancha} />
                           <button
                             type="button"
                             onClick={() => responderSolicitud(solicitud.id, 'cancelar')}
@@ -706,7 +761,8 @@ function MisPartidosView() {
               {porConfirmar.map((partido) => (
                 <li
                   key={partido.id}
-                  className="rounded-2xl border border-amber-500/40 bg-amber-500/5 p-4 shadow-2xl backdrop-blur-md"
+                  id={`partido-${partido.id}`} tabIndex={-1}
+                  className={`rounded-2xl border border-amber-500/40 bg-amber-500/5 p-4 shadow-2xl backdrop-blur-md ${claseAviso('partido', partido.id)}`}
                 >
                   <div className="flex items-start gap-3">
                     <Avatar jugador={partido.rival} />
@@ -723,6 +779,7 @@ function MisPartidosView() {
                       </p>
                     </div>
                   </div>
+                  <CanchaPartido cancha={partido.cancha} />
                   <div className="mt-3 grid grid-cols-2 gap-2">
                     <button
                       type="button"
@@ -922,23 +979,26 @@ function MisPartidosView() {
             </h2>
             <ul className="grid gap-3">
               {esperando.map((partido) => (
-                <li key={partido.id} className={`${tarjeta} flex items-start gap-3`}>
-                  <ResultadoIcono partido={partido} />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-slate-100">
-                      vs {nombreCompleto(partido.rival)}
-                    </p>
-                    {detallePartido(partido)}
+                <li key={partido.id} id={`partido-${partido.id}`} tabIndex={-1} className={`${tarjeta} ${claseAviso('partido', partido.id)}`}>
+                  <div className="flex items-start gap-3">
+                    <ResultadoIcono partido={partido} />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-slate-100">
+                        vs {nombreCompleto(partido.rival)}
+                      </p>
+                      {detallePartido(partido)}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => actualizarPartido(partido.id, 'eliminar')}
+                      disabled={procesando === partido.id}
+                      aria-label="Eliminar partido"
+                      className="rounded-xl border border-slate-700/50 bg-slate-900/60 p-2 text-slate-400 transition-colors hover:border-red-500/50 hover:bg-red-500/10 hover:text-red-400 disabled:opacity-60"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => actualizarPartido(partido.id, 'eliminar')}
-                    disabled={procesando === partido.id}
-                    aria-label="Eliminar partido"
-                    className="rounded-xl border border-slate-700/50 bg-slate-900/60 p-2 text-slate-400 transition-colors hover:border-red-500/50 hover:bg-red-500/10 hover:text-red-400 disabled:opacity-60"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  <CanchaPartido cancha={partido.cancha} />
                 </li>
               ))}
             </ul>
@@ -962,38 +1022,42 @@ function MisPartidosView() {
               Aún no tienes partidos confirmados.
             </p>
           ) : (
-            <ul className="grid max-h-96 gap-3 overflow-y-auto overscroll-contain pr-1">
+            <ul className="grid max-h-96 gap-3 overflow-y-auto overscroll-contain p-1">
               {historial.map((partido) => {
                 const confirmado = partido.estado === 'confirmado';
                 const suma = confirmado && partido.miCategoria === miCategoria;
                 return (
                   <li
                     key={partido.id}
-                    className={`${tarjeta} flex items-start gap-3 ${confirmado ? '' : 'opacity-60'}`}
+                    id={`partido-${partido.id}`} tabIndex={-1}
+                    className={`${tarjeta} ${claseAviso('partido', partido.id)} ${confirmado ? '' : 'opacity-60'}`}
                   >
-                    <ResultadoIcono partido={partido} />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-slate-100">
-                        vs {nombreCompleto(partido.rival)}
-                      </p>
-                      {detallePartido(partido)}
-                      {confirmado && !suma && (
-                        <p className="mt-1 text-[11px] text-slate-500">
-                          Jugado en {partido.miCategoria}: ya no suma en tu categoría actual.
+                    <div className="flex items-start gap-3">
+                      <ResultadoIcono partido={partido} />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-slate-100">
+                          vs {nombreCompleto(partido.rival)}
                         </p>
-                      )}
+                        {detallePartido(partido)}
+                        {confirmado && !suma && (
+                          <p className="mt-1 text-[11px] text-slate-500">
+                            Jugado en {partido.miCategoria}: ya no suma en tu categoría actual.
+                          </p>
+                        )}
+                      </div>
+                      <span
+                        className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                          !confirmado
+                            ? 'bg-slate-700/60 text-slate-400'
+                            : partido.puntos >= 0
+                              ? 'bg-emerald-500/10 text-emerald-300'
+                              : 'bg-red-500/10 text-red-300'
+                        }`}
+                      >
+                        {confirmado ? formatPuntos(partido.puntos) : 'Rechazado'}
+                      </span>
                     </div>
-                    <span
-                      className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                        !confirmado
-                          ? 'bg-slate-700/60 text-slate-400'
-                          : partido.puntos >= 0
-                            ? 'bg-emerald-500/10 text-emerald-300'
-                            : 'bg-red-500/10 text-red-300'
-                      }`}
-                    >
-                      {confirmado ? formatPuntos(partido.puntos) : 'Rechazado'}
-                    </span>
+                    <CanchaPartido cancha={partido.cancha} />
                   </li>
                 );
               })}

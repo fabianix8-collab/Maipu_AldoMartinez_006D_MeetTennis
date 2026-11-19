@@ -60,7 +60,7 @@ function FilaAviso({ aviso, onElegir }) {
 
 // Aviso para confirmar asistencia: se responde ahí mismo. "No puedo"
 // pide una segunda confirmación porque cancela el partido.
-function FilaAsistencia({ aviso, onAsistencia }) {
+function FilaAsistencia({ aviso, onAsistencia, onElegir }) {
   const [paso, setPaso] = useState('inicio');
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState('');
@@ -82,7 +82,14 @@ function FilaAsistencia({ aviso, onAsistencia }) {
     <li className="flex items-start gap-3 rounded-xl bg-amber-500/5 p-2.5">
       <AvatarAviso jugador={aviso.jugador} />
       <div className="min-w-0 flex-1">
-        <p className="text-sm text-slate-200">{aviso.texto}</p>
+        <button
+          type="button"
+          onClick={() => onElegir(aviso)}
+          className="text-left text-sm text-slate-200 transition-colors hover:text-emerald-300"
+        >
+          {aviso.texto}
+          <span className="mt-1 block text-xs font-semibold text-emerald-400">Ver partido →</span>
+        </button>
 
         {paso === 'inicio' ? (
           <div className="mt-2 grid grid-cols-2 gap-2">
@@ -176,7 +183,7 @@ function NotificationBell({ avisos, noLeidos, onAbrir, onAsistencia }) {
   const info = avisos.filter((a) => a.tipo === 'info');
 
   return (
-    <div ref={contenedor} className="relative">
+    <div ref={contenedor}>
       <button
         type="button"
         onClick={alternar}
@@ -195,7 +202,7 @@ function NotificationBell({ avisos, noLeidos, onAbrir, onAsistencia }) {
       </button>
 
       {abierto && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-[min(22rem,calc(100vw-2rem))] rounded-2xl border border-slate-700/50 bg-slate-900/95 p-3 shadow-2xl backdrop-blur-md">
+        <div className="absolute left-1/2 top-12 z-50 w-[22rem] max-w-full -translate-x-1/2 rounded-2xl border border-slate-700/50 bg-slate-900/95 p-3 shadow-2xl backdrop-blur-md">
           <h2 className="px-1 text-sm font-semibold text-slate-100">Avisos</h2>
 
           {avisos.length === 0 ? (
@@ -216,6 +223,7 @@ function NotificationBell({ avisos, noLeidos, onAbrir, onAsistencia }) {
                           key={aviso.id}
                           aviso={aviso}
                           onAsistencia={onAsistencia}
+                          onElegir={elegir}
                         />
                       ) : (
                         <FilaAviso key={aviso.id} aviso={aviso} onElegir={elegir} />

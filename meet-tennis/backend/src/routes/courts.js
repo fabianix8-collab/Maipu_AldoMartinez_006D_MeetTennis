@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import { requireAuth } from '../middleware/auth.js';
 import { extraerComuna } from '../lib/utils.js';
+import { nombresCanchasVigentes } from '../lib/catalogoCanchas.js';
 
 dotenv.config();
 
@@ -22,6 +23,7 @@ router.get('/', async (req, res) => {
     const { data, error } = await supabase
       .from('canchas')
       .select('id, nombre, direccion, latitud, longitud')
+      .in('nombre', nombresCanchasVigentes)
       .order('nombre', { ascending: true });
 
     if (error) {
