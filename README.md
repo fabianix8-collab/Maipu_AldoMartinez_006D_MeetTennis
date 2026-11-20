@@ -48,6 +48,7 @@ Copia `backend/.env.example` como `backend/.env` y completa los valores:
 | `SUPABASE_ANON_KEY` | Clave pública `anon` (para login/registro/refresh). |
 | `SUPABASE_SERVICE_ROLE_KEY` | Clave de servicio (solo backend, nunca exponer). |
 | `CORS_ORIGIN` | Orígenes permitidos en producción, separados por coma. Sin esto se deniegan las peticiones cross-origin. |
+| `FRONTEND_URL` | Origen del frontend para recuperación de contraseña. Opcional si ese origen ya está en `CORS_ORIGIN`. |
 | `MONITORING_EMAILS` | Correos admin (respaldo del panel mientras no exista la columna `rol`). |
 | `GOOGLE_MAPS_API_KEY` | (Opcional) API key de Google Maps con la Geocoding API, para el script de coordenadas exactas. |
 
@@ -67,6 +68,40 @@ coordenadas guardadas en la base de datos:
    con el punto exacto que devuelve Google Maps.
 
 ## Seguridad
+
+### Recuperación de contraseña
+
+Desde **Olvidé mi contraseña** en el login se abre `/recuperar-contrasena`.
+El correo enviado por Supabase dirige a `/restablecer-contrasena`, donde se ingresa
+y confirma la nueva contraseña. El cambio usa una sesión validada por Supabase,
+sin operaciones de administrador ni cambios en las tablas del proyecto.
+
+Para habilitar los enlaces en cada entorno:
+
+1. En Supabase → **Authentication → URL Configuration**, configura **Site URL**
+   con la dirección del frontend y agrega estas **Redirect URLs** según corresponda:
+   - `http://localhost:5173/restablecer-contrasena` (desarrollo con Vite).
+   - `http://127.0.0.1:5173/restablecer-contrasena` (si usas esa dirección).
+   - `https://<tu-frontend>/restablecer-contrasena` (producción).
+2. Configura en el backend `FRONTEND_URL=https://<tu-frontend>` o incluye ese origen
+   en `CORS_ORIGIN`. En producción se aceptan únicamente destinos HTTPS autorizados;
+   el cliente no puede enviar enlaces a dominios arbitrarios.
+3. Conserva `{{ .ConfirmationURL }}` en la plantilla **Reset Password** de Supabase.
+   Revisa la configuración de correo/SMTP de tu proyecto para permitir la entrega
+   a las cuentas que usarán la app. El código no cambia la configuración de Supabase.
+
+Los enlaces se reciben mediante el flujo implícito: las credenciales se extraen del
+fragmento de la URL, se borran de la barra de direcciones y se guardan temporalmente
+en `sessionStorage` de esa pestaña. No se inicia una sesión normal en la app.
+Los endpoints no devuelven si un correo existe y limitan solicitudes por IP.
+
+- `POST /api/auth/forgot-password`: `{ email, origin }`.
+- `POST /api/auth/reset-password`: `{ access_token, refresh_token, password }`.
+
+Documentación: [recuperación de contraseña](https://supabase.com/docs/guides/auth/passwords)
+y [Redirect URLs de Supabase](https://supabase.com/docs/guides/auth/redirect-urls).
+
+### Controles generales
 
 - **Rate limit por IP** (en memoria, sin dependencias): login 10 intentos / 15 min, registro
   5 / hora, y un límite general de 120 peticiones / minuto en toda la API.

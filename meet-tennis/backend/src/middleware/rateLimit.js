@@ -10,13 +10,14 @@
 // reinician. Suficiente para la escala del proyecto.
 // ==========================================================
 
-const registros = new Map(); // ip -> [timestamp]
-
 export function crearRateLimit({
   ventanaMs = 15 * 60 * 1000, // 15 minutos
   max = 20,
   mensaje = 'Demasiadas peticiones. Intenta de nuevo más tarde.',
 }) {
+  // Cada límite conserva su propio contador: recuperar una contraseña no
+  // consume los intentos disponibles de login, registro ni del límite general.
+  const registros = new Map(); // ip -> [timestamp]
   return (req, res, next) => {
     const ip = req.ip || req.socket?.remoteAddress || 'desconocida';
     const ahora = Date.now();

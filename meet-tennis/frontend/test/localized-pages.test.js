@@ -20,10 +20,12 @@ function render(Component, props = {}, route = '/') {
   return renderToStaticMarkup(createElement(MemoryRouter, { initialEntries: [route] }, createElement(Component, props)));
 }
 
-test('all 14 pages and both invitation screens render in Spanish and English', async () => {
+test('all app pages, invitation screens and recovery screens render in Spanish and English', async () => {
   const cases = [
     ['LoginView', {}, '/', 'Iniciar sesión', 'Sign in'],
     ['RegisterView', {}, '/', 'Crear cuenta', 'Create account'],
+    ['PasswordRecoveryView', {}, '/recuperar-contrasena', '¿Olvidaste tu contraseña?', 'Forgot your password?'],
+    ['PasswordRecoveryView', { mode: 'reset' }, '/restablecer-contrasena', 'Restablecer contraseña', 'Reset password'],
     ['DashboardView', {}, '/', 'Buscar Partido', 'Find a match'],
     ['AvailabilityView', {}, '/', 'Guardar disponibilidad', 'Save availability'],
     ['CourtsView', {}, '/', 'Canchas Cercanas', 'Nearby courts'],

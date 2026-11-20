@@ -210,6 +210,12 @@ function LoginView() {
             </div>
           </div>
 
+          <div className="mt-2 text-right">
+            <Link to="/recuperar-contrasena" state={{ email: values.email.trim() }} className="inline-flex min-h-10 items-center rounded-lg px-1 text-sm font-semibold text-emerald-400 transition-colors hover:text-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400">
+              {t('Olvidé mi contraseña')}
+            </Link>
+          </div>
+
           {status.type === 'success' && (
             <div className="mt-4 flex items-start gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm text-emerald-300">
               <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />

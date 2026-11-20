@@ -5,10 +5,12 @@ import { randomUUID } from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 import { crearRateLimit } from '../middleware/rateLimit.js';
 import { AVATAR_MAX_BYTES, esImagenValida } from '../lib/utils.js';
+import passwordRecoveryRouter from './passwordRecovery.js';
 
 dotenv.config();
 
 const router = Router();
+router.use(passwordRecoveryRouter);
 
 // Subida de avatar: máximo 5 MB. El error de multer (tamaño, archivo
 // corrupto) se convierte en un 400 con mensaje claro, no en un 500.
