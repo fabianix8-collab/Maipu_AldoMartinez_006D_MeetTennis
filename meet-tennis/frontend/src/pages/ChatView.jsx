@@ -15,6 +15,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import BrandLogo from '../components/BrandLogo.jsx';
 import TennisBackground from '../components/TennisBackground.jsx';
 import { apiFetch } from '../lib/api.js';
+import { useChatEvents } from '../lib/useChatEvents.js';
+import { useChatMessages } from '../lib/useChatMessages.js';
 import { getStoredAuth, haceCuanto, iniciales, nombreCompleto } from '../lib/formato.js';
 
 const inputBase =
@@ -127,11 +129,13 @@ function ChatView() {
 
   const [conversaciones, setConversaciones] = useState([]);
   const [activa, setActiva] = useState(null);
-  const [mensajes, setMensajes] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
   const [texto, setTexto] = useState('');
   const [enviando, setEnviando] = useState(false);
+  const [enVivo, setEnVivo] = useState(true);
+  const hilo = useChatMessages(activa?.id, miId);
+  const { mensajes } = hilo;
 
   // Selector "Nuevo chat".
   const [mostrandoNuevo, setMostrandoNuevo] = useState(false);
@@ -139,43 +143,37 @@ function ChatView() {
   const [buscandoJugadores, setBuscandoJugadores] = useState(false);
   const [filtro, setFiltro] = useState('');
 
-  const finRef = useRef(null);
+  const listaControl = useRef({ ocupado: false, repetir: false });
 
   const cargarConversaciones = useCallback(async () => {
-    try {
-      const response = await apiFetch('/api/chat/conversations');
-      const result = await response.json();
-      if (response.ok && result.success) {
-        setConversaciones(result.data || []);
-      }
-    } catch {
-      // Silencioso: se reintenta en el siguiente ciclo de polling.
-    }
-  }, []);
-
-  // Carga los mensajes de la conversación activa y la marca como leída.
-  const cargarMensajes = useCallback(
-    async (convId) => {
-      if (!convId) return;
+    const control = listaControl.current;
+    if (control.ocupado) { control.repetir = true; return; }
+    control.ocupado = true;
+    do {
+      control.repetir = false;
       try {
-        const response = await apiFetch(`/api/chat/conversations/${convId}/messages`);
+        const response = await apiFetch('/api/chat/conversations');
         const result = await response.json();
         if (response.ok && result.success) {
-          setMensajes(result.data.mensajes || []);
-          setActiva((prev) => (prev ? { ...prev, noLeidos: 0 } : prev));
+          setConversaciones(result.data || []);
+          window.dispatchEvent(new CustomEvent('meettennis:chat-actualizado', { detail: result.data || [] }));
         }
-      } catch {
-        // Silencioso.
-      }
-    },
-    [],
-  );
+      } catch { /* Se reintenta al reconectar o recibir el siguiente aviso. */ }
+    } while (control.repetir);
+    control.ocupado = false;
+  }, []);
+
+  useChatEvents((aviso) => {
+    cargarConversaciones();
+    if (aviso.tipo !== 'lectura' && (!aviso.conversacionId || aviso.conversacionId === activa?.id)) hilo.refrescar();
+    hilo.confirmarLectura();
+  }, setEnVivo);
 
   // Abre una conversación existente (desde la lista).
   const abrirConversacion = (conv) => {
     setActiva(conv);
     setError('');
-    cargarMensajes(conv.id);
+    setTexto('');
   };
 
   // Crea (o reutiliza) la conversación con un jugador y la abre.
@@ -194,7 +192,7 @@ function ChatView() {
         return;
       }
       setActiva(result.data);
-      cargarMensajes(result.data.id);
+      setTexto('');
       cargarConversaciones();
     } catch {
       setError('No se pudo conectar con el servidor.');
@@ -206,6 +204,7 @@ function ChatView() {
     const contenido = texto.trim();
     if (!contenido || !activa || enviando) return;
 
+    const convId = activa.id;
     setEnviando(true);
     try {
       const response = await apiFetch(`/api/chat/conversations/${activa.id}/messages`, {
@@ -215,8 +214,9 @@ function ChatView() {
       });
       const result = await response.json();
       if (response.ok && result.success) {
-        setMensajes((prev) => [...prev, result.data]);
-        setTexto('');
+        hilo.agregarEnviado(result.data, convId);
+        // El usuario puede cambiar de conversación durante el envío.
+        if (activaIdRef.current === convId) setTexto((actual) => actual.trim() === contenido ? '' : actual);
         cargarConversaciones();
       } else {
         setError(result.error || 'No se pudo enviar el mensaje.');
@@ -248,19 +248,7 @@ function ChatView() {
   // el chat con ese jugador.
   useEffect(() => {
     let activo = true;
-    (async () => {
-      try {
-        const response = await apiFetch('/api/chat/conversations');
-        const result = await response.json();
-        if (activo && response.ok && result.success) {
-          setConversaciones(result.data || []);
-        }
-      } catch {
-        // Silencioso.
-      } finally {
-        if (activo) setCargando(false);
-      }
-    })();
+    cargarConversaciones().finally(() => { if (activo) setCargando(false); });
 
     const usuarioParam = searchParams.get('usuario');
     if (usuarioParam) {
@@ -274,30 +262,18 @@ function ChatView() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Polling: refresca la lista de conversaciones y, si hay una activa,
-  // también sus mensajes (para recibir respuestas en tiempo real).
-  useEffect(() => {
-    const intervalo = setInterval(() => {
-      cargarConversaciones();
-      if (activa?.id) cargarMensajes(activa.id);
-    }, 4000);
-    return () => clearInterval(intervalo);
-  }, [activa?.id, cargarConversaciones, cargarMensajes]);
-
-  // Auto-scroll al último mensaje.
-  useEffect(() => {
-    finRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [mensajes]);
+  const activaIdRef = useRef(activa?.id);
+  activaIdRef.current = activa?.id;
 
   const jugadoresFiltrados = jugadores.filter((j) =>
     nombreCompleto(j).toLowerCase().includes(filtro.toLowerCase()),
   );
 
   return (
-    <div className="relative min-h-[calc(100dvh-var(--mobile-nav-height,0px))] overflow-x-hidden bg-slate-900 px-4 py-5">
+    <div className="relative h-[calc(100dvh-var(--mobile-nav-height,0px))] overflow-hidden bg-slate-900 px-4 py-5">
       <TennisBackground />
 
-      <div className="relative mx-auto flex min-h-[calc(100dvh-2.5rem-var(--mobile-nav-height,0px))] max-w-5xl flex-col">
+      <div className="relative mx-auto flex h-full min-h-0 max-w-5xl flex-col">
         <header className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <button
@@ -326,8 +302,13 @@ function ChatView() {
             {t(error)}
           </div>
         )}
+        {!enVivo && (
+          <p role="status" className="mt-3 text-center text-sm text-amber-300">
+            {t('Reconectando el chat…')}
+          </p>
+        )}
 
-        <div className="mt-4 flex flex-1 gap-3 overflow-hidden">
+        <div className="mt-4 flex min-h-0 flex-1 gap-3 overflow-hidden">
           {/* ---------- Sidebar de conversaciones (escritorio) ---------- */}
           <aside className="hidden w-72 shrink-0 flex-col overflow-hidden rounded-2xl border border-slate-700/50 bg-slate-800/60 shadow-2xl backdrop-blur-md sm:flex">
             <div className="flex items-center gap-2 border-b border-slate-700/50 bg-slate-800/80 px-4 py-3">
@@ -362,7 +343,7 @@ function ChatView() {
 
           {/* ---------- Hilo de mensajes (centro) ---------- */}
           <div
-            className={`flex flex-1 flex-col overflow-hidden rounded-2xl border border-slate-700/50 bg-slate-800/60 shadow-2xl backdrop-blur-md ${
+            className={`flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-slate-700/50 bg-slate-800/60 shadow-2xl backdrop-blur-md ${
               activa ? 'flex' : 'hidden sm:flex'
             }`}
           >
@@ -380,8 +361,14 @@ function ChatView() {
                   </div>
                 </div>
 
-                <div className="flex-1 space-y-2 overflow-y-auto px-4 py-4">
-                  {mensajes.length === 0 ? (
+                <div ref={hilo.contenedorRef} onScroll={hilo.alDesplazar}
+                  aria-label={t('Mensajes de la conversación')}
+                  className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain px-4 py-4 [overflow-anchor:none]">
+                  {hilo.cargando ? (
+                    <div role="status" aria-label={t('Cargando mensajes…')} className="flex justify-center py-10">
+                      <Loader2 className="h-6 w-6 animate-spin text-emerald-400" />
+                    </div>
+                  ) : mensajes.length === 0 ? (
                     <p className="py-10 text-center text-sm text-slate-500">{t("Aún no hay mensajes. ¡Coordina la cancha y la hora!")}</p>
                   ) : (
                     mensajes.map((m) => {
@@ -408,8 +395,24 @@ function ChatView() {
                       );
                     })
                   )}
-                  <div ref={finRef} />
                 </div>
+                {hilo.error && (
+                  <div role="alert" className="flex shrink-0 items-center justify-between gap-2 px-4 py-2 text-sm text-red-300">
+                    <span>{t(hilo.error)}</span>
+                    <button type="button" onClick={hilo.refrescar} className="shrink-0 rounded-lg px-2 py-1 text-emerald-300 hover:bg-slate-700">
+                      {t('Reintentar')}
+                    </button>
+                  </div>
+                )}
+                {hilo.nuevos > 0 && (
+                  <div role="status" className="flex shrink-0 justify-center pb-2 pt-1">
+                    <button type="button" onClick={hilo.irAlFinal}
+                      className="flex items-center gap-2 rounded-full border border-emerald-400/40 bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-lg transition-colors hover:bg-emerald-500">
+                      {t('Nuevos mensajes')}
+                      <span className="rounded-full bg-white/20 px-1.5 text-xs">{hilo.nuevos}</span>
+                    </button>
+                  </div>
+                )}
 
                 <form
                   onSubmit={enviarMensaje}

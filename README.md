@@ -67,6 +67,28 @@ coordenadas guardadas en la base de datos:
    El script geocodifica la dirección de cada cancha y actualiza su `latitud`/`longitud`
    con el punto exacto que devuelve Google Maps.
 
+## Chat en vivo
+
+El chat recibe avisos mediante una conexión SSE autenticada (`GET /api/chat/events`),
+sin consultar cada cuatro segundos. Al recibir un aviso se sincronizan los mensajes
+y la lista de conversaciones. Si se interrumpe la conexión, se reconecta y recupera
+los mensajes que llegaron mientras estuvo desconectado; también sincroniza al volver
+a la pestaña. Los tokens viajan en `Authorization`, nunca en la URL.
+
+Al leer mensajes anteriores se conserva la posición y aparece **Nuevos mensajes**.
+El botón lleva al final; los mensajes se confirman como leídos solo cuando el final
+está visible y la pestaña está activa. Enviar un mensaje también lleva al final.
+
+No requiere SQL ni activar Realtime en Supabase. Los avisos se distribuyen en memoria
+entre las conexiones del **mismo proceso de backend**, como el despliegue actual de
+una instancia en Render. Si se agregan réplicas o procesos, se debe compartir este
+canal mediante pub/sub antes de escalar. Escrituras directas en Supabase no generan
+avisos: todos los envíos de la app pasan por la API. El proxy debe permitir streaming
+`text/event-stream` sin buffering; el servidor envía latidos cada 20 segundos.
+La conexión se renueva como máximo cada cinco minutos para revalidar la sesión.
+
+Formato SSE basado en [Using server-sent events (MDN)](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events).
+
 ## Seguridad
 
 ### Recuperación de contraseña

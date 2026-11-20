@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
 import { requireAuth } from '../middleware/auth.js';
 import { esUuid } from '../lib/utils.js';
+import { abrirEventosChat, avisarChat } from '../lib/chatEvents.js';
 
 dotenv.config();
 
@@ -35,6 +36,7 @@ function otroParticipante(conv, userId) {
 }
 
 router.use(requireAuth);
+router.get('/events', abrirEventosChat);
 
 // ----------------------------------------------------------
 // Lista de jugadores para iniciar un nuevo chat. Solo se muestran
@@ -236,6 +238,7 @@ router.post('/conversations', async (req, res) => {
       });
     }
 
+    avisarChat(nueva, 'conversacion');
     return res.status(201).json({ success: true, data: nueva, error: null });
   } catch (err) {
     return res.status(500).json({
@@ -300,13 +303,13 @@ router.get('/conversations/:id/messages', async (req, res) => {
       });
     }
 
-    // Marca como leída la conversación para este usuario.
-    const soyUno = conv.usuario1_id === userId;
-    const columna = soyUno ? 'leido_por_1' : 'leido_por_2';
-    await supabaseAdmin
-      .from('conversaciones')
-      .update({ [columna]: new Date().toISOString() })
-      .eq('id', convId);
+    // El chat en vivo confirma la lectura solo cuando se ve el final.
+    // Se conserva el comportamiento anterior para otros clientes.
+    if (req.query.marcarLeido !== 'false') {
+      const columna = conv.usuario1_id === userId ? 'leido_por_1' : 'leido_por_2';
+      await supabaseAdmin.from('conversaciones')
+        .update({ [columna]: new Date().toISOString() }).eq('id', convId);
+    }
 
     return res.status(200).json({
       success: true,
@@ -325,6 +328,37 @@ router.get('/conversations/:id/messages', async (req, res) => {
       data: null,
       error: 'Error interno del servidor.',
     });
+  }
+});
+
+// Confirma exactamente hasta el último mensaje visto, no mensajes que
+// hayan llegado mientras la petición estaba en curso.
+router.post('/conversations/:id/read', async (req, res) => {
+  try {
+    const convId = Number(req.params.id);
+    const mensajeId = Number(req.body?.mensaje_id);
+    if (!Number.isSafeInteger(convId) || convId <= 0 || !Number.isSafeInteger(mensajeId) || mensajeId <= 0) {
+      return res.status(400).json({ success: false, data: null, error: 'Conversación no válida.' });
+    }
+    const { data: conv, error } = await supabaseAdmin.from('conversaciones')
+      .select('id, usuario1_id, usuario2_id').eq('id', convId).maybeSingle();
+    if (error) throw error;
+    if (!conv || ![conv.usuario1_id, conv.usuario2_id].includes(req.user.id)) {
+      return res.status(404).json({ success: false, data: null, error: 'Conversación no encontrada.' });
+    }
+    const { data: mensaje, error: msgError } = await supabaseAdmin.from('mensajes')
+      .select('created_at').eq('conversacion_id', convId).eq('id', mensajeId).maybeSingle();
+    if (msgError) throw msgError;
+    if (!mensaje) return res.status(404).json({ success: false, data: null, error: 'Mensaje no encontrado.' });
+    const columna = conv.usuario1_id === req.user.id ? 'leido_por_1' : 'leido_por_2';
+    const { error: updateError } = await supabaseAdmin.from('conversaciones')
+      .update({ [columna]: mensaje.created_at }).eq('id', convId)
+      .or(`${columna}.is.null,${columna}.lt.${mensaje.created_at}`);
+    if (updateError) throw updateError;
+    avisarChat(conv, 'lectura');
+    return res.json({ success: true, data: null, error: null });
+  } catch {
+    return res.status(500).json({ success: false, data: null, error: 'No se pudo confirmar la lectura.' });
   }
 });
 
@@ -404,6 +438,7 @@ router.post('/conversations/:id/messages', async (req, res) => {
       .update({ updated_at: new Date().toISOString() })
       .eq('id', convId);
 
+    avisarChat(conv);
     return res.status(201).json({ success: true, data: mensaje, error: null });
   } catch (err) {
     return res.status(500).json({

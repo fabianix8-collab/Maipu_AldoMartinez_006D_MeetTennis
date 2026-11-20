@@ -1,5 +1,10 @@
 // Spanish source keys keep API values and translations separate.
 export const english = {
+  "Nuevos mensajes": "New messages",
+  "Reconectando el chat…": "Reconnecting chat…",
+  "Mensajes de la conversación": "Conversation messages",
+  "Cargando mensajes…": "Loading messages…",
+  "No se pudieron cargar los mensajes.": "Messages could not be loaded.",
   "No se pudo validar el enlace. Inténtalo de nuevo.": "Could not validate the link. Please try again.",
   "Olvidé mi contraseña": "Forgot my password",
   "Restablecer contraseña": "Reset password",

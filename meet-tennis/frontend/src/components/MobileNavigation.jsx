@@ -32,9 +32,18 @@ export default function MobileNavigation() {
         }
       } catch { /* La navegación sigue disponible si falla el contador. */ }
     };
+    const alActualizar = (event) => {
+      if (activo) setNoLeidos(event.detail.reduce((total, chat) => total + (chat.noLeidos || 0), 0));
+    };
+    window.addEventListener('meettennis:chat-actualizado', alActualizar);
     cargar();
-    const intervalo = setInterval(cargar, 12000);
-    return () => { activo = false; clearInterval(intervalo); };
+    // Dentro del chat se usa la misma sincronización en vivo del hilo.
+    const intervalo = pathname === '/chat' ? null : setInterval(cargar, 12000);
+    return () => {
+      activo = false;
+      clearInterval(intervalo);
+      window.removeEventListener('meettennis:chat-actualizado', alActualizar);
+    };
   }, [pathname]);
 
   return (
