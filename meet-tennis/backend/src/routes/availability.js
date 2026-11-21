@@ -52,7 +52,7 @@ router.get('/', async (req, res) => {
       data: (data || []).map(formatear),
       error: null,
     });
-  } catch (err) {
+  } catch {
     return res.status(500).json({
       success: false,
       data: null,
@@ -157,7 +157,7 @@ router.post('/', async (req, res) => {
       data: formatear(data),
       error: null,
     });
-  } catch (err) {
+  } catch {
     return res.status(500).json({
       success: false,
       data: null,
@@ -205,7 +205,7 @@ router.delete('/:id', async (req, res) => {
       data: { id: data[0].id },
       error: null,
     });
-  } catch (err) {
+  } catch {
     return res.status(500).json({
       success: false,
       data: null,

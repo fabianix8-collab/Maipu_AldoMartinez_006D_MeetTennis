@@ -28,7 +28,7 @@ test('all app pages, invitation screens and recovery screens render in Spanish a
     ['PasswordRecoveryView', {}, '/recuperar-contrasena', '¿Olvidaste tu contraseña?', 'Forgot your password?'],
     ['PasswordRecoveryView', { mode: 'reset' }, '/restablecer-contrasena', 'Restablecer contraseña', 'Reset password'],
     ['DashboardView', {}, '/', 'Buscar Partido', 'Find a match'],
-    ['AvailabilityView', {}, '/', 'Guardar disponibilidad', 'Save availability'],
+    ['AvailabilityView', {}, '/', 'Agregar horario', 'Add time slot'],
     ['CourtsView', {}, '/', 'Canchas Cercanas', 'Nearby courts'],
     ['MatchmakingView', {}, '/', 'Filtros de búsqueda', 'Search filters'],
     ['MisPartidosView', {}, '/mis-partidos', 'Historial de resultados', 'Results history'],

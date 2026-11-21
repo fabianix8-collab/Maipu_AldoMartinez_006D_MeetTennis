@@ -359,7 +359,7 @@ function ResenasView() {
                 })
               )}
             </div>
-            {t(renderError('jugador'))}
+            {renderError('jugador')}
           </div>
 
           <div className="mt-5">
@@ -370,7 +370,7 @@ function ResenasView() {
                 {calificacion ? `${calificacion}/5` : t('Toca las estrellas')}
               </span>
             </div>
-            {t(renderError('calificacion'))}
+            {renderError('calificacion')}
           </div>
 
           <div className="mt-5">

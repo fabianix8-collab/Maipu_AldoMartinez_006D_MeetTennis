@@ -128,7 +128,7 @@ router.get('/', async (req, res) => {
       },
       error: null,
     });
-  } catch (err) {
+  } catch {
     return res.status(500).json({
       success: false,
       data: null,

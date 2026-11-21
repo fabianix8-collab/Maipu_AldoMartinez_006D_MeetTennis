@@ -1004,7 +1004,7 @@ function MisPartidosView({ seccion = 'resultados' }) {
                         <span className="font-semibold text-slate-100">
                           {nombreCompleto(partido.rival)}
                         </span>{' '}{t("registró este partido:")}</p>
-                      {t(detallePartido(partido))}
+                      {detallePartido(partido)}
                       <p className="mt-1 text-xs text-slate-500">{t("Si lo confirmas: ")}{formatPuntos(partido.puntos)}{t(" para ti.")}</p>
                     </div>
                   </div>
@@ -1065,7 +1065,7 @@ function MisPartidosView({ seccion = 'resultados' }) {
                 ))}
               </select>
             </div>
-            {t(renderError('rival'))}
+            {renderError('rival')}
           </div>
 
           <div className="mt-5">
@@ -1110,7 +1110,7 @@ function MisPartidosView({ seccion = 'resultados' }) {
                 placeholder={resultado === 'Ganado' ? '6-4 6-3' : '4-6 3-6'}
                 className={inputBase}
               />
-              {t(renderError('marcador'))}
+              {renderError('marcador')}
             </div>
 
             <div>
@@ -1126,7 +1126,7 @@ function MisPartidosView({ seccion = 'resultados' }) {
                   className={`${inputBase} pl-11`}
                 />
               </div>
-              {t(renderError('fecha'))}
+              {renderError('fecha')}
             </div>
           </div>
 
@@ -1195,7 +1195,7 @@ function MisPartidosView({ seccion = 'resultados' }) {
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold text-slate-100">{t("vs ")}{nombreCompleto(partido.rival)}
                       </p>
-                      {t(detallePartido(partido))}
+                      {detallePartido(partido)}
                     </div>
                     <button
                       type="button"
@@ -1241,7 +1241,7 @@ function MisPartidosView({ seccion = 'resultados' }) {
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold text-slate-100">{t("vs ")}{nombreCompleto(partido.rival)}
                         </p>
-                        {t(detallePartido(partido))}
+                        {detallePartido(partido)}
                         {confirmado && !suma && (
                           <p className="mt-1 text-[11px] text-slate-500">{t("Jugado en ")}{t(partido.miCategoria)}{t(": ya no suma en tu categoría actual.")}</p>
                         )}

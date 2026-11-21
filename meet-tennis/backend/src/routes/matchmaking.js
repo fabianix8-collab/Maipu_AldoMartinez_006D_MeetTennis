@@ -205,7 +205,7 @@ router.get('/rivals', async (req, res) => {
       },
       error: null,
     });
-  } catch (err) {
+  } catch {
     return errorInterno(res);
   }
 });
@@ -312,7 +312,7 @@ router.get('/recommend-court', async (req, res) => {
       },
       error: null,
     });
-  } catch (err) {
+  } catch {
     return errorInterno(res);
   }
 });
@@ -346,7 +346,7 @@ router.get('/requests', async (req, res) => {
       },
       error: null,
     });
-  } catch (err) {
+  } catch {
     return errorInterno(res);
   }
 });
@@ -461,7 +461,7 @@ router.post('/requests', async (req, res) => {
       data: formatearSolicitud(data),
       error: null,
     });
-  } catch (err) {
+  } catch {
     return errorInterno(res);
   }
 });
@@ -513,7 +513,7 @@ router.patch('/requests/:id', async (req, res) => {
       data: formatearSolicitud(data[0]),
       error: null,
     });
-  } catch (err) {
+  } catch {
     return errorInterno(res);
   }
 });
@@ -592,7 +592,7 @@ router.patch('/requests/:id/asistencia', async (req, res) => {
       data: formatearSolicitud(data[0]),
       error: null,
     });
-  } catch (err) {
+  } catch {
     return errorInterno(res);
   }
 });

@@ -125,7 +125,7 @@ router.get('/', async (req, res) => {
       data: { jugadores, recibidas, miPromedio },
       error: null,
     });
-  } catch (err) {
+  } catch {
     return res.status(500).json({
       success: false,
       data: null,
@@ -179,7 +179,7 @@ router.get('/player/:id', async (req, res) => {
       data: { promedio, totalResenas: recibidas.length, recibidas },
       error: null,
     });
-  } catch (err) {
+  } catch {
     return res.status(500).json({
       success: false,
       data: null,
@@ -305,7 +305,7 @@ router.post('/', async (req, res) => {
       data,
       error: null,
     });
-  } catch (err) {
+  } catch {
     return res.status(500).json({
       success: false,
       data: null,
@@ -393,7 +393,7 @@ router.patch('/:id', async (req, res) => {
       data,
       error: null,
     });
-  } catch (err) {
+  } catch {
     return res.status(500).json({
       success: false,
       data: null,
@@ -440,7 +440,7 @@ router.delete('/:id', async (req, res) => {
       data: { id: data[0].id },
       error: null,
     });
-  } catch (err) {
+  } catch {
     return res.status(500).json({
       success: false,
       data: null,

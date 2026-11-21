@@ -28,8 +28,7 @@ node scripts/actualizar_catalogo_canchas.mjs --resumen
 El primer comando muestra el plan. El segundo respalda la tabla en `.local/`
 (ignorado por Git), inserta las nuevas fichas, actualiza las equivalentes sin cambiar
 sus ID y vuelve a leer los datos para verificar que no quedan cambios pendientes.
-Es seguro repetirlo. Los tres scripts antiguos de direcciones/coordenadas ahora
-delegan en este mismo flujo para no reintroducir información obsoleta.
+Es seguro repetirlo. Este es el único comando de mantenimiento del catálogo.
 `--resumen` verifica sin escribir y comprueba también el listado filtrado que usa la API.
 
 Los registros retirados se conservan exclusivamente como respaldo histórico de los
@@ -49,3 +48,22 @@ Parque Bernardo Leighton, Parque Mahuida ni Parque Cerrillos. Tampoco se ofrecen
 recintos de tenis sin dirección/acceso comprobados. La ficha antigua "Club de Tenis
 Parque Araucano", situada en Cerro Colorado 4661, se corrige a Federación de Tenis;
 no representa las canchas municipales del Parque Araucano.
+
+## Recomendaciones de productos
+
+`productos-adicionales.json` contiene 12 recomendaciones de Decathlon Chile y
+Wilson Chile, revisadas el 21 de noviembre de 2026. Cada enlace apunta a la ficha
+del producto que respalda su nombre, fotografía y precio en CLP. Los precios son
+los observados durante la revisión; no se sincronizan automáticamente con las tiendas.
+
+Desde `backend`, con su `.env` habitual y la tabla del script `08_productos.sql`:
+
+```powershell
+node scripts/agregar_productos.mjs
+node scripts/agregar_productos.mjs --confirmar
+```
+
+El primer comando muestra las altas pendientes. El segundo agrega únicamente las
+fichas que no existen por enlace ni nombre y comprueba el resultado. Conserva los
+productos anteriores y sus ID; volver a ejecutarlo no duplica las recomendaciones.
+Los nombres y descripciones también están traducidos en el catálogo inglés del frontend.

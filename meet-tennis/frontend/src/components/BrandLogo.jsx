@@ -21,7 +21,7 @@ function BrandLogo({ className = '', homeLink = true }) {
       title={t("Ir al inicio")}
       className="flex w-fit max-w-full rounded-lg transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
     >
-      {t(logo)}
+      {logo}
     </Link>
   );
 }

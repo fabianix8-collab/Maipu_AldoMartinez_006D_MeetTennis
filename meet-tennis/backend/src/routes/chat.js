@@ -87,7 +87,7 @@ router.get('/players', async (req, res) => {
     }
 
     return res.status(200).json({ success: true, data: data || [], error: null });
-  } catch (err) {
+  } catch {
     return res.status(500).json({
       success: false,
       data: null,
@@ -162,7 +162,7 @@ router.get('/conversations', async (req, res) => {
     });
 
     return res.status(200).json({ success: true, data, error: null });
-  } catch (err) {
+  } catch {
     return res.status(500).json({
       success: false,
       data: null,
@@ -240,7 +240,7 @@ router.post('/conversations', async (req, res) => {
 
     avisarChat(nueva, 'conversacion');
     return res.status(201).json({ success: true, data: nueva, error: null });
-  } catch (err) {
+  } catch {
     return res.status(500).json({
       success: false,
       data: null,
@@ -322,7 +322,7 @@ router.get('/conversations/:id/messages', async (req, res) => {
       },
       error: null,
     });
-  } catch (err) {
+  } catch {
     return res.status(500).json({
       success: false,
       data: null,
@@ -440,7 +440,7 @@ router.post('/conversations/:id/messages', async (req, res) => {
 
     avisarChat(conv);
     return res.status(201).json({ success: true, data: mensaje, error: null });
-  } catch (err) {
+  } catch {
     return res.status(500).json({
       success: false,
       data: null,

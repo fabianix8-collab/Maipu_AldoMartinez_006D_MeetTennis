@@ -65,7 +65,7 @@ router.get('/', async (req, res) => {
     }
 
     return res.status(200).json({ success: true, data: data || [], error: null });
-  } catch (err) {
+  } catch {
     return res.status(500).json({
       success: false,
       data: null,

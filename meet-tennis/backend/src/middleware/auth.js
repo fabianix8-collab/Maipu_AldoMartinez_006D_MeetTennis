@@ -35,7 +35,7 @@ export async function requireAuth(req, res, next) {
 
     req.user = data.user;
     return next();
-  } catch (err) {
+  } catch {
     return res.status(500).json({
       success: false,
       data: null,

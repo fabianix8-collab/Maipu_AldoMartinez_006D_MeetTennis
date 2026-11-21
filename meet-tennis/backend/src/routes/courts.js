@@ -47,7 +47,7 @@ router.get('/', async (req, res) => {
       data: { canchas, comunas },
       error: null,
     });
-  } catch (err) {
+  } catch {
     return res.status(500).json({
       success: false,
       data: null,

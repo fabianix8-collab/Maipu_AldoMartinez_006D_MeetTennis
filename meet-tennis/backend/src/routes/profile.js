@@ -88,7 +88,7 @@ router.get('/:id', requireAuth, async (req, res) => {
       data: esPropio ? profiles[0] : perfilPublico(profiles[0]),
       error: null,
     });
-  } catch (err) {
+  } catch {
     return res.status(500).json({
       success: false,
       data: null,
@@ -182,7 +182,7 @@ router.post('/:id/avatar', requireAuth, requireSelf, subirAvatar, async (req, re
       data: profiles[0],
       error: null,
     });
-  } catch (err) {
+  } catch {
     if (avatarPath) {
       await supabaseAdmin.storage.from('avatars').remove([avatarPath]).catch(() => {});
     }
@@ -279,7 +279,7 @@ router.patch('/:id', requireAuth, requireSelf, async (req, res) => {
       data: profiles[0],
       error: null,
     });
-  } catch (err) {
+  } catch {
     return res.status(500).json({
       success: false,
       data: null,

@@ -560,7 +560,7 @@ function MatchmakingView() {
                         title={t("Ver perfil")}
                         className="relative inline-flex shrink-0 cursor-pointer rounded-full bg-gradient-to-tr from-emerald-500 via-emerald-400 to-lime-300 p-[2px] transition-transform hover:scale-105"
                       >
-                        {t(renderAvatar(rival))}
+                        {renderAvatar(rival)}
                       </button>
 
                       <div className="min-w-0 flex-1">

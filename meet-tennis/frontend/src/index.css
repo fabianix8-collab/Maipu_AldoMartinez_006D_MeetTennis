@@ -31,29 +31,6 @@ body {
   color: #f1f5f9;
 }
 
-/* Animaciones de flotación para las pelotas del fondo */
-@keyframes float {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(-14px) rotate(8deg); }
-}
-
-@keyframes float-slow {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(-20px) rotate(-10deg); }
-}
-
-@keyframes float-slower {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(-10px) rotate(12deg); }
-}
-
-.animate-float { animation: float 6s ease-in-out infinite; }
-.animate-float-slow { animation: float-slow 8s ease-in-out infinite; }
-.animate-float-slower { animation: float-slower 10s ease-in-out infinite; }
-
-/* (La pelota del fondo ahora rebota por la pantalla con JavaScript,
-   efecto "logo de DVD", definido en TennisBackground.jsx) */
-
 /* Scrollbar sutil acorde al tema */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }

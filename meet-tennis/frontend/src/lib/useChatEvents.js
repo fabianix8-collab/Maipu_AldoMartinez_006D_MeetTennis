@@ -4,7 +4,9 @@ import { leerEventosChat } from './chatStream.js';
 
 export function useChatEvents(onEvent, onStatus) {
   const callbacks = useRef({ onEvent, onStatus });
-  callbacks.current = { onEvent, onStatus };
+  useEffect(() => {
+    callbacks.current = { onEvent, onStatus };
+  }, [onEvent, onStatus]);
   useEffect(() => {
     let cerrado = false;
     let controller;

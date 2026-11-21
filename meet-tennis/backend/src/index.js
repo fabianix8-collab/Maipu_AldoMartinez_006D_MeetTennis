@@ -118,7 +118,7 @@ app.use((req, res) => {
 });
 
 // Manejador global de errores de Express (debe conservar los 4 parámetros).
-app.use((err, req, res, next) => {
+app.use((err, req, res, _next) => {
   console.error('[ExpressError]', err);
   res.status(500).json({
     success: false,

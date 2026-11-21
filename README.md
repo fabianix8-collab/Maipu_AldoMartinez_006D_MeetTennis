@@ -1,143 +1,180 @@
-# Maipu_AldoMartinez_006D_EquipoXX
+# MeetTennis
 
-## Panel de monitoreo y administración
+Aplicación web para encontrar rivales de tenis, compartir horarios disponibles,
+coordinar partidos y consultar resultados y clasificaciones por categoría.
+Proyecto académico de la sección Maipú, Aldo Martínez, 006D.
 
-La app incluye un **panel de monitoreo** en `/monitoreo`, exclusivo para usuarios con rol
-`admin`. Desde ahí se ven las estadísticas generales de MeetTennis (usuarios, partidos,
-solicitudes, canchas, chat, reseñas, tendencias de 7 días).
+## Aplicación publicada
 
-La **administración de usuarios** vive en una vista separada, `/admin-usuarios`, accesible
-desde el botón junto al de monitoreo en el dashboard (solo para admins). Ahí se listan los
-jugadores y se gestionan los roles sin saturar el panel de métricas.
+- [Abrir MeetTennis](https://maipu-aldo-martinez-006-d-meet-tenn.vercel.app)
+- [Estado de la API](https://meettennis-api.onrender.com/api/health)
 
-### Roles de usuario
-- `jugador` (por defecto): experiencia normal de la app.
-- `admin`: acceso al panel de monitoreo y a la administración de usuarios.
+El frontend se publica en Vercel y el backend en Render. La aplicación necesita
+conexión a internet para autenticación, datos, imágenes de productos y mapas.
 
-Para darse de alta como admin (UNA vez):
+## Funciones
 
-1. Ejecutar en Supabase → SQL Editor `backend/scripts/09_admin_rol.sql` (agrega la columna
-   `rol` y permite promover por correo o por nombre completo — ajusta las listas dentro del script).
-2. Ejecutar `backend/scripts/10_usuario_fechas.sql` (opcional pero recomendado: agrega
-   `created_at` a la tabla `usuario`).
-3. Alternativa local sin SQL: `node scripts/promover_admin.mjs --aplicar --email tu@correo.cl`
-   (desde `backend/`, usa las credenciales del `.env`; nunca muestra las claves).
+- Registro con fotografía, inicio de sesión y recuperación de contraseña por correo.
+- Disponibilidad semanal con días, horas y zona o cancha preferida.
+- Búsqueda de rivales, invitaciones y confirmación de asistencia.
+- Registro de resultados y confirmación por el rival antes de afectar el ranking.
+- Ranking por categoría, tabla de puntos y progreso de ascenso.
+- Canchas de Santiago con ubicaciones revisadas y recorridos en auto o a pie.
+- Chat con actualización mediante eventos del servidor (SSE).
+- Reseñas de jugadores y recomendaciones de equipamiento con enlaces a tiendas.
+- Interfaz en español e inglés y navegación inferior para móviles.
+- Monitoreo y gestión de roles para administradores.
 
-> **Importante:** si aún no se ejecutó el script 09, el acceso al panel se decide por la
-> variable `MONITORING_EMAILS` (correos admin separados por coma). Sin el script 09 y sin
-> esa variable, **nadie** puede ver el panel (por seguridad).
+## Estructura del repositorio
 
-Desde el propio panel, un admin puede promover o revocar a otros usuarios sin tocar SQL.
+```text
+.github/workflows/ci.yml        Comprobaciones automáticas de GitHub
+meet-tennis/
+  frontend/                    React, Vite y Tailwind CSS
+    src/                       Pantallas, componentes y utilidades
+    test/                      Pruebas de interfaz y lógica del cliente
+  backend/                     API REST con Node.js y Express
+    src/                       Rutas, autenticación y reglas de negocio
+    scripts/                   SQL de instalación y mantenimiento manual
+    data/                      Catálogos revisados de canchas y productos
+    test/                      Pruebas del servidor
+Fase 1/, Fase 2/, Fase 3/        Documentación y evidencias académicas
+render.yaml                    Configuración de despliegue del backend
+```
 
-### Endpoints del panel (requieren rol admin)
-- `GET /api/monitoring` — estadísticas generales de la app.
-- `GET /api/monitoring/acceso` — indica si el usuario autenticado es admin.
-- `GET /api/monitoring/usuarios` — lista de usuarios (nombre, correo, comuna, categoría, rol).
-- `PATCH /api/monitoring/usuarios/:id/rol` — cambia el rol (`admin` | `jugador`); no permite
-  cambiarse el propio rol.
+El frontend accede a los datos mediante `/api`. Las claves de Supabase y las
+operaciones de base de datos pertenecen al backend. Los resultados del ranking se
+calculan en el servidor a partir de partidos confirmados.
 
-## Configuración del backend
+## Ejecutar en desarrollo
 
-Copia `backend/.env.example` como `backend/.env` y completa los valores:
+Requisitos: Node.js 24 LTS, npm y un proyecto Supabase con Auth y Storage.
+Los comandos siguientes se ejecutan desde la raíz del repositorio en PowerShell.
 
-| Variable | Descripción |
+### Preparar el backend
+
+```powershell
+cd meet-tennis/backend
+npm ci
+Copy-Item .env.example .env
+```
+
+Completar `.env` con las credenciales del proyecto. Nunca subir este archivo a Git.
+
+| Variable | Uso |
 | --- | --- |
-| `PORT` | Puerto del servidor (Render lo inyecta). |
+| `PORT` | Puerto de Express; `3000` en desarrollo. |
 | `NODE_ENV` | `development` o `production`. |
-| `SUPABASE_URL` | URL del proyecto Supabase. |
-| `SUPABASE_ANON_KEY` | Clave pública `anon` (para login/registro/refresh). |
-| `SUPABASE_SERVICE_ROLE_KEY` | Clave de servicio (solo backend, nunca exponer). |
-| `CORS_ORIGIN` | Orígenes permitidos en producción, separados por coma. Sin esto se deniegan las peticiones cross-origin. |
-| `FRONTEND_URL` | Origen del frontend para recuperación de contraseña. Opcional si ese origen ya está en `CORS_ORIGIN`. |
-| `MONITORING_EMAILS` | Correos admin (respaldo del panel mientras no exista la columna `rol`). |
-| `GOOGLE_MAPS_API_KEY` | (Opcional) API key de Google Maps con la Geocoding API, para el script de coordenadas exactas. |
+| `SUPABASE_URL` | Dirección del proyecto Supabase. |
+| `SUPABASE_ANON_KEY` | Clave pública para autenticación. |
+| `SUPABASE_SERVICE_ROLE_KEY` | Clave de servicio, exclusiva del backend. |
+| `CORS_ORIGIN` | Orígenes permitidos en producción, separados por coma. |
+| `FRONTEND_URL` | Dirección del frontend para recuperación de contraseña. |
+| `MONITORING_EMAILS` | Administradores de respaldo en instalaciones sin columna `rol`. |
 
-## Precisión del mapa de canchas
+En Supabase SQL Editor, ejecutar los archivos numerados de
+`meet-tennis/backend/scripts/`, desde `01_base.sql` hasta `10_usuario_fechas.sql`,
+en orden. `01_base.sql` permite crear las tablas base en un proyecto nuevo y
+conserva las tablas existentes. Los scripts posteriores amplían el esquema.
 
-El mapa embebido consulta a Google Maps por la **dirección exacta** de la cancha (no solo por
-coordenadas aproximadas), así el pin cae en el lugar correcto. Para afinar aún más las
-coordenadas guardadas en la base de datos:
+Después, desde `meet-tennis/backend`, cargar los catálogos revisados:
 
-1. Crea una API key en Google Cloud con la **Geocoding API** habilitada.
-2. Define `GOOGLE_MAPS_API_KEY` en `backend/.env`.
-3. Ejecuta desde `backend/`:
-   ```
-   node scripts/geocodificar_canchas.mjs
-   ```
-   El script geocodifica la dirección de cada cancha y actualiza su `latitud`/`longitud`
-   con el punto exacto que devuelve Google Maps.
+```powershell
+node scripts/actualizar_catalogo_canchas.mjs
+node scripts/actualizar_catalogo_canchas.mjs --confirmar
+node scripts/agregar_productos.mjs
+node scripts/agregar_productos.mjs --confirmar
+npm run dev
+```
 
-## Chat en vivo
+Los comandos sin `--confirmar` muestran el plan de cambios. Para detalles de las
+fuentes y de la sincronización, consultar [los catálogos](meet-tennis/backend/data/README.md).
 
-El chat recibe avisos mediante una conexión SSE autenticada (`GET /api/chat/events`),
-sin consultar cada cuatro segundos. Al recibir un aviso se sincronizan los mensajes
-y la lista de conversaciones. Si se interrumpe la conexión, se reconecta y recupera
-los mensajes que llegaron mientras estuvo desconectado; también sincroniza al volver
-a la pestaña. Los tokens viajan en `Authorization`, nunca en la URL.
+### Iniciar el frontend
 
-Al leer mensajes anteriores se conserva la posición y aparece **Nuevos mensajes**.
-El botón lleva al final; los mensajes se confirman como leídos solo cuando el final
-está visible y la pestaña está activa. Enviar un mensaje también lleva al final.
+En otra terminal, desde la raíz del repositorio:
 
-No requiere SQL ni activar Realtime en Supabase. Los avisos se distribuyen en memoria
-entre las conexiones del **mismo proceso de backend**, como el despliegue actual de
-una instancia en Render. Si se agregan réplicas o procesos, se debe compartir este
-canal mediante pub/sub antes de escalar. Escrituras directas en Supabase no generan
-avisos: todos los envíos de la app pasan por la API. El proxy debe permitir streaming
-`text/event-stream` sin buffering; el servidor envía latidos cada 20 segundos.
-La conexión se renueva como máximo cada cinco minutos para revalidar la sesión.
+```powershell
+cd meet-tennis/frontend
+npm ci
+npm run dev
+```
 
-Formato SSE basado en [Using server-sent events (MDN)](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events).
+Abrir `http://localhost:5173`. Vite dirige `/api` al backend local en el puerto 3000.
+Las variables opcionales de mapas están en `frontend/.env.example`; no se necesita
+una clave privada para los proveedores configurados por defecto.
 
-## Seguridad
+### Configurar recuperación de contraseña
 
-### Recuperación de contraseña
+En Supabase, **Authentication → URL Configuration**, establecer la dirección del
+frontend como **Site URL** y autorizar estas redirecciones según el entorno:
 
-Desde **Olvidé mi contraseña** en el login se abre `/recuperar-contrasena`.
-El correo enviado por Supabase dirige a `/restablecer-contrasena`, donde se ingresa
-y confirma la nueva contraseña. El cambio usa una sesión validada por Supabase,
-sin operaciones de administrador ni cambios en las tablas del proyecto.
+- `http://localhost:5173/restablecer-contrasena`
+- `http://127.0.0.1:5173/restablecer-contrasena`
+- `https://maipu-aldo-martinez-006-d-meet-tenn.vercel.app/restablecer-contrasena`
 
-Para habilitar los enlaces en cada entorno:
+En la plantilla de recuperación, conservar `{{ .ConfirmationURL }}`. El envío de
+correos depende de la configuración de Auth/SMTP del proyecto Supabase.
 
-1. En Supabase → **Authentication → URL Configuration**, configura **Site URL**
-   con la dirección del frontend y agrega estas **Redirect URLs** según corresponda:
-   - `http://localhost:5173/restablecer-contrasena` (desarrollo con Vite).
-   - `http://127.0.0.1:5173/restablecer-contrasena` (si usas esa dirección).
-   - `https://<tu-frontend>/restablecer-contrasena` (producción).
-2. Configura en el backend `FRONTEND_URL=https://<tu-frontend>` o incluye ese origen
-   en `CORS_ORIGIN`. En producción se aceptan únicamente destinos HTTPS autorizados;
-   el cliente no puede enviar enlaces a dominios arbitrarios.
-3. Conserva `{{ .ConfirmationURL }}` en la plantilla **Reset Password** de Supabase.
-   Revisa la configuración de correo/SMTP de tu proyecto para permitir la entrega
-   a las cuentas que usarán la app. El código no cambia la configuración de Supabase.
+### Habilitar un administrador
 
-Los enlaces se reciben mediante el flujo implícito: las credenciales se extraen del
-fragmento de la URL, se borran de la barra de direcciones y se guardan temporalmente
-en `sessionStorage` de esa pestaña. No se inicia una sesión normal en la app.
-Los endpoints no devuelven si un correo existe y limitan solicitudes por IP.
+Después de ejecutar `09_admin_rol.sql`, registrar la cuenta en la app y, desde
+`meet-tennis/backend`, ejecutar:
 
-- `POST /api/auth/forgot-password`: `{ email, origin }`.
-- `POST /api/auth/reset-password`: `{ access_token, refresh_token, password }`.
+```powershell
+node scripts/promover_admin.mjs --email correo-del-administrador
+node scripts/promover_admin.mjs --aplicar --email correo-del-administrador
+```
 
-Documentación: [recuperación de contraseña](https://supabase.com/docs/guides/auth/passwords)
-y [Redirect URLs de Supabase](https://supabase.com/docs/guides/auth/redirect-urls).
+El primer comando permite revisar la cuenta. El segundo aplica el rol. Los
+administradores adicionales se gestionan en `/admin-usuarios`. El script SQL no
+promueve nombres ni correos de ejemplo.
 
-### Controles generales
+## Verificación
 
-- **Rate limit por IP** (en memoria, sin dependencias): login 10 intentos / 15 min, registro
-  5 / hora, y un límite general de 120 peticiones / minuto en toda la API.
-  (Middleware `backend/src/middleware/rateLimit.js`.)
-- **CORS restringido**: en producción solo se aceptan los orígenes de `CORS_ORIGIN`.
-- **Headers de seguridad**: `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`,
-  `X-XSS-Protection` y `Permissions-Policy`.
-- **Avatares**: máximo 5 MB y validación del contenido real (magic bytes), no solo el mimetype.
-- Todo el acceso a datos pasa por el backend con la `service_role`; RLS sin políticas públicas.
+Desde `meet-tennis/backend`:
+
+```powershell
+npm test
+```
+
+Desde `meet-tennis/frontend`:
+
+```powershell
+npm run lint
+npm test
+npm run build
+```
+
+GitHub Actions ejecuta las pruebas del backend y el lint, las pruebas y la
+compilación del frontend en cada push a `main` y en los pull requests. Utiliza
+valores sintéticos para Supabase; no necesita credenciales de producción.
 
 ## Despliegue
 
-- **Backend**: Render (ver `render.yaml`). Configurar `SUPABASE_URL`, `SUPABASE_ANON_KEY`,
-  `SUPABASE_SERVICE_ROLE_KEY`, `CORS_ORIGIN` y `MONITORING_EMAILS`.
-- **Frontend**: Vercel (ver `frontend/vercel.json`), con proxy de `/api/*` hacia el backend.
-- **Base de datos**: ejecutar los scripts de `backend/scripts/` en Supabase (SQL Editor) en
-  orden: `02_disponibilidad_partidos.sql` … `10_usuario_fechas.sql`.
+- **Backend:** usar el Blueprint de [render.yaml](render.yaml), con raíz
+  `meet-tennis/backend`. Configurar las variables de entorno en Render.
+- **Frontend:** importar el repositorio en Vercel con raíz `meet-tennis/frontend`.
+  Ejecutar `npm run build` y publicar `dist`. [vercel.json](meet-tennis/frontend/vercel.json)
+  dirige `/api` a Render y permite recargar las rutas de React.
+- **Datos:** los scripts SQL y de mantenimiento son manuales; no se ejecutan
+  automáticamente al desplegar la aplicación.
+
+## Notas de funcionamiento
+
+- Cada categoría tiene su propia clasificación. Ganar suma 40, 25 o 10 puntos y
+  perder resta 5, 15 o 25 según el rival sea de categoría superior, igual o inferior.
+  Para ascender se requieren al menos 10 partidos válidos y 85 % de victorias contra
+  categorías iguales o superiores. El ascenso es opcional y conserva el historial.
+- Las recomendaciones enlazan a tiendas externas; MeetTennis no procesa pagos
+  ni reservas de canchas. Los precios del catálogo corresponden a su revisión.
+- Los recorridos usan servicios públicos de mapas y rutas. No incluyen tráfico
+  en tiempo real y dependen de la disponibilidad del proveedor.
+- El chat SSE distribuye avisos dentro de un proceso de backend. Para desplegar
+  varias réplicas se necesita un canal compartido de eventos.
+- La descripción «Sobre mí» del perfil se conserva localmente en el navegador.
+
+Los scripts `seed_demo.js` y `seed_partidos.js` generan datos de demostración;
+son herramientas opcionales de desarrollo y no forman parte del inicio normal.
+Las pruebas y las capturas de verificación usan datos sintéticos, separados de la
+sesión del usuario. Las capturas y respaldos locales están excluidos de Git.

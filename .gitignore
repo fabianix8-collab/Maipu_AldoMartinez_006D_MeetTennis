@@ -1,0 +1,21 @@
+# Dependencias y compilaciones locales.
+node_modules/
+dist/
+dist-ssr/
+
+# Credenciales, respaldos y capturas de desarrollo.
+.env
+.env.*
+!.env.example
+.local/
+*.local
+*.log
+
+# Configuración local de editores y herramientas.
+.vscode/
+.idea/
+.agents/
+.codex/
+.aws/
+.DS_Store
+Thumbs.db

@@ -124,7 +124,7 @@ router.post('/login', limitarLogin, async (req, res) => {
       data: { user, profile, session },
       error: null,
     });
-  } catch (err) {
+  } catch {
     return res.status(500).json({
       success: false,
       data: null,
@@ -163,7 +163,7 @@ router.post('/refresh', async (req, res) => {
       data: { session: data.session },
       error: null,
     });
-  } catch (err) {
+  } catch {
     return res.status(500).json({
       success: false,
       data: null,
@@ -322,7 +322,7 @@ router.post('/register', limitarRegistro, subirAvatar, async (req, res) => {
       data: profile,
       error: null,
     });
-  } catch (err) {
+  } catch {
     if (avatarPath) {
       await supabaseAdmin.storage.from('avatars').remove([avatarPath]).catch(() => {});
     }

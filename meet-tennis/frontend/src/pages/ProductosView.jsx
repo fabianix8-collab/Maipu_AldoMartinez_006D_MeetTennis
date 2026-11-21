@@ -32,7 +32,8 @@ function ProductoCard({ producto }) {
           <img
             src={producto.imagen_url}
             alt={t(producto.nombre)}
-            className="h-full w-full object-cover"
+            loading="lazy"
+            className="h-full w-full object-contain"
           />
         ) : (
           <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-600/15 text-emerald-400">

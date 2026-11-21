@@ -295,7 +295,7 @@ function AvailabilityView() {
                 );
               })}
             </div>
-            {t(renderError('dias'))}
+            {renderError('dias')}
           </div>
 
           <div className="mt-5 grid grid-cols-2 gap-4">
@@ -327,7 +327,7 @@ function AvailabilityView() {
                   ))}
                 </select>
               </div>
-              {t(renderError('desde'))}
+              {renderError('desde')}
             </div>
 
             <div>
@@ -358,7 +358,7 @@ function AvailabilityView() {
                   ))}
                 </select>
               </div>
-              {t(renderError('hasta'))}
+              {renderError('hasta')}
             </div>
           </div>
 
@@ -434,12 +434,12 @@ function AvailabilityView() {
             className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 font-semibold text-slate-100 transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <Save className="h-5 w-5" />
-            {guardando ? t('Guardando...') : t('Guardar disponibilidad')}
+            {guardando ? t('Guardando...') : t('Agregar horario')}
           </button>
         </form>
 
         <section className="mt-8">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">{t("Bloques guardados")}</h2>
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-400">{t("Mis horarios para jugar")}</h2>
 
           {loadingSlots ? (
             <p className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-800/40 p-5 text-center text-sm text-slate-500">{t("Cargando tu disponibilidad...")}</p>

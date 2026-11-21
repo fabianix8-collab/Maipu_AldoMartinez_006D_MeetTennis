@@ -260,7 +260,7 @@ router.get('/', async (req, res) => {
       },
       error: null,
     });
-  } catch (err) {
+  } catch {
     return res.status(500).json({
       success: false,
       data: null,
@@ -286,7 +286,7 @@ router.post('/vistos', async (req, res) => {
     }
 
     return res.status(200).json({ success: true, data: null, error: null });
-  } catch (err) {
+  } catch {
     return res.status(500).json({
       success: false,
       data: null,

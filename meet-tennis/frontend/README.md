@@ -1,20 +1,21 @@
-# React + Vite
+# Frontend de MeetTennis
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Interfaz React con Vite y Tailwind CSS. Consultar el [README del proyecto](../../README.md)
+para configurar Supabase, iniciar el backend y preparar el despliegue.
 
-Currently, two official plugins are available:
+Desde esta carpeta:
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+```powershell
+npm ci
+npm run dev
+```
 
-## React Compiler
+Vite abre la app en `http://localhost:5173` y dirige `/api` al backend local en
+`http://localhost:3000`. `npm run lint`, `npm test` y `npm run build` verifican el
+código, las pruebas y la compilación. La salida se genera en `dist/`.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Idiomas de MeetTennis
 
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
-# Idiomas de MeetTennis
 
 El switch pequeño **ES / EN**, con una pelota de tenis que se desliza al cambiar
 de idioma, aparece debajo de la campana y salir en el inicio,

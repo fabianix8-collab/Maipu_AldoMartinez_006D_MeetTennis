@@ -185,7 +185,7 @@ router.get('/acceso', requireAuth, async (req, res) => {
       data: { esAdmin: esAdminU },
       error: null,
     });
-  } catch (err) {
+  } catch {
     return res.status(500).json({
       success: false,
       data: null,
@@ -234,7 +234,7 @@ router.get('/usuarios', requireAuth, async (req, res) => {
       data: { usuarios: lista, yoId: req.user.id },
       error: null,
     });
-  } catch (err) {
+  } catch {
     return res.status(500).json({ success: false, data: null, error: 'Error interno del servidor.' });
   }
 });
@@ -276,7 +276,7 @@ router.patch('/usuarios/:id/rol', requireAuth, async (req, res) => {
     }
 
     return res.status(200).json({ success: true, data: data[0], error: null });
-  } catch (err) {
+  } catch {
     return res.status(500).json({ success: false, data: null, error: 'Error interno del servidor.' });
   }
 });
@@ -336,8 +336,7 @@ router.get('/', requireAuth, async (req, res) => {
   if (canchasNombresRes.error) errores.push('canchas');
 
   // Actividad reciente (alimenta el feed del panel).
-  const [recientesRes] = await Promise.all([
-    Promise.all([
+  const recientesRes = await Promise.all([
       supabaseAdmin
         .from('partidos')
         .select(RECIENTE_PARTIDOS)
@@ -359,8 +358,7 @@ router.get('/', requireAuth, async (req, res) => {
         .order('created_at', { ascending: false })
         .limit(6),
     ]).then(([p, s, r, m]) => ({ p, s, r, m, ok: true }))
-      .catch(() => ({ ok: false, errores: ['actividad'] })),
-  ]);
+      .catch(() => ({ ok: false, errores: ['actividad'] }));
 
   // Si el feed de actividad falló, se avisa pero el resto sigue válido.
   if (!recientesRes.ok) {

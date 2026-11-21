@@ -1,0 +1,126 @@
+{
+  "revisadoEl": "2026-11-21",
+  "moneda": "CLP",
+  "productos": [
+    {
+      "nombre": "Raqueta Decathlon Essential 270 g",
+      "descripcion": "Raqueta de aluminio de 270 g para empezar a jugar al tenis.",
+      "categoria": "Raquetas",
+      "precio": 20000,
+      "imagen_url": "https://contents.mediadecathlon.com/p2741608/k$4411a5180038e93b38cf03efe524b37e/picture.jpg?format=auto&f=640x0",
+      "enlace": "https://www.decathlon.cl/p/raqueta-de-tenis-artegno-270g-essential-gris-azul/347893/c364m8808879",
+      "tienda": "Decathlon Chile",
+      "destacado": true
+    },
+    {
+      "nombre": "Raqueta Artengo TR190 Lite V2 260 g",
+      "descripcion": "Raqueta de grafito de 260 g con grip acolchado para iniciarse en club.",
+      "categoria": "Raquetas",
+      "precio": 55000,
+      "imagen_url": "https://contents.mediadecathlon.com/p2486807/k$3feb3828cf552e34dc5abf8d35a7a1f7/picture.jpg?format=auto&f=640x0",
+      "enlace": "https://www.decathlon.cl/p/raqueta-de-tenis-artengo-260g-adulto-tr190-lite-v2/327358/m8600492",
+      "tienda": "Decathlon Chile",
+      "destacado": false
+    },
+    {
+      "nombre": "Zapatillas Artengo TS160 Mujer",
+      "descripcion": "Zapatillas de tenis con refuerzos laterales y amortiguación de goma EVA.",
+      "categoria": "Zapatillas",
+      "precio": 35000,
+      "imagen_url": "https://contents.mediadecathlon.com/p2013175/k$3232deec1343ef967335ed3bd68cf4e5/picture.jpg?format=auto&f=640x0",
+      "enlace": "https://www.decathlon.cl/p/zapatillas-de-tenis-mujer-ts160-blanco/307677/c227c180m8558692",
+      "tienda": "Decathlon Chile",
+      "destacado": false
+    },
+    {
+      "nombre": "Zapatillas Artengo TS500 Arcilla Hombre",
+      "descripcion": "Zapatillas con suela para arcilla y amortiguación para jugar en polvo de ladrillo.",
+      "categoria": "Zapatillas",
+      "precio": 50000,
+      "imagen_url": "https://contents.mediadecathlon.com/p2713952/k$230fb85ca7a2210a5a321638bacbe5cc/picture.jpg?format=auto&f=640x0",
+      "enlace": "https://www.decathlon.cl/p/zapatillas-de-tenis-hombre-arcilla-ts-500-negro-rojo-ladrillo/325431/c382c57m8882117",
+      "tienda": "Decathlon Chile",
+      "destacado": false
+    },
+    {
+      "nombre": "Set de Cuerda Wilson Revolve 16",
+      "descripcion": "Set de cuerda Wilson Revolve 16 para renovar el encordado de tu raqueta.",
+      "categoria": "Cuerdas",
+      "precio": 14990,
+      "imagen_url": "https://wilsonstore.cl/cdn/shop/files/3_388b4ea6-aa6c-4e15-b8b4-78dd6b9f2bc5.png?v=1786647482&width=640",
+      "enlace": "https://wilsonstore.cl/products/cuerda-revolve-16-wh",
+      "tienda": "Wilson Chile",
+      "destacado": false
+    },
+    {
+      "nombre": "Set de Cuerda Wilson Sensation 17",
+      "descripcion": "Set de cuerda Wilson Sensation 17 para el mantenimiento del encordado.",
+      "categoria": "Cuerdas",
+      "precio": 12990,
+      "imagen_url": "https://wilsonstore.cl/cdn/shop/files/WRZ941100_0_Sensation_17_Pkg_6e55216b-fea9-41d8-8e0a-a437f7eb6e08.png?v=1763037054&width=640",
+      "enlace": "https://wilsonstore.cl/products/cuerda-revolve-17-bk",
+      "tienda": "Wilson Chile",
+      "destacado": false
+    },
+    {
+      "nombre": "Bolso de Tenis Artengo S Team 19 L",
+      "descripcion": "Bolso de 19 litros con compartimento acolchado para llevar tu raqueta y equipo.",
+      "categoria": "Accesorios",
+      "precio": 11000,
+      "imagen_url": "https://contents.mediadecathlon.com/p1783110/k$9a5e47ceccf7167182f35e722bd12b0d/picture.jpg?format=auto&f=640x0",
+      "enlace": "https://www.decathlon.cl/p/bolso-tenis-artengo-s-team-19-litros/157311/c382m8581375",
+      "tienda": "Decathlon Chile",
+      "destacado": true
+    },
+    {
+      "nombre": "Mochila de Tenis Artengo M Team 24 L",
+      "descripcion": "Mochila de 24 litros con bolsillos para raqueta, pelotas y otros accesorios.",
+      "categoria": "Accesorios",
+      "precio": 40000,
+      "imagen_url": "https://contents.mediadecathlon.com/p2406733/k$80abbb5106a2ed2539abede159de64d9/picture.jpg?format=auto&f=640x0",
+      "enlace": "https://www.decathlon.cl/p/mochila-de-tenis-artengo-m-team-24l/343487/c382c251m8771816",
+      "tienda": "Decathlon Chile",
+      "destacado": false
+    },
+    {
+      "nombre": "Cubregrip Absorbente Kuikma x3",
+      "descripcion": "Pack de tres cubregrips absorbentes para renovar el agarre de tu raqueta.",
+      "categoria": "Accesorios",
+      "precio": 5500,
+      "imagen_url": "https://contents.mediadecathlon.com/p2883303/k$30426b9ac3adaa6c2567bd95a087d5be/picture.jpg?format=auto&f=640x0",
+      "enlace": "https://www.decathlon.cl/p/cubregrip-de-tenis-absorbente-x3/138885/c5m8340531",
+      "tienda": "Decathlon Chile",
+      "destacado": false
+    },
+    {
+      "nombre": "Muñequeras de Tenis Kuikma 100 (par)",
+      "descripcion": "Par de muñequeras de tejido elástico para absorber el sudor durante el juego.",
+      "categoria": "Accesorios",
+      "precio": 6000,
+      "imagen_url": "https://contents.mediadecathlon.com/p3023809/k$0c531c2042b2476db4bdd9b4a36084e6/picture.jpg?format=auto&f=640x0",
+      "enlace": "https://www.decathlon.cl/p/munequera-tenis-tp-100/2446/c382c227c344m8022237",
+      "tienda": "Decathlon Chile",
+      "destacado": false
+    },
+    {
+      "nombre": "Short de Tenis Kuikma TSH 100 Dry Hombre",
+      "descripcion": "Short liviano con bolsillos para pelotas y tejido que facilita el movimiento.",
+      "categoria": "Ropa",
+      "precio": 7000,
+      "imagen_url": "https://contents.mediadecathlon.com/p2875053/k$4e8f06bf8a684d9ac7f74e5ffc48c4b1/picture.jpg?format=auto&f=640x0",
+      "enlace": "https://www.decathlon.cl/p/short-tenis-hombre-tsh-100-dry/300096/c364c344m962194",
+      "tienda": "Decathlon Chile",
+      "destacado": false
+    },
+    {
+      "nombre": "Falda de Tenis Kuikma Dry Essential 100 Mujer",
+      "descripcion": "Falda de tenis con short integrado y tejido elástico para jugar con comodidad.",
+      "categoria": "Ropa",
+      "precio": 13000,
+      "imagen_url": "https://contents.mediadecathlon.com/p2875289/k$09c8814d6eea743a653b643c0e913b81/picture.jpg?format=auto&f=640x0",
+      "enlace": "https://www.decathlon.cl/p/falda-tenis-dry-mujer-essentiel-100-negro/305841/c382m8547380",
+      "tienda": "Decathlon Chile",
+      "destacado": false
+    }
+  ]
+}

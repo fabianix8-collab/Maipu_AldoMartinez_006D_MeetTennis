@@ -101,7 +101,7 @@ router.get('/', async (req, res) => {
       },
       error: null,
     });
-  } catch (err) {
+  } catch {
     return res.status(500).json({
       success: false,
       data: null,
@@ -243,7 +243,7 @@ router.post('/', async (req, res) => {
       data: vistaPara(data, userId),
       error: null,
     });
-  } catch (err) {
+  } catch {
     return res.status(500).json({
       success: false,
       data: null,
@@ -311,7 +311,7 @@ router.patch('/:id', async (req, res) => {
       data: vistaPara(data[0], userId),
       error: null,
     });
-  } catch (err) {
+  } catch {
     return res.status(500).json({
       success: false,
       data: null,
@@ -360,7 +360,7 @@ router.delete('/:id', async (req, res) => {
       data: { id: data[0].id },
       error: null,
     });
-  } catch (err) {
+  } catch {
     return res.status(500).json({
       success: false,
       data: null,
