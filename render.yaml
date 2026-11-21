@@ -22,7 +22,12 @@ services:
       # cross-origin directas. El proxy de Vercel funciona igual,
       # pero sin esto se deniegan los orígenes externos.
       - key: CORS_ORIGIN
-        value: https://meettennis.vercel.app
+        value: https://maipu-aldo-martinez-006-d-meet-tenn.vercel.app
+      # Origen del frontend para los enlaces de "olvidé mi contraseña".
+      # Debe ser el dominio real de Vercel y estar autorizado en
+      # Supabase -> Authentication -> URL Configuration.
+      - key: FRONTEND_URL
+        value: https://maipu-aldo-martinez-006-d-meet-tenn.vercel.app
       # Correos admin (separados por coma) para el panel de monitoreo,
       # mientras no se ejecute scripts/09_admin_rol.sql en Supabase.
       - key: MONITORING_EMAILS
