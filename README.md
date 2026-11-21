@@ -9,6 +9,9 @@ Proyecto académico de la sección Maipú, Aldo Martínez, 006D.
 - [Abrir MeetTennis](https://maipu-aldo-martinez-006-d-meet-tenn.vercel.app)
 - [Estado de la API](https://meettennis-api.onrender.com/api/health)
 
+Presentación final: [PowerPoint editable](Fase%203/Evidencias%20Grupales/MeetTennis_Presentacion_Final.pptx)
+y [PDF](Fase%203/Evidencias%20Grupales/MeetTennis_Presentacion_Final.pdf).
+
 El frontend se publica en Vercel y el backend en Render. La aplicación necesita
 conexión a internet para autenticación, datos, imágenes de productos y mapas.
 
