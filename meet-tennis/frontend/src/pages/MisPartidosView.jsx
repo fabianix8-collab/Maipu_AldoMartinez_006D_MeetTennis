@@ -23,6 +23,7 @@ import {
   TrendingDown,
   TrendingUp,
   User,
+  Users,
   X,
   XCircle,
 } from 'lucide-react';
@@ -743,7 +744,24 @@ function MisPartidosView({ seccion = 'resultados' }) {
             <p role="status" className={`${tarjeta} flex items-center justify-center gap-2 text-sm text-slate-400`}>
               <Loader2 className="h-4 w-4 animate-spin" />{t(" Cargando encuentros...")}</p>
           ) : errorCarga ? null : solicitudesAceptadas.length === 0 ? (
-            <p className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-800/40 p-5 text-center text-sm text-slate-500">{t("Aún no tienes encuentros aceptados. Revisa tus solicitudes o busca un rival.")}</p>
+            <div className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-800/40 p-5 text-center">
+              <p className="text-base font-semibold text-slate-100">{t('Aún no tienes encuentros aceptados.')}</p>
+              <p className="mt-2 text-sm text-slate-400">{t('Busca un rival o revisa tus invitaciones para coordinar tu próximo partido.')}</p>
+              <div className="mt-4 flex flex-col gap-2">
+                <Link
+                  to="/buscar-partido"
+                  className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
+                >
+                  <Users className="h-4 w-4" aria-hidden="true" />{t('Buscar rival')}
+                </Link>
+                <Link
+                  to={rutaPartidos('solicitudes')}
+                  className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-600/50 bg-slate-800/70 px-4 py-3 text-sm font-semibold text-slate-200 transition-colors hover:border-emerald-500/50 hover:text-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
+                >
+                  <Mail className="h-4 w-4" aria-hidden="true" />{t('Revisar solicitudes')}
+                </Link>
+              </div>
+            </div>
           ) : (
             <ul className="grid gap-3">
               {solicitudesAceptadas.map((solicitud) => {

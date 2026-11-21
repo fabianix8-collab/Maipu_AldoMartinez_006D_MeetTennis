@@ -9,6 +9,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import { setLanguage } from '../src/lib/i18n.js';
 import { english } from '../src/lib/translations/en.js';
+import { PUNTOS_RESULTADO, REQUISITOS_ASCENSO, resumenJugador } from '../../backend/src/lib/ranking.js';
 
 let server;
 before(async () => {
@@ -119,4 +120,64 @@ test('interface translation keys exist in the English catalogue', () => {
       visit(parsed.program, file);
     }
   }
+});
+
+test('ranking explains the actual scoring and promotion rules in both languages', async () => {
+  const { RankingGuide } = await server.ssrLoadModule('/src/components/RankingHelp.jsx');
+  const i18n = await server.ssrLoadModule('/src/lib/i18n.js');
+  const reglas = { puntosResultado: PUNTOS_RESULTADO, ascenso: REQUISITOS_ASCENSO };
+  for (const [language, example, explanation] of [
+    ['es', 'ganar 9 de 10 partidos válidos', 'Solo cuentan los resultados confirmados por tu rival.'],
+    ['en', 'winning 9 of 10 qualifying matches', 'Only results confirmed by your opponent count.'],
+  ]) {
+    i18n.setLanguage(language);
+    const html = render(RankingGuide, { reglas });
+    assert.ok(html.includes(example));
+    assert.ok(html.includes(explanation));
+    for (const points of [40, 25, 10]) assert.ok(html.includes(`>+${points}</td>`));
+    for (const points of [-5, -15, -25]) assert.ok(html.includes(`>${points}</td>`));
+    assert.match(html, /<details/);
+    assert.ok(!/\{\d+\}/.test(html));
+  }
+  i18n.setLanguage('es');
+});
+
+test('ranking progress uses qualifying results, exposes both requirements and respects the promotion boundary', async () => {
+  const { RankingProgress } = await server.ssrLoadModule('/src/components/RankingHelp.jsx');
+  const i18n = await server.ssrLoadModule('/src/lib/i18n.js');
+  i18n.setLanguage('es');
+  const resumen = (wins, losses, extraWins = 0, categoria = '4ta Categoría') => resumenJugador('yo', categoria, [
+    ...Array.from({ length: wins + losses + extraWins }, (_, index) => ({
+      jugador1_id: 'yo', jugador2_id: 'rival',
+      ganador_id: index < wins || index >= wins + losses ? 'yo' : 'rival',
+      categoria_j1: categoria,
+      categoria_j2: index < wins + losses ? categoria : '5ta Categoría',
+    })),
+  ]);
+  const progress = (yo, extra = {}) => render(RankingProgress, { yo, requisitos: REQUISITOS_ASCENSO, ...extra });
+  const empty = progress(resumen(0, 0));
+  assert.ok(empty.includes('0 jugados · mínimo 10'));
+  assert.ok(empty.includes('0% · mínimo 85%'));
+  assert.ok(!empty.includes('<button'));
+  const notEnough = progress(resumen(9, 0));
+  assert.ok(notEnough.includes('100% · mínimo 85%'));
+  assert.ok(!notEnough.includes('<button'));
+  const below = progress(resumen(28, 5));
+  assert.ok(below.includes('84,8% · mínimo 85%'));
+  assert.ok(!below.includes('<button'));
+  const eligible = progress(resumen(9, 1, 10));
+  assert.ok(eligible.includes('9 victorias en 10 partidos válidos.'));
+  assert.ok(eligible.includes('90% · mínimo 85%'));
+  assert.ok(eligible.includes('Subir a 3ra Categoría'));
+  assert.equal((eligible.match(/<progress /g) || []).length, 2);
+  assert.ok(progress(resumen(9, 1), { ascendiendo: true }).includes('disabled=""'));
+  const top = progress(resumen(10, 0, 0, '1ra Categoría'));
+  assert.ok(top.includes('el nivel más alto'));
+  assert.ok(!top.includes('<button'));
+  assert.ok(!top.includes('<progress'));
+  i18n.setLanguage('en');
+  const translated = progress(resumen(9, 1));
+  assert.ok(translated.includes('Move up to Category 3'));
+  assert.ok(translated.includes('9 wins in 10 qualifying matches.'));
+  i18n.setLanguage('es');
 });

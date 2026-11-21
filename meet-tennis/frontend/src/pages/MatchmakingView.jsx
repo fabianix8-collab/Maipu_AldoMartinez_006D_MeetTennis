@@ -54,6 +54,8 @@ const HORAS = (() => {
 const inputBase =
   'w-full rounded-xl border border-slate-700/50 bg-slate-800/70 px-4 py-3 text-slate-100 placeholder-slate-500 outline-none transition-colors focus:border-emerald-500';
 const labelClass = 'mb-1.5 block text-sm font-medium text-slate-400';
+const accionPrincipal = 'flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300';
+const accionSecundaria = 'flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-600/50 bg-slate-800/70 px-4 py-3 text-sm font-semibold text-slate-200 transition-colors hover:border-emerald-500/50 hover:text-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300';
 
 // La API guarda los días como números: 1 = Lunes ... 7 = Domingo.
 function nombresDias(dias) {
@@ -324,6 +326,12 @@ function MatchmakingView() {
   };
 
   const sinDisponibilidad = miDisponibilidad.length === 0;
+  const sinCoincidencias = rivales.length > 0 && rivales.every((rival) => rival.coincidencias.length === 0);
+
+  const ampliarBusqueda = () => {
+    setLoadingRivales(true);
+    setFiltroNivel('');
+  };
 
   const resumenRivales = useMemo(() => {
     if (loadingRivales) return 'Buscando rivales...';
@@ -486,6 +494,24 @@ function MatchmakingView() {
             {t(resumenRivales)}
           </h2>
 
+          {!loadingRivales && !errorRivales && sinCoincidencias && (
+            <div className="mb-4 rounded-2xl border border-dashed border-slate-700/50 bg-slate-800/40 p-5 text-center">
+              <p className="text-base font-semibold text-slate-100">{t('No hay horarios compatibles por ahora.')}</p>
+              <p className="mt-2 text-sm text-slate-400">{t('Puedes ajustar tu disponibilidad o proponer un partido a los rivales de la lista.')}</p>
+              <div className="mt-4 flex flex-col gap-2">
+                <Link to="/disponibilidad" className={accionPrincipal}>
+                  <CalendarClock className="h-4 w-4" aria-hidden="true" />
+                  {sinDisponibilidad ? t('Publicar disponibilidad') : t('Cambiar disponibilidad')}
+                </Link>
+                {filtroNivel && (
+                  <button type="button" onClick={ampliarBusqueda} className={accionSecundaria}>
+                    <Users className="h-4 w-4" aria-hidden="true" />{t('Ampliar búsqueda')}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
           {loadingRivales ? (
             <p className="flex items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-700/50 bg-slate-800/40 p-5 text-center text-sm text-slate-500">
               <Loader2 className="h-4 w-4 animate-spin" />{t("Buscando rivales compatibles...")}</p>
@@ -495,9 +521,25 @@ function MatchmakingView() {
               {t(errorRivales)}
             </p>
           ) : rivales.length === 0 ? (
-            <p className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-800/40 p-5 text-center text-sm text-slate-500">
-              {sinDisponibilidad ? t('Publica tu disponibilidad para encontrar rivales.') : t('No hay rivales con disponibilidad publicada. Prueba ampliar los filtros.')}
-            </p>
+            <div className="rounded-2xl border border-dashed border-slate-700/50 bg-slate-800/40 p-5 text-center">
+              <p className="text-base font-semibold text-slate-100">
+                {filtroNivel ? t('No encontramos rivales en esta categoría.') : t('Aún no hay rivales con disponibilidad publicada.')}
+              </p>
+              <p className="mt-2 text-sm text-slate-400">
+                {filtroNivel ? t('Amplía la búsqueda para ver jugadores de todas las categorías.') : t('Publica o ajusta tus horarios para facilitar las próximas coincidencias.')}
+              </p>
+              <div className="mt-4 flex flex-col gap-2">
+                {filtroNivel && (
+                  <button type="button" onClick={ampliarBusqueda} className={accionPrincipal}>
+                    <Users className="h-4 w-4" aria-hidden="true" />{t('Ampliar búsqueda')}
+                  </button>
+                )}
+                <Link to="/disponibilidad" className={filtroNivel ? accionSecundaria : accionPrincipal}>
+                  <CalendarClock className="h-4 w-4" aria-hidden="true" />
+                  {sinDisponibilidad ? t('Publicar disponibilidad') : t('Cambiar disponibilidad')}
+                </Link>
+              </div>
+            </div>
           ) : (
             <ul className="grid gap-4">
               {rivales.map((rival) => {

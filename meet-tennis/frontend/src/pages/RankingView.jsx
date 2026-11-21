@@ -4,14 +4,12 @@ import { useEffect, useState } from 'react';
 import {
   AlertCircle,
   ArrowLeft,
-  ArrowUpRight,
   Award,
   CheckCircle2,
   ChevronRight,
   ClipboardCheck,
   Crown,
   Flame,
-  Info,
   Layers,
   ListOrdered,
   Loader2,
@@ -25,6 +23,7 @@ import {
 import { Link } from 'react-router-dom';
 import BrandLogo from '../components/BrandLogo.jsx';
 import TennisBackground from '../components/TennisBackground.jsx';
+import { RankingGuide, RankingProgress } from '../components/RankingHelp.jsx';
 import { apiFetch } from '../lib/api.js';
 import { getStoredAuth, iniciales } from '../lib/formato.js';
 
@@ -50,6 +49,7 @@ function RankingView() {
   // servidor a partir de los partidos confirmados.
   const [ranking, setRanking] = useState({});
   const [yo, setYo] = useState(null);
+  const [reglas, setReglas] = useState(null);
   const [loadingRanking, setLoadingRanking] = useState(true);
   const [rankingError, setRankingError] = useState('');
   const [recargar, setRecargar] = useState(0);
@@ -70,6 +70,7 @@ function RankingView() {
         if (response.ok && result.success && result.data) {
           setRanking(result.data.ranking || {});
           setYo(result.data.yo);
+          setReglas(result.data.reglas?.ascenso ? result.data.reglas : null);
           setRankingError('');
         } else {
           setRankingError(result.error || 'No se pudo cargar la tabla de posiciones.');
@@ -237,25 +238,8 @@ function RankingView() {
             </span>
           </div>
 
-          {/* Recomendación de ascenso: solo si el rendimiento está muy por
-              encima del nivel actual. */}
-          {puedeAscender && proximaCategoria && (
-            <div className="mt-5 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-4">
-              <p className="text-sm text-slate-200">{t("Hemos notado que tu rendimiento está por encima del nivel, ¿deseas subir de categoría?")}</p>
-              <button
-                type="button"
-                onClick={solicitarAscenso}
-                disabled={ascendiendo}
-                className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 font-semibold text-slate-100 transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {ascendiendo ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  <ArrowUpRight className="h-5 w-5" />
-                )}{t("Subir a ")}{t(proximaCategoria)}
-              </button>
-            </div>
-          )}
+          <p className="mt-4 text-sm text-slate-400">{t('Los puntos determinan tu posición dentro de tu categoría.')}</p>
+          <a href="#reglas-ranking" className="mt-2 inline-flex min-h-11 items-center rounded-lg text-sm font-semibold text-emerald-300 hover:text-emerald-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300">{t('Entender los puntos y el ascenso')}</a>
 
           {status.type === 'success' && (
             <div className="mt-4 flex items-start gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-3 text-sm text-emerald-300">
@@ -270,6 +254,10 @@ function RankingView() {
             </div>
           )}
         </section>
+
+        {!loadingRanking && !rankingError && yo && reglas && (
+          <RankingProgress yo={yo} requisitos={reglas.ascenso} ascendiendo={ascendiendo} onAscender={solicitarAscenso} />
+        )}
 
         {/* Resumen de estadísticas */}
         <section className="mt-6 grid grid-cols-2 gap-3">
@@ -290,7 +278,8 @@ function RankingView() {
             <p className="mt-3 text-2xl font-bold text-slate-100">
               {t(estadisticas.efectividad)}%
             </p>
-            <p className="text-xs text-slate-400">{t("Efectividad")}</p>
+            <p className="text-sm text-slate-300">{t('Efectividad general')}</p>
+            <p className="mt-1 text-xs text-slate-400">{t('Victorias ante rivales de cualquier categoría')}</p>
           </div>
 
           <div className="rounded-2xl border border-slate-700/50 bg-slate-900/60 p-4 shadow-2xl backdrop-blur-md">
@@ -526,24 +515,7 @@ function RankingView() {
           </div>
         </section>
 
-        {/* Cómo funciona */}
-        <section className="mt-6 rounded-2xl border border-slate-700/50 bg-slate-900/60 p-5 shadow-2xl backdrop-blur-md">
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-300">
-            <Info className="h-4 w-4 text-emerald-400" />{t("¿Cómo funciona el ranking?")}</h2>
-          <ul className="mt-3 grid gap-2 text-xs text-slate-400">
-            <li className="flex items-start gap-2">
-              <Layers className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" />{t("Cada categoría tiene su propia tabla de posiciones. Compites contra jugadores de tu mismo nivel, como en el tenis real.")}</li>
-            <li className="flex items-start gap-2">
-              <TrendingUp className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" />{t("Ganar a un rival de categoría superior suma")}{' '}
-              <span className="font-semibold text-emerald-300">{t("+40 pts")}</span>{t(", a uno igual")}{' '}
-              <span className="font-semibold text-emerald-300">{t("+25 pts")}</span>{t(" y a uno inferior")}{' '}
-              <span className="font-semibold text-emerald-300">{t("+10 pts")}</span>{t(". Perder resta puntos.")}</li>
-            <li className="flex items-start gap-2">
-              <TrendingUp className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" />{t("Si tu rendimiento está muy por encima de tu nivel actual (alta tasa de victorias sostenida), el sistema te recomendará subir a la siguiente categoría.")}</li>
-            <li className="flex items-start gap-2">
-              <ArrowUpRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-300" />{t("Al ascender tu perfil se actualiza y tu desafío parte desde cero en la nueva categoría. Subir cuesta, como debe ser.")}</li>
-          </ul>
-        </section>
+        <RankingGuide reglas={reglas} />
 
         <p className="mt-auto pt-10 text-center text-xs text-slate-500">{t("Registra tus partidos para escalar posiciones dentro de tu categoría.")}</p>
       </div>

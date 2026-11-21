@@ -121,3 +121,37 @@ test('en 1ra categoría no hay ascenso', () => {
   assert.equal(resumen.proximaCategoria, null);
   assert.equal(resumen.puedeAscender, false);
 });
+
+test('el progreso de ascenso excluye rivales inferiores y partidos de categorías anteriores', () => {
+  const partidos = [
+    ...Array.from({ length: 9 }, () => partido({ gano: true, miCategoria: '4ta Categoría', rivalCategoria: '4ta Categoría' })),
+    partido({ gano: false, miCategoria: '4ta Categoría', rivalCategoria: '3ra Categoría' }),
+    ...Array.from({ length: 10 }, () => partido({ gano: true, miCategoria: '4ta Categoría', rivalCategoria: '5ta Categoría' })),
+    partido({ gano: true }),
+  ];
+  const resumen = resumenJugador(YO, '4ta Categoría', partidos);
+  assert.equal(resumen.jugados, 20);
+  assert.equal(resumen.efectividad, 95);
+  assert.equal(resumen.partidosValidos, 10);
+  assert.equal(resumen.victoriasValidas, 9);
+  assert.equal(resumen.efectividadAscenso, 90);
+  assert.equal(resumen.puedeAscender, true);
+});
+
+test('el progreso no redondea hacia arriba el umbral de ascenso y admite exactamente el 85%', () => {
+  const resultados = (ganados, perdidos) => [
+    ...Array.from({ length: ganados }, () => partido({ gano: true })),
+    ...Array.from({ length: perdidos }, () => partido({ gano: false })),
+  ];
+  const debajo = resumenJugador(YO, '5ta Categoría', resultados(28, 5));
+  assert.equal(debajo.efectividad, 85);
+  assert.ok(debajo.efectividadAscenso < 85);
+  assert.equal(debajo.puedeAscender, false);
+  const justo = resumenJugador(YO, '5ta Categoría', resultados(17, 3));
+  assert.equal(justo.efectividadAscenso, 85);
+  assert.equal(justo.puedeAscender, true);
+  const vacio = resumenJugador(YO, '5ta Categoría', []);
+  assert.equal(vacio.partidosValidos, 0);
+  assert.equal(vacio.efectividadAscenso, 0);
+  assert.equal(vacio.puedeAscender, false);
+});

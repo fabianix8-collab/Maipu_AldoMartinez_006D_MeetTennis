@@ -4,7 +4,7 @@
 // Categorías ordenadas de MAYOR a MENOR nivel competitivo.
 // En el tenis cada categoría es un circuito separado: los jugadores
 // compiten dentro de su categoría y solo ascienden al demostrar un
-// nivel sostenido (puntos acumulados + victorias válidas).
+// nivel sostenido contra rivales de igual o superior categoría.
 export const CATEGORIAS = [
   { nombre: '1ra Categoría', orden: 1 },
   { nombre: '2da Categoría', orden: 2 },
@@ -24,6 +24,8 @@ export const PUNTOS_RESULTADO = {
   Ganado: { superior: 40, igual: 25, inferior: 10 },
   Perdido: { superior: -5, igual: -15, inferior: -25 },
 };
+
+export const REQUISITOS_ASCENSO = { partidosMinimos: 10, porcentajeVictorias: 85 };
 
 const ORDEN_POR_CATEGORIA = Object.fromEntries(
   CATEGORIAS.map((c) => [c.nombre, c.orden]),
@@ -98,16 +100,21 @@ export function resumenJugador(userId, nivel, partidos) {
 
   const proximaCategoria = categoriaSuperior(categoria);
   const puntos = Math.max(0, total);
+  const efectividadAscenso = partidosValidos.length > 0
+    ? (victoriasValidas / partidosValidos.length) * 100
+    : 0;
   const puedeAscender = Boolean(
     proximaCategoria &&
-      partidosValidos.length >= 10 &&
-      victoriasValidas / partidosValidos.length >= 0.85,
+      partidosValidos.length >= REQUISITOS_ASCENSO.partidosMinimos &&
+      efectividadAscenso >= REQUISITOS_ASCENSO.porcentajeVictorias,
   );
 
   return {
     categoria,
     puntos,
     victoriasValidas,
+    partidosValidos: partidosValidos.length,
+    efectividadAscenso,
     jugados: enCategoria.length,
     ganados,
     perdidos: enCategoria.length - ganados,

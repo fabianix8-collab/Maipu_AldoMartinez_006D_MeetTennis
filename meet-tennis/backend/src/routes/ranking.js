@@ -6,6 +6,7 @@ import {
   CATEGORIAS,
   NOMBRES_CATEGORIAS,
   PUNTOS_RESULTADO,
+  REQUISITOS_ASCENSO,
   resumenJugador,
 } from '../lib/ranking.js';
 
@@ -122,6 +123,7 @@ router.get('/', async (req, res) => {
         reglas: {
           categorias: CATEGORIAS,
           puntosResultado: PUNTOS_RESULTADO,
+          ascenso: REQUISITOS_ASCENSO,
         },
       },
       error: null,
